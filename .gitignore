@@ -2,3 +2,11 @@ node_modules
 build
 .vscode
 .history
+.env
+coverage
+coverage.json
+typechain
+
+#Hardhat files
+cache
+artifacts

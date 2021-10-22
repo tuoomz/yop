@@ -1,25 +1,40 @@
 # Contracts for Vaults & Strategies
 
 ## Prerequisites
-* nodejs v16+
-* Solidity compiler v0.8.7
-* Truffle suite is installed
-* A local Ethereum node, it is recommended to use the Ganache desktop app from Truffle.
 
-## Run
-* Start the local Ethereum node via the Ganache desktop app or the cli and make sure it is running
-* Check the network configuration in the `truffle-config.js` file to make sure it is pointing to the local Ethereum node
-* Run the following command:
-    ```
-    truffle compile
-    truffle migrate
-    ```
-* The contracts should be deployed and you can interact with it via the Ganache app.
+- nodejs v16+
+- Solidity compiler v0.8.9
+- It uses [hardhat](https://hardhat.org/), no need to install anything, just run `npm install .`
+
+## Build
+
+```
+npx hardhat compile
+```
 
 ## Test
-* Start the local Ethereum node via the Ganache desktop app or the cli and make sure it is running
-* Check the network configuration in the `truffle-config.js` file to make sure it is pointing to the local Ethereum node
-* Run
-    ```
-    truffle test
-    ```
+
+```
+npx hardhat test
+```
+
+## Other available commands
+
+```
+npx hardhat accounts
+npx hardhat clean
+npx hardhat node
+npx hardhat help
+REPORT_GAS=true npx hardhat test
+npx hardhat coverage
+npx hardhat run scripts/deploy.ts
+TS_NODE_FILES=true npx ts-node scripts/deploy.ts
+npx eslint '**/*.{js,ts}'
+npx eslint '**/*.{js,ts}' --fix
+npx prettier '**/*.{json,sol,md}' --check
+npx prettier '**/*.{json,sol,md}' --write
+npx solhint 'contracts/**/*.sol'
+npx solhint 'contracts/**/*.sol' --fix
+```
+
+For more information, please checkout [Hardhat docs](https://hardhat.org/getting-started/).

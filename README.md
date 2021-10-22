@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- nodejs v16+
+- Nodejs LTS (v14). It is recommended to use [nvm](https://github.com/nvm-sh/nvm) to support multiple versions of nodejs locally.
 - Solidity compiler v0.8.9
 - It uses [hardhat](https://hardhat.org/), no need to install anything, just run `npm install .`
 

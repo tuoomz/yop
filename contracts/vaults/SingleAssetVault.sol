@@ -5,8 +5,11 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./AccessControlledVault.sol";
+import "./BaseVault.sol";
 
 interface ISingleAssetVault is IAccessControlledVault {
+  event DepositLimitUpdated(uint256 _limit);
+
   function totalAsset() external view returns (uint256);
 
   function maxAvailableShares() external view returns (uint256);
@@ -62,6 +65,6 @@ interface ISingleAssetVault is IAccessControlledVault {
   ) external returns (uint256);
 }
 
-contract SingleAssetVault is AccessControlledVault, Pausable, ReentrancyGuard {
+contract SingleAssetVault is BaseVault, AccessControlledVault, Pausable, ReentrancyGuard {
   ERC20 private token;
 }

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "./BaseVault.sol";
-
 // this interface will allow us to implement different types of access policies for Vaults.
 // e.g. whitelist/blacklist based, NFT based etc. Then a vault can reuse these to control access to them.
 interface IVaultAccessPolicy {
@@ -10,7 +8,7 @@ interface IVaultAccessPolicy {
   function canAccess(address vault, address user) external returns (bool);
 }
 
-interface IAccessControlledVault is IBaseVault {
+interface IAccessControlledVault {
   /// @notice access policies set on the vault
   function accessPolicies() external view returns (address[] memory);
 
@@ -19,6 +17,6 @@ interface IAccessControlledVault is IBaseVault {
   function removeAccessPolicy(address _accessPolicy) external;
 }
 
-contract AccessControlledVault is BaseVault {
+contract AccessControlledVault {
   address[] public accessPolicies;
 }

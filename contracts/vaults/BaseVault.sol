@@ -1,69 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "./Manageable.sol";
+import "./Guardianable.sol";
+import "./StrategyManager.sol";
 
 // the Vault itself also represents an ERC20 token, which means it also inherits all methods that are available on the ERC20 interface.
 // This token is the shares that the users will get when they deposit money into the Vault
-interface IBaseVault is IERC20 {
-  /// @notice parameters associated with a strategy
-  struct StrategyParams {
-    uint256 performanceFee;
-    uint256 activation;
-    uint256 debtRation;
-    uint256 minDebtPerHarvest;
-    uint256 maxDebtPerHarvest;
-    uint256 lastReport;
-    uint256 totalDebt;
-    uint256 totalGain;
-    uint256 totalLoss;
-  }
-
-  // *** Events (not including events from ERC20) *** //
-  event StrategyAdded(
-    address indexed _strategyAddress,
-    uint256 _debtRatio,
-    uint256 _minDebtPerHarvest,
-    uint256 _maxDebtPerHarvest,
-    uint256 _performanceFee
-  );
-  event StrategyReported(
-    address indexed _strategyAddress,
-    uint256 _gain,
-    uint256 _loss,
-    uint256 _debtPaid,
-    uint256 _totalGain,
-    uint256 _totalLoss,
-    uint256 _totalDebt,
-    uint256 _debtAdded,
-    uint256 _debtRatio
-  );
-
-  event EmergencyShutdownActivated();
-  event EmergencyShutdownDeactivated();
-  event WithdrawQueueUpdated(address[] _queue);
-  event StrategyDebtRatioUpdated(address indexed _strategy, uint256 _debtRatio);
-  event StrategyMinDebtPerHarvestUpdated(address indexed _strategy, uint256 _minDebtPerHarvest);
-  event StrategyMaxDebtPerHarvestUpdated(address indexed _strategy, uint256 _maxDebtPerHarvest);
-  event StrategyPerformanceFeeUpdated(address indexed _strategy, uint256 _performanceFee);
-  event StrategyMigrated(address indexed _old, address indexed, address _new);
-  event StrategyRevoked(address indexed _strategy);
-  event StrategyRemovedFromQueue(address indexed _strategy);
-  event StrategyAddedToQueue(address indexed _strategy);
+interface IBaseVault {
+  event EmergencyShutdown(bool _active);
 
   // *** The following are read functions and can be called by anyone *** //
   // some basic information about the vault
   function decimal() external view returns (uint256);
-
-  // admins for the Vault. We could switch to a role-based system.
-  function governance() external view returns (address);
-
-  function management() external view returns (address);
-
-  function guardian() external view returns (address);
 
   function rewards() external view returns (address);
 
@@ -71,27 +26,11 @@ interface IBaseVault is IERC20 {
 
   function performanceFee() external view returns (uint256);
 
-  /// @notice get the details for a given strategy
-  function strategies(address strategy) external view returns (StrategyParams memory);
-
-  /// @notice return the position of the given strategy in the withdrawQueue
-  function withdrawQueue(address strategy) external view returns (uint256);
-
   /// @notice if the vault is in emergencyShutdown mode
   function emergencyShutdown() external view returns (bool);
 
-  /// @notice sum of all strategies' debt ratio settings
-  function debtRatio() external view returns (uint256);
-
-  /// @notice the timestamp of the last time a strategy reported back
-  function lastReport() external view returns (uint256);
-
   /// @notice when the vault was created
   function activation() external view returns (uint256);
-
-  function setGovenance(address _govenor) external;
-
-  function setManagement(address _management) external;
 
   function setRewards(address _rewards) external;
 
@@ -101,155 +40,149 @@ interface IBaseVault is IERC20 {
 
   function setLockedProfileDegradation(uint256 _degradation) external;
 
-  function addStrategy(
-    address _strategy,
-    uint256 _debtRation,
-    uint256 _minDebtPerHarvest,
-    uint256 _maxDebtPerHarvest,
-    uint256 _performanceFee,
-    uint256 _profitLimitRatio,
-    uint256 _lossLimitRatio
-  ) external;
-
-  function updateStrategyPerformance(address _strategy, uint256 _performanceFee) external;
-
-  function migrateStrategy(address _oldStrategy, address _newStrategy) external;
-
   /// @notice remove tokens that are not managed by the Vault to the govenance account
   function sweep(address _token, uint256 _amount) external;
 
-  function acceptGovenance() external; // this can be only called by the pending govenance
-
-  // *** The following are write functions that can only be called by the govenance or the management *** //
-  function setWithdrawQueue(address[] calldata _queue) external;
-
-  function updateStrategyDebtRatio(address _strategy, uint256 _debtRation) external;
-
-  function updateStrategyMinDebtHarvest(address _strategy, uint256 _minDebtPerHarvest) external;
-
-  function updateStrategyMaxDebtHarvest(address _strategy, uint256 _maxDebtPerHarvest) external;
-
-  function addStrategyToWithdrawQueue(address _strategy) external;
-
-  function removeStrategyFromWithdrawQueue(address _strategy) external;
-
   // *** The following are write functions that can only be called by the govenance or the guardian *** //
-  function setGuardian(address _guardian) external;
-
   function setEmergencyShutdown(bool _active) external;
-
-  function revokeStrategy(address strategy) external; // this can also be called by the strategy itself
 }
 
-contract BaseVault is IBaseVault, ERC20 {
-  event GovenanceUpdated(address _govenance);
-  event GovenanceProposed(address _pendingGovenance);
-  event ManagementUpdated(address _management);
+abstract contract BaseVault is IBaseVault, ERC20Permit, Manageable, Guardianable, StrategyManager {
+  using SafeERC20 for IERC20;
+  using Address for address;
+  using SafeMath for uint256;
+
   event RewardsUpdated(address _rewards);
-  event DepositLimitUpdated(uint256 _limit);
   event PerformanceFeeUpdated(uint256 _performance);
   event ManagementFeeUpdated(uint256 _managementFee);
-  event GuardianUpdated(uint256 _guardian);
 
-  /// @dev the address of the current governance
-  address public governance;
-  /// @dev the address of the pending governance
-  address public pendingGovernance;
-  /// @dev the address of the management for the vault
-  address public management;
-  /// @dev the address of the guardian for the vault
-  address public guardian;
-
+  uint256 public activation;
   /// ### Management related
-  uint256 public managementFee;
+  ///@dev 1 basis point is 0.01% and 100% is 10000 basis points
+  uint256 public constant MAX_BASIS_POINTS = 10_000;
+  uint256 public managementFee = 0; // no management fee by default
   /// @dev fees collected from the strategies
-  uint256 public performanceFee;
+  uint256 public performanceFee = 200; // 2% performance fee by default
   /// @dev rewards contract to send the fees collected
   address public rewards;
 
   // ### Vault base properties
   uint8 private vaultDecimals;
 
-  // ### Strategies related
-  /// @dev maximum number of strategies allowed for the withdraw queue
-  uint256 constant MAX_STRATEGIES = 20;
+  uint256 public constant DEGRADATION_COEFFICIENT = 10**18;
+  uint256 public lockedProfitDegradation = (DEGRADATION_COEFFICIENT * 46) / 10**6; //degradation for locked profit in seconds. If the degradation period is 6 hours then every second is (1/(60*60*6) = 0.000046).
 
-  /// @dev the addresses of strategies for the Vault
-  mapping(address => StrategyParams) public strategies;
+  bool public emergencyShutdown = false;
 
-  /// @dev the ordering that `withdraw` uses to determine wich strategies to pull funds from
-  ///      should be determined by the ?
-  address[MAX_STRATEGIES] public withdrawQueue;
-
-  // ### Assets related
-  uint256 public depositLimit;
-  uint256 public totalAsset;
-
-  modifier onlyGovernance() {
-    require(_msgSender() == governance, "govenance only");
-    _;
-  }
-
-  modifier onlyGovernanceOrManagement() {
-    require((_msgSender() == governance) || (_msgSender() == management), "govenance or management only");
-    _;
-  }
-
-  modifier onlyGovernanceOrGuardian() {
-    require((_msgSender() == governance) || (_msgSender() == guardian), "govenance or guardian only");
-    _;
-  }
-
+  /// @dev BaseVault constructor. The deployer will be set as the governance, management and guardian of the vault by default.
+  /// @param _name the name of the vault
+  /// @param _symbol the symbol of the vault
+  /// @param _decimals vault decimals
+  /// @param _performanceFeeBPS basis points for the performance fee. 1 basis point is 0.01% and 100% is 10000 basis points.
+  /// @param _managementFeeBPS basis points for the management fee. 1 basis point is 0.01% and 100% is 10000 basis points.
+  /// @param _rewards the address to send the collected fees to
   constructor(
     string memory _name,
     string memory _symbol,
     uint8 _decimals,
+    uint256 _performanceFeeBPS,
+    uint256 _managementFeeBPS,
     address _rewards
-  ) ERC20(_name, _symbol) {
+  ) ERC20(_name, _symbol) ERC20Permit(_name) {
     require(_rewards != address(0), "invalid rewards address");
+    require(_performanceFeeBPS < MAX_BASIS_POINTS, "performance fee is over 100%");
+    require(_managementFeeBPS < MAX_BASIS_POINTS, "management fee is over 100%");
     vaultDecimals = _decimals;
+    activation = block.timestamp;
     address sender = _msgSender();
-    governance = sender;
-    management = sender;
-    guardian = sender;
+    _updateGovernance(sender);
+    _updateManagement(sender);
+    _updateGuardian(sender);
+    _updateRewards(_rewards);
+    _updatePerformanceFee(_performanceFeeBPS);
+    _updateManagementFee(_managementFeeBPS);
   }
 
+  ///@notice returns decimals value of the vault
   function decimals() public view override returns (uint8) {
     return vaultDecimals;
   }
 
-  function proposeGovenance(address _pendingGovernance) external onlyGovernance {
-    require(_pendingGovernance != address(0), "governance address is not valid");
-    require(_pendingGovernance != governance, "already the governance");
-    pendingGovernance = _pendingGovernance;
-    emit GovenanceProposed(_pendingGovernance);
-  }
-
-  function acceptGovenance() external {
-    require(pendingGovernance = _msgSender(), "invalid pending governance");
-    governance = pendingGovernance;
-    emit GovenanceUpdated(governance);
-  }
-
-  function setManagement(address _management) external onlyGovernance {
-    require(_management != address(0), "management address is not valid");
-    require(_management != management, "already the management");
-    management = _management;
-    emit ManagementUpdated(management);
-  }
-
+  ///@notice set the wallet address to send the collected fees to. Only can be called by the governance.
+  ///@param _rewards the new wallet address to send the fees to.
   function setRewards(address _rewards) external onlyGovernance {
     require(_rewards != address(0), "rewards address is not valid");
     require(_rewards != rewards, "already the rewards");
+    _updateRewards(_rewards);
+  }
+
+  ///@notice set the performance fee in basis points. 1 basis point is 0.01% and 100% is 10000 basis points.
+  function setPerformanceFee(uint256 _performanceFee) external onlyGovernance {
+    require(_performanceFee < MAX_BASIS_POINTS, "performance fee is over 100%");
+    _updatePerformanceFee(_performanceFee);
+  }
+
+  ///@notice set the management fee in basis points. 1 basis point is 0.01% and 100% is 10000 basis points.
+  function setManagementFee(uint256 _managementFee) external onlyGovernance {
+    require(_managementFee < MAX_BASIS_POINTS, "management fee is over 100%");
+    _updateManagementFee(_managementFee);
+  }
+
+  ///@notice Changes the locked profit degradation.
+  ///@param _degradation The rate of degradation in percent per second scaled to 1e18.
+  function setLockedProfileDegradation(uint256 _degradation) external onlyGovernance {
+    require(_degradation <= DEGRADATION_COEFFICIENT, "degradation value is too large");
+    lockedProfitDegradation = _degradation;
+  }
+
+  /**
+   * @notice Activates or deactivates Vault mode where all Strategies go into full
+   * withdrawal.
+   * During Emergency Shutdown:
+   *   1. No Users may deposit into the Vault (but may withdraw as usual.)
+   *   2. Governance may not add new Strategies.
+   *   3. Each Strategy must pay back their debt as quickly as reasonable to minimally affect their position.
+   *   4. Only Governance may undo Emergency Shutdown.
+   *
+   *   See contract level note for further details.
+   *
+   *   This may only be called by governance or the guardian.
+   * @param _active If true, the Vault goes into Emergency Shutdown. If false, the Vault
+   * goes back into Normal Operation.
+   */
+  function setEmergencyShutdown(bool _active) external {
+    if (_active) {
+      require(_msgSender() == guardian || _msgSender() == governance, "only guardian or governance");
+    } else {
+      require(_msgSender() == governance, "only governance");
+    }
+    emergencyShutdown = _active;
+    emit EmergencyShutdown(_active);
+  }
+
+  function sweep(address _token, uint256 _amount) external onlyGovernance {
+    require(_isVaultToken(_token) == false, "_token is vault token");
+    IERC20 token = IERC20(_token);
+    if (_amount == type(uint256).max) {
+      _amount = token.balanceOf(address(this));
+    }
+    token.safeTransfer(governance, _amount);
+  }
+
+  function _updateRewards(address _rewards) internal {
     rewards = _rewards;
     emit RewardsUpdated(rewards);
   }
 
-  function setPerformanceFee(uint256 _performanceFee) external onlyGovernance {}
+  function _updatePerformanceFee(uint256 _performanceFee) internal {
+    performanceFee = _performanceFee;
+    emit PerformanceFeeUpdated(performanceFee);
+  }
 
-  function setManagementFee(uint256 _managementFee) external onlyGovernance {}
+  function _updateManagementFee(uint256 _managementFee) internal {
+    managementFee = _managementFee;
+    emit ManagementFeeUpdated(managementFee);
+  }
 
-  function setLockedProfileDegradation(uint256 _degradation) external onlyGovernance {}
-
-  function setDepositLimit(uint256 _depositLimit) external onlyGovernance {}
+  function _isVaultToken(address _token) internal pure virtual returns (bool);
 }

@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "./Manageable.sol";
 import "./Guardianable.sol";
 import "./StrategyManager.sol";
+import "../access/AccessControlManager.sol";
 
 // the Vault itself also represents an ERC20 token, which means it also inherits all methods that are available on the ERC20 interface.
 // This token is the shares that the users will get when they deposit money into the Vault
@@ -47,7 +48,14 @@ interface IBaseVault {
   function setEmergencyShutdown(bool _active) external;
 }
 
-abstract contract BaseVault is IBaseVault, ERC20Permit, Manageable, Guardianable, StrategyManager {
+abstract contract BaseVault is
+  IBaseVault,
+  ERC20Permit,
+  Manageable,
+  Guardianable,
+  StrategyManager,
+  AccessControlManager
+{
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -87,8 +95,9 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Manageable, Guardianable
     uint8 _decimals,
     uint256 _performanceFeeBPS,
     uint256 _managementFeeBPS,
-    address _rewards
-  ) ERC20(_name, _symbol) ERC20Permit(_name) {
+    address _rewards,
+    address _accessControl
+  ) AccessControlManager(_accessControl) ERC20(_name, _symbol) ERC20Permit(_name) {
     require(_rewards != address(0), "invalid rewards address");
     require(_performanceFeeBPS < MAX_BASIS_POINTS, "performance fee is over 100%");
     require(_managementFeeBPS < MAX_BASIS_POINTS, "management fee is over 100%");

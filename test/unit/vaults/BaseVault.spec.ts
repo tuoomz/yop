@@ -7,7 +7,15 @@ describe("BaseVault", function () {
   beforeEach(async () => {
     const [owner, addr1] = await ethers.getSigners();
     const BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
-    baseVault = await BaseVaultMock.deploy("test vault", "tVault", 18, 100, addr1.address, owner.address, owner.address);
+    baseVault = await BaseVaultMock.deploy(
+      "test vault",
+      "tVault",
+      18,
+      owner.address,
+      owner.address,
+      addr1.address,
+      ethers.constants.AddressZero
+    );
     await baseVault.deployed();
   });
 

@@ -33,8 +33,8 @@ contract Governable is IGovernable, Context {
   }
 
   /// @dev the deployer of the contract will be set as the initial governance
-  constructor() {
-    _updateGovernance(_msgSender());
+  constructor(address _governanace) {
+    _updateGovernance(_governanace);
   }
 
   ///@notice propose a new governance of the vault. Only can be called by the existing governance.
@@ -57,7 +57,7 @@ contract Governable is IGovernable, Context {
   }
 
   /// @dev provides an internal function to allow reduce the contract size
-  function _onlyGoverance() internal view {
+  function _onlyGovernance() internal view {
     require(_msgSender() == governance, "governance only");
   }
 }

@@ -2,7 +2,7 @@
 pragma solidity =0.8.9;
 
 import {ICustomHealthCheck} from "../interfaces/ICustomHealthCheck.sol";
-import {IStrategy} from "../interfaces/Strategy.sol";
+import {IStrategy} from "../interfaces/IStrategy.sol";
 
 struct Limits {
   uint256 profitLimitRatio;

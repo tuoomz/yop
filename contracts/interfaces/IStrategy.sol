@@ -58,6 +58,8 @@ interface IStrategy {
 
   function setRewards(address _rewards) external;
 
+  function setVault(address _vault) external;
+
   /// @notice `minReportDelay` is the minimum number of blocks that should pass for `harvest()` to be called.
   function setMinReportDelay(uint256 _delay) external;
 

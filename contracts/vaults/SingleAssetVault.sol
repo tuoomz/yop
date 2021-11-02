@@ -7,200 +7,52 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IHealthCheck.sol";
-import "./BaseVault.sol";
+import "../interfaces/IStrategy.sol";
+import "./SingleAssetVaultBase.sol";
 
-interface ISingleAssetVault is IBaseVault {
-  function totalAsset() external view returns (uint256);
-
-  function maxAvailableShares() external view returns (uint256);
-
-  /// @notice the price of the Vault token against the underlying token
-  function pricePerShare() external view returns (uint256);
-
-  /// @notice outstanding debt for a given strategy. Outstanding debt is the over limit debt that a strategy has borrowed
-  function debtOutstanding(address strategy) external view returns (uint256);
-
-  /// @notice the amount of credits available to a strategy. Its value equals to (canBeBorrowed - actualBorrowed)
-  function creditAvailable(address strategy) external view returns (uint256);
-
-  /// @notice the maximum amount of underlying tokens that can be deposited into the vault
-  function depositLimit() external view returns (uint256);
-
-  /// @notice the remaining amount of underlying tokens that still can be deposited into the vault before reaching the limit
-  function availableDepositLimit() external view returns (uint256);
-
-  /// @notice expected returns for the given strategy
-  function expectedReturn(address strategy) external view returns (uint256);
-
-  /// @notice all the underlying tokens borrowed by all the strategies
-  function totalDebt() external view returns (uint256);
-
-  /// @notice the timestamp of the last time a strategy reported back
-  function lastReport() external view returns (uint256);
-
-  function tokenAddress() external view returns (address);
-
-  function setDepositLimit(uint256 _depositLimit) external;
-
-  function setMaxTotalDebtRatio(uint256 _maxDebtRatio) external;
-
-  function sweep(address _token, uint256 _amount) external;
-
-  /// @notice deposit the given amount into the vault, and return the number of shares
-  function deposit(uint256 _amount) external returns (uint256);
-
-  /// @notice burn the given amount of shares from the vault, and return the number of underlying tokens recovered
-  function withdraw(
-    uint256 _shares,
-    address _recipient,
-    uint256 _maxLoss
-  ) external returns (uint256);
-
-  function report(
-    uint256 _gain,
-    uint256 _loss,
-    uint256 _debtPayment
-  ) external returns (uint256);
-}
-
-contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyGuard {
+contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
-  using Math for *;
 
-  event DepositLimitUpdated(uint256 _limit);
-
-  /// @notice total value borrowed by all the strategies
-  uint256 public totalDebt;
-
-  /// @notice the timestamp of the last report received from a strategy
-  uint256 public lastReport;
-
-  /// @notice the limit of the total asset this vault can hold
-  uint256 public depositLimit = type(uint256).max;
-
-  /// @notice how much profit is locked and cant be withdrawn
-  uint256 public lockedProfit;
-
-  uint256 public constant SECONDS_PER_YEAR = 31_556_952; // 365.2425 days
-  address public tokenAddress;
-
-  IERC20 private token;
+  event StrategyReported(
+    address indexed _strategyAddress,
+    uint256 _gain,
+    uint256 _loss,
+    uint256 _debtPaid,
+    uint256 _totalGain,
+    uint256 _totalLoss,
+    uint256 _totalDebt,
+    uint256 _debtAdded,
+    uint256 _debtRatio
+  );
 
   /// @dev construct a vault using a single asset.
   /// @param _name the name of the vault
   /// @param _symbol the symbol of the vault
   /// @param _decimals vault decimals
-  /// @param _managementFeeBPS basis points for the management fee. 1 basis point is 0.01% and 100% is 10000 basis points.
-  /// @param _rewards the address to send the collected fees to
-  /// @param _manager the address of the manager of the vault
-  /// @param _gatekeeper the address of the gatekeeper of the valut
+  /// @param _governance the address of the manager of the vault
   /// @param _token the address of the token asset
   constructor(
     string memory _name,
     string memory _symbol,
     uint8 _decimals,
-    uint256 _managementFeeBPS,
-    address _rewards,
-    address _manager,
+    address _governance,
     address _gatekeeper,
+    address _rewards,
+    address _strategyDataStoreAddress,
     address _token
-  ) BaseVault(_name, _symbol, _decimals, _managementFeeBPS, _rewards, _manager, _gatekeeper) {
-    require(_token != address(0), "invalid token address");
-    tokenAddress = _token;
-    token = IERC20(_token);
-    lastReport = block.timestamp;
-  }
-
-  /// @notice Returns the total quantity of all assets under control of this
-  ///   Vault, whether they're loaned out to a Strategy, or currently held in
-  ///   the Vault.
-  /// @return The total assets under control of this Vault.
-  function totalAsset() external view returns (uint256) {
-    return _totalAsset();
-  }
-
-  /// @notice the remaining amount of underlying tokens that still can be deposited into the vault before reaching the limit
-  function availableDepositLimit() external view returns (uint256) {
-    return _availableDepositLimit();
-  }
-
-  /// @notice Determines the maximum quantity of shares this Vault can facilitate a
-  ///  withdrawal for, factoring in assets currently residing in the Vault,
-  ///  as well as those deployed to strategies on the Vault's balance sheet.
-  /// @dev Regarding how shares are calculated, see dev note on `deposit`.
-  ///  If you want to calculated the maximum a user could withdraw up to,
-  ///  you want to use this function.
-  /// Note that the amount provided by this function is the theoretical
-  ///  maximum possible from withdrawing, the real amount depends on the
-  ///  realized losses incurred during withdrawal.
-  /// @return The total quantity of shares this Vault can provide.
-  function maxAvailableShares() external view returns (uint256) {
-    uint256 shares_ = _sharesForAmount(token.balanceOf(address(this)));
-    for (uint256 i = 0; i < withdrawQueue.length; i++) {
-      shares_ = shares_.add(_sharesForAmount(strategies[withdrawQueue[i]].totalDebt));
-    }
-    return shares_;
-  }
-
-  /// @notice Gives the price for a single Vault share.
-  /// @dev See dev note on `withdraw`.
-  /// @return The value of a single share.
-  function pricePerShare() external view returns (uint256) {
-    return _shareValue(10**vaultDecimals);
-  }
-
-  /// @notice Determines if `_strategy` is past its debt limit and if any tokens
-  ///  should be withdrawn to the Vault.
-  /// @param _strategy The Strategy to check.
-  /// @return The quantity of tokens to withdraw.
-  function debtOutstanding(address _strategy) external view returns (uint256) {
-    return _debtOutstanding(_strategy);
-  }
-
-  /// @notice see `debtOutstanding(address _strategy)`. Use `msg.sender` as the strategy.
-  function debtOutstanding() external view returns (uint256) {
-    return _debtOutstanding(_msgSender());
-  }
-
-  /// @notice Amount of tokens in Vault a Strategy has access to as a credit line.
-  ///  This will check the Strategy's debt limit, as well as the tokens
-  ///  available in the Vault, and determine the maximum amount of tokens
-  ///  (if any) the Strategy may draw on.
-  /// In the rare case the Vault is in emergency shutdown this will return 0.
-  /// @param _strategy The Strategy to check.
-  /// @return The quantity of tokens available for the Strategy to draw on.
-  function creditAvailable(address _strategy) external view returns (uint256) {
-    require(strategies[_strategy].activation > 0, "invalid strategy");
-    return _creditAvailable(_strategy);
-  }
-
-  /// @notice see `creditAvailable(address _strategy)`. Use `msg.sender` as the strategy.
-  function creditAvailable() external view returns (uint256) {
-    return _creditAvailable(_msgSender());
-  }
-
-  /// @notice Provide an accurate expected value for the return this `strategy`
-  /// would provide to the Vault the next time `report()` is called
-  /// (since the last time it was called).
-  /// @param _strategy The Strategy to determine the expected return for.
-  /// @return The anticipated amount `strategy` should make on its investment since its last report.
-  function expectedReturn(address _strategy) external view returns (uint256) {
-    return _expectedReturn(_strategy);
-  }
-
-  /// @notice sets the deposit limit of the vault
-  function setDepositLimit(uint256 _limit) external {
-    _onlyGovernanceOrGatekeeper();
-    depositLimit = _limit;
-    emit DepositLimitUpdated(_limit);
-  }
-
-  /// @notice set the maximum total debt ratio of all the strategies combined. In basis points.
-  function setMaxTotalDebtRatio(uint256 _maxDebtRatio) external {
-    _onlyGovernanceOrManager();
-    _setMaxTotalDebtRatio(_maxDebtRatio);
-  }
+  )
+    SingleAssetVaultBase(
+      _name,
+      _symbol,
+      _decimals,
+      _governance,
+      _gatekeeper,
+      _rewards,
+      _strategyDataStoreAddress,
+      _token
+    )
+  {}
 
   /// @notice Deposits `_amount` `token`, issuing shares to `recipient`. If the
   ///  Vault is in Emergency Shutdown, deposits will not be accepted and this
@@ -224,21 +76,10 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
   ///  on-chain) to determine if depositing into the Vault is a "good idea".
   /// @param _amount The quantity of tokens to deposit, defaults to all.
   ///  caller's address.
+  /// @param _recipient the address that will receive the vault shares
   /// @return The issued Vault shares.
-  function deposit(uint256 _amount) external onlyNotEmergencyShutdown whenNotPaused nonReentrant returns (uint256) {
-    return _deposit(_amount, _msgSender());
-  }
-
-  /// @notice same as `deposit(uint256 _amount)`, but allow specifying the receipient of the vault shares.
-  /// @param _amount The quantity of tokens to deposit, defaults to all.
-  /// @param _recipient The address to issue the shares in this Vault to. Defaults to the
-  function deposit(uint256 _amount, address _recipient)
-    external
-    onlyNotEmergencyShutdown
-    whenNotPaused
-    nonReentrant
-    returns (uint256)
-  {
+  function deposit(uint256 _amount, address _recipient) external whenNotPaused nonReentrant returns (uint256) {
+    _onlyNotEmergencyShutdown();
     return _deposit(_amount, _recipient);
   }
 
@@ -272,20 +113,6 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
   ///  Strategies not in the withdrawal queue will have to be harvested to
   ///  rebalance the funds and make the funds available again to withdraw.
   /// @param _maxShares How many shares to try and redeem for tokens, defaults to all.
-  /// @param _maxLoss The maximum acceptable loss to sustain on withdrawal in basis points.
-  /// @return The quantity of tokens redeemed for `_shares`.
-  function withdraw(uint256 _maxShares, uint256 _maxLoss)
-    external
-    onlyNotEmergencyShutdown
-    whenNotPaused
-    nonReentrant
-    returns (uint256)
-  {
-    return _withdraw(_maxShares, _msgSender(), _maxLoss);
-  }
-
-  /// @notice see `withdraw(uint256 _maxShares, uint256 _maxLoss)`.
-  /// @param _maxShares How many shares to try and redeem for tokens, defaults to all.
   /// @param _recipient The address to issue the shares in this Vault to.
   /// @param _maxLoss The maximum acceptable loss to sustain on withdrawal in basis points.
   /// @return The quantity of tokens redeemed for `_shares`.
@@ -293,7 +120,8 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
     uint256 _maxShares,
     address _recipient,
     uint256 _maxLoss
-  ) external onlyNotEmergencyShutdown whenNotPaused nonReentrant returns (uint256) {
+  ) external whenNotPaused nonReentrant returns (uint256) {
+    _onlyNotEmergencyShutdown();
     return _withdraw(_maxShares, _recipient, _maxLoss);
   }
 
@@ -324,43 +152,20 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
     _validateStrategy(callerStrategy);
     require(token.balanceOf(callerStrategy) >= _gain.add(_debtPayment), "not enough balance");
 
-    if (healthCheck != address(0)) {
-      IHealthCheck check = IHealthCheck(healthCheck);
-      if (check.doHealthCheck(callerStrategy)) {
-        require(
-          check.check(
-            callerStrategy,
-            _gain,
-            _loss,
-            _debtPayment,
-            _debtOutstanding(callerStrategy),
-            strategies[callerStrategy].totalDebt
-          ),
-          "strategy is not healthy"
-        );
-      } else {
-        check.enableCheck(callerStrategy);
-      }
-    }
+    _checkStrategyHealth(callerStrategy, _gain, _loss, _debtPayment);
 
-    if (_loss > 0) {
-      _reportLoss(callerStrategy, _loss);
-    }
-    // Assess both management fee and performance fee, and issue both as shares of the vault
-    uint256 totalFees = _assessFees(callerStrategy, _gain);
+    _reportLoss(callerStrategy, _loss);
     // Returns are always "realized gains"
     strategies[callerStrategy].totalGain = strategies[callerStrategy].totalGain.add(_gain);
 
+    // Assess both management fee and performance fee, and issue both as shares of the vault
+    uint256 totalFees = _assessFees(callerStrategy, _gain);
     // Compute the line of credit the Vault is able to offer the Strategy (if any)
     uint256 credit = _creditAvailable(callerStrategy);
-
     // Outstanding debt the Strategy wants to take back from the Vault (if any)
-    // NOTE: debtOutstanding <= StrategyParams.totalDebt
+    // NOTE: debtOutstanding <= StrategyInfo.totalDebt
     uint256 debt = _debtOutstanding(callerStrategy);
-    uint256 debtPayment = debt;
-    if (_debtPayment < debtPayment) {
-      debtPayment = _debtPayment;
-    }
+    uint256 debtPayment = Math.min(debt, _debtPayment);
 
     if (debtPayment > 0) {
       _decreaseDebt(callerStrategy, debtPayment);
@@ -390,32 +195,25 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
     }
     // else, don't do anything because it is balanced
 
-    // Profit is locked and gradually released per block
-    // NOTE: compute current locked profit and replace with sum of current and new
-    uint256 locakedProfileBeforeLoss = _calculateLockedProfit() + _gain - totalFees;
-    if (locakedProfileBeforeLoss > _loss) {
-      lockedProfit = locakedProfileBeforeLoss.sub(_loss);
-    } else {
-      lockedProfit = 0;
-    }
-
+    _updateLockedProfit(_gain, totalFees, _loss);
     strategies[callerStrategy].lastReport = block.timestamp;
     lastReport = block.timestamp;
 
-    StrategyParams memory params = strategies[callerStrategy];
+    StrategyInfo memory info = strategies[callerStrategy];
+    uint256 strategyDebtRatio = _strategyDataStore().strategyDebtRatio(address(this), callerStrategy);
     emit StrategyReported(
       callerStrategy,
       _gain,
       _loss,
       debtPayment,
-      params.totalGain,
-      params.totalLoss,
-      params.totalDebt,
+      info.totalGain,
+      info.totalLoss,
+      info.totalDebt,
       credit,
-      params.debtRatio
+      strategyDebtRatio
     );
 
-    if (strategies[callerStrategy].debtRatio == 0 || emergencyShutdown) {
+    if (strategyDebtRatio == 0 || emergencyShutdown) {
       // Take every last penny the Strategy has (Emergency Exit/revokeStrategy)
       // NOTE: This is different than `debt` in order to extract *all* of the returns
       return IStrategy(callerStrategy).estimatedTotalAssets();
@@ -425,58 +223,14 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
     }
   }
 
-  /// @notice send the tokens that are not managed by the vault to the governance
-  /// @param _token the token to send
-  /// @param _amount the amount of tokens to send
-  function sweep(address _token, uint256 _amount) external {
-    _onlyGoverance();
-    require(tokenAddress != _token, "invalid token");
-    _sweep(_token, _amount);
-  }
-
-  function _increaseDebt(address _strategy, uint256 _amount) internal {
-    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.add(_amount);
-    totalDebt = totalDebt.add(_amount);
-  }
-
-  function _decreaseDebt(address _strategy, uint256 _amount) internal {
-    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.sub(_amount);
-    totalDebt = totalDebt.sub(_amount);
-  }
-
   function _deposit(uint256 _amount, address _recipient) internal returns (uint256) {
     require(_recipient != address(0), "invalid receipient");
     require(_canAccessVault() == true, "no access");
     //TODO: do we also want to cap the `_amount` too?
-    uint256 amount = _ensureValidDepositAmount(_amount);
+    uint256 amount = _ensureValidDepositAmount(_msgSender(), _amount);
     uint256 shares = _issueSharesForAmount(_recipient, amount);
     token.safeTransferFrom(_msgSender(), address(this), amount);
     return shares;
-  }
-
-  function _totalAsset() internal view returns (uint256) {
-    return token.balanceOf(address(this)).add(totalDebt);
-  }
-
-  function _availableDepositLimit() internal view returns (uint256) {
-    if (depositLimit > _totalAsset()) {
-      return depositLimit.sub(_totalAsset());
-    }
-    return 0;
-  }
-
-  function _ensureValidDepositAmount(uint256 _amount) internal view returns (uint256) {
-    uint256 amount = _amount;
-    uint256 balance = token.balanceOf(_msgSender());
-    if (amount > balance) {
-      amount = balance;
-    }
-    uint256 availableLimit = _availableDepositLimit();
-    if (amount > availableLimit) {
-      amount = availableLimit;
-    }
-    require(amount > 0, "invalid amount");
-    return amount;
   }
 
   // TODO: implement this!
@@ -500,17 +254,27 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
     return shares;
   }
 
-  function _freeFunds() internal view returns (uint256) {
-    return _totalAsset().sub(_calculateLockedProfit());
-  }
+  function _assessFees(address _strategy, uint256 _gain) internal returns (uint256) {
+    uint256 totalFee_;
+    uint256 performanceFee_;
+    (totalFee_, performanceFee_) = _calculateFees(_strategy, _gain);
 
-  function _calculateLockedProfit() internal view returns (uint256) {
-    uint256 lockedFundRatio = block.timestamp.sub(lastReport).mul(lockedProfitDegradation);
-    if (lockedFundRatio < DEGRADATION_COEFFICIENT) {
-      return lockedProfit.sub(lockedFundRatio.mul(lockedProfit).div(DEGRADATION_COEFFICIENT));
-    } else {
-      return 0;
+    if (totalFee_ > 0) {
+      // rewards are given in the form of shares of the vault. This will allow further gain if the vault is making more profit.
+      // but it does mean the strategist/governance will need to redeem the shares to get the tokens.
+      // TODO: should we just transfer the token values to the rewards & strategist instead?
+      uint256 rewards_ = _issueSharesForAmount(address(this), totalFee_);
+      if (performanceFee_ > 0) {
+        uint256 strategistReward_ = rewards_.mul(performanceFee_).div(totalFee_);
+        //TODO: this transfer the rewards to the strategy, not the strategist. How does the strategist get the rewards?
+        _transfer(address(this), _strategy, strategistReward_);
+      }
+
+      if (balanceOf(address(this)) > 0) {
+        _transfer(address(this), rewards, balanceOf(address(this)));
+      }
     }
+    return totalFee_;
   }
 
   function _withdraw(
@@ -519,7 +283,7 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
     uint256 _maxLoss
   ) internal returns (uint256) {
     require(_maxLoss <= MAX_BASIS_POINTS, "invalid maxLoss");
-    uint256 shares = _ensureValidShares(_maxShares);
+    uint256 shares = _ensureValidShares(_msgSender(), _maxShares);
     uint256 value = _shareValue(shares);
     uint256 vaultBalance = token.balanceOf(address(this));
     uint256 totalLoss = 0;
@@ -555,36 +319,10 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
     return value;
   }
 
-  function _ensureValidShares(uint256 _shares) internal view returns (uint256) {
-    uint256 shares = _shares;
-    uint256 balance = balanceOf(_msgSender());
-    if (shares > balance) {
-      shares = balance;
-    }
-    require(shares > 0, "no shares");
-    return shares;
-  }
-
-  function _shareValue(uint256 _sharesAmount) internal view returns (uint256) {
-    uint256 supply = totalSupply();
-    // if the value is empty then the price is 1:1
-    if (supply == 0) {
-      return _sharesAmount;
-    }
-    return _sharesAmount.mul(_freeFunds()).div(supply);
-  }
-
-  function _sharesForAmount(uint256 _amount) internal view returns (uint256) {
-    uint256 freeFunds = _freeFunds();
-    if (freeFunds > 0) {
-      return _amount.mul(totalSupply()).div(freeFunds);
-    }
-    return 0;
-  }
-
   function _withdrawFromStrategies(uint256 _withdrawValue) internal returns (uint256) {
     uint256 totalLoss = 0;
     uint256 value = _withdrawValue;
+    address[] memory withdrawQueue = _strategyDataStore().withdrawQueue(address(this));
     for (uint256 i = 0; i < withdrawQueue.length; i++) {
       address strategyAddress = withdrawQueue[i];
       IStrategy strategyToWithdraw = IStrategy(strategyAddress);
@@ -593,15 +331,11 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
         // there are enough tokens in the vault now, no need to continue
         break;
       }
-      uint256 amountNeeded = value.sub(vaultBalance);
       // NOTE: Don't withdraw more than the debt so that Strategy can still
       // continue to work based on the profits it has
       // NOTE: This means that user will lose out on any profits that each
       // Strategy in the queue would return on next harvest, benefiting others
-      if (amountNeeded > strategies[strategyAddress].totalDebt) {
-        // we can't withdraw more than what the strategy has borrowed
-        amountNeeded = strategies[strategyAddress].totalDebt;
-      }
+      uint256 amountNeeded = Math.min(value.sub(vaultBalance), strategies[strategyAddress].totalDebt);
       if (amountNeeded == 0) {
         // nothing to withdraw from the strategy, try the next one
         continue;
@@ -616,81 +350,32 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
 
       // Reduce the Strategy's debt by the amount withdrawn ("realized returns")
       // NOTE: This doesn't add to returns as it's not earned by "normal means"
-      strategies[strategyAddress].totalDebt = strategies[strategyAddress].totalDebt.sub(withdrawAmount);
-      totalDebt = totalDebt.sub(withdrawAmount);
+      _decreaseDebt(strategyAddress, withdrawAmount);
     }
     return totalLoss;
   }
 
   function _reportLoss(address _strategy, uint256 _loss) internal {
-    require(strategies[_strategy].totalDebt >= _loss, "invalid loss");
-    // make sure we reduce our trust with the strategy by the amount of loss
-    if (totalDebtRatio != 0) {
-      uint256 originalDebtRatio = strategies[_strategy].debtRatio;
-      uint256 ratioChange = _loss.mul(totalDebtRatio).div(totalDebt);
-      if (ratioChange > originalDebtRatio) {
-        ratioChange = originalDebtRatio;
+    if (_loss > 0) {
+      require(strategies[_strategy].totalDebt >= _loss, "invalid loss");
+      uint256 totalDebtRatio_ = _strategyDataStore().vaultTotalDebtRatio(address(this));
+      uint256 strategyDebtRatio_ = _strategyDataStore().strategyDebtRatio(address(this), _strategy);
+      // make sure we reduce our trust with the strategy by the amount of loss
+      if (totalDebtRatio_ != 0) {
+        uint256 ratioChange_ = Math.min(_loss.mul(totalDebtRatio_).div(totalDebt), strategyDebtRatio_);
+        _strategyDataStore().updateStrategyDebtRatio(address(this), _strategy, strategyDebtRatio_ - ratioChange_);
       }
-      strategies[_strategy].debtRatio = originalDebtRatio - ratioChange;
-      totalDebtRatio = totalDebtRatio - ratioChange;
-    }
-    strategies[_strategy].totalLoss = strategies[_strategy].totalLoss.add(_loss);
-    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.sub(_loss);
-    totalDebt = totalDebt.sub(_loss);
-  }
-
-  function _debtOutstanding(address _strategy) internal view returns (uint256) {
-    _validateStrategy(_strategy);
-    if (totalDebtRatio == 0) {
-      return strategies[_strategy].totalDebt;
-    }
-    uint256 availableAssets = _totalAsset();
-    uint256 strategyLimit = availableAssets.mul(strategies[_strategy].debtRatio).div(MAX_BASIS_POINTS);
-    uint256 strategyTotalDebt = strategies[_strategy].totalDebt;
-
-    if (emergencyShutdown) {
-      return strategyTotalDebt;
-    } else if (strategyTotalDebt <= strategyLimit) {
-      return 0;
-    } else {
-      return strategyTotalDebt.sub(strategyLimit);
+      strategies[_strategy].totalLoss = strategies[_strategy].totalLoss.add(_loss);
+      strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.sub(_loss);
+      totalDebt = totalDebt.sub(_loss);
     }
   }
 
-  function _assessFees(address _strategy, uint256 _gain) internal returns (uint256) {
-    // Issue new shares to cover fees
-    // NOTE: In effect, this reduces overall share price by the combined fee
-    // NOTE: may throw if Vault.totalAssets() > 1e64, or not called for more than a year
-    if (strategies[_strategy].activation == block.timestamp) {
-      return 0; // NOTE: Just added, no fees to assess
+  function _assessStrategyPerformanceFee(address _strategy, uint256 _gain) internal view returns (uint256) {
+    if (_gain > 0) {
+      return _gain.mul(_strategyDataStore().strategyPerformanceFee(address(this), _strategy)).div(MAX_BASIS_POINTS);
     }
-    if (_gain == 0) {
-      // The fees are not charged if there hasn't been any gains reported
-      return 0;
-    }
-    uint256 managementFee_ = _assessManagementFee(_strategy);
-    uint256 strategyPerformanceFee_ = _assessStrategyPerformanceFee(_strategy, _gain);
-    uint256 totalFee_ = managementFee_ + strategyPerformanceFee_;
-    if (totalFee_ > _gain) {
-      totalFee_ = _gain;
-    }
-
-    if (totalFee_ > 0) {
-      // rewards are given in the form of shares of the vault. This will allow further gain if the vault is making more profit.
-      // but it does mean the strategist/governance will need to redeem the shares to get the tokens.
-      // TODO: should we just transfer the token values to the rewards & strategist instead?
-      uint256 rewards_ = _issueSharesForAmount(address(this), totalFee_);
-      if (strategyPerformanceFee_ > 0) {
-        uint256 strategistReward_ = rewards_.mul(strategyPerformanceFee_).div(totalFee_);
-        //TODO: this transfer the rewards to the strategy, not the strategist. How does the strategist get the rewards?
-        _transfer(address(this), _strategy, strategistReward_);
-      }
-
-      if (balanceOf(address(this)) > 0) {
-        _transfer(address(this), rewards, balanceOf(address(this)));
-      }
-    }
-    return totalFee_;
+    return 0;
   }
 
   // calculate the management fee based on TVL.
@@ -705,55 +390,102 @@ contract SingleAssetVault is ISingleAssetVault, BaseVault, Pausable, ReentrancyG
     return 0;
   }
 
-  function _assessStrategyPerformanceFee(address _strategy, uint256 _gain) internal view returns (uint256) {
-    if (_gain > 0) {
-      return _gain.mul(strategies[_strategy].performanceFee).div(MAX_BASIS_POINTS);
+  function _ensureValidShares(address _account, uint256 _shares) internal view returns (uint256) {
+    uint256 shares = _shares;
+    uint256 balance = balanceOf(_account);
+    if (shares > balance) {
+      shares = balance;
     }
-    return 0;
+    require(shares > 0, "no shares");
+    return shares;
   }
 
-  function _creditAvailable(address _strategy) internal view returns (uint256) {
-    if (emergencyShutdown) {
-      return 0;
-    }
-    _validateStrategy(_strategy);
-    uint256 vaultTotalAsset_ = _totalAsset();
-    uint256 vaultTotalDebtLimit_ = vaultTotalAsset_.mul(totalDebtRatio).div(MAX_BASIS_POINTS);
-    uint256 vaultTotalDebt_ = totalDebt;
+  function _increaseDebt(address _strategy, uint256 _amount) internal {
+    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.add(_amount);
+    totalDebt = totalDebt.add(_amount);
+  }
 
-    uint256 strategyDebtLimit_ = vaultTotalAsset_.mul(strategies[_strategy].debtRatio).div(MAX_BASIS_POINTS);
-    uint256 strategyTotalDebt_ = strategies[_strategy].totalDebt;
-    uint256 strategyMinDebtPerHarvest_ = strategies[_strategy].minDebtPerHarvest;
-    uint256 strategyMaxDebtPerHarvest_ = strategies[_strategy].maxDebtPerHarvest;
+  function _decreaseDebt(address _strategy, uint256 _amount) internal {
+    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.sub(_amount);
+    totalDebt = totalDebt.sub(_amount);
+  }
 
-    if ((strategyDebtLimit_ <= strategyTotalDebt_) || (vaultTotalDebtLimit_ <= vaultTotalDebt_)) {
-      return 0;
-    }
-
-    uint256 available_ = strategyDebtLimit_.sub(strategyTotalDebt_);
-    available_ = available_.min(vaultTotalDebtLimit_.sub(vaultTotalDebt_));
-    available_ = available_.min(token.balanceOf(address(this)));
-
-    if (available_ < strategyMinDebtPerHarvest_) {
-      return 0;
-    } else {
-      return available_.min(strategyMaxDebtPerHarvest_);
+  function _checkStrategyHealth(
+    address _strategy,
+    uint256 _gain,
+    uint256 _loss,
+    uint256 _debtPayment
+  ) internal {
+    if (healthCheck != address(0)) {
+      IHealthCheck check = IHealthCheck(healthCheck);
+      if (check.doHealthCheck(_strategy)) {
+        require(
+          check.check(
+            _strategy,
+            _gain,
+            _loss,
+            _debtPayment,
+            _debtOutstanding(_strategy),
+            strategies[_strategy].totalDebt
+          ),
+          "strategy is not healthy"
+        );
+      } else {
+        check.enableCheck(_strategy);
+      }
     }
   }
 
-  function _expectedReturn(address _strategy) internal view returns (uint256) {
-    _validateStrategy(_strategy);
-    uint256 strategyLastReport_ = strategies[_strategy].lastReport;
-    uint256 sinceLastHarvest_ = block.timestamp.sub(strategyLastReport_);
-    uint256 totalHarvestTime_ = strategyLastReport_.sub(strategies[_strategy].activation);
+  function _calculateFees(address _strategy, uint256 _gain)
+    internal
+    view
+    returns (uint256 totalFee, uint256 performanceFee)
+  {
+    // Issue new shares to cover fees
+    // NOTE: In effect, this reduces overall share price by the combined fee
+    // NOTE: may throw if Vault.totalAssets() > 1e64, or not called for more than a year
+    if (strategies[_strategy].activation == block.timestamp) {
+      return (0, 0); // NOTE: Just added, no fees to assess
+    }
+    if (_gain == 0) {
+      // The fees are not charged if there hasn't been any gains reported
+      return (0, 0);
+    }
+    uint256 managementFee_ = _assessManagementFee(_strategy);
+    uint256 strategyPerformanceFee_ = _assessStrategyPerformanceFee(_strategy, _gain);
+    uint256 totalFee_ = managementFee_ + strategyPerformanceFee_;
+    if (totalFee_ > _gain) {
+      totalFee_ = _gain;
+    }
+    return (totalFee_, strategyPerformanceFee_);
+  }
 
-    // NOTE: If either `sinceLastHarvest_` or `totalHarvestTime_` is 0, we can short-circuit to `0`
-    if ((sinceLastHarvest_ > 0) && (totalHarvestTime_ > 0) && (IStrategy(_strategy).isActive())) {
-      // # NOTE: Unlikely to throw unless strategy accumalates >1e68 returns
-      // # NOTE: Calculate average over period of time where harvests have occured in the past
-      return strategies[_strategy].totalGain.mul(sinceLastHarvest_).div(totalHarvestTime_);
+  function _ensureValidDepositAmount(address _account, uint256 _amount) internal view returns (uint256) {
+    uint256 amount = _amount;
+    uint256 balance = token.balanceOf(_account);
+    if (amount > balance) {
+      amount = balance;
+    }
+    uint256 availableLimit = _availableDepositLimit();
+    if (amount > availableLimit) {
+      amount = availableLimit;
+    }
+    require(amount > 0, "invalid amount");
+    return amount;
+  }
+
+  function _updateLockedProfit(
+    uint256 _gain,
+    uint256 _totalFees,
+    uint256 _loss
+  ) internal {
+    // Profit is locked and gradually released per block
+    // NOTE: compute current locked profit and replace with sum of current and new
+    uint256 locakedProfileBeforeLoss = _calculateLockedProfit() + _gain - _totalFees;
+    if (locakedProfileBeforeLoss > _loss) {
+      lockedProfit = locakedProfileBeforeLoss.sub(_loss);
     } else {
-      return 0;
+      lockedProfit = 0;
     }
   }
 }

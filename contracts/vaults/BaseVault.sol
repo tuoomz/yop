@@ -96,8 +96,8 @@ abstract contract BaseVault is
     uint256 _performanceFeeBPS,
     uint256 _managementFeeBPS,
     address _rewards,
-    address _accessControl
-  ) AccessControlManager(_accessControl) ERC20(_name, _symbol) ERC20Permit(_name) {
+    address[] memory _accessControlPolicies
+  ) AccessControlManager(_accessControlPolicies) ERC20(_name, _symbol) ERC20Permit(_name) {
     require(_rewards != address(0), "invalid rewards address");
     require(_performanceFeeBPS < MAX_BASIS_POINTS, "performance fee is over 100%");
     require(_managementFeeBPS < MAX_BASIS_POINTS, "management fee is over 100%");

@@ -28,6 +28,8 @@ contract AllowlistAccessControl is IAccessControl {
   }
 
   function _hasAccess(address _user, address _vault) internal view returns (bool) {
+    require(_user != address(0), "invalid user address");
+    require(_vault != address(0), "invalid vault address");
     return globalAccessMap[_user] || vaultAccessMap[_user][_vault];
   }
 
@@ -51,8 +53,9 @@ contract AllowlistAccessControl is IAccessControl {
     address vault,
     bool permission
   ) internal {
+    require(vault != address(0), "invalid vault address");
     for (uint256 i = 0; i < _users.length; i++) {
-      require(_users[i] != address(0), "invalid address");
+      require(_users[i] != address(0), "invalid user address");
       if (vaultAccessMap[_users[i]][vault] != permission) {
         vaultAccessMap[_users[i]][vault] = permission;
       }

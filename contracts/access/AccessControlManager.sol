@@ -2,6 +2,7 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./AllowListAccessControl.sol";
 import "../vaults/Governable.sol";
 
@@ -11,35 +12,42 @@ import "../vaults/Governable.sol";
 abstract contract AbstractAccessControlManager {
   /// @notice access policies set on the vault
 
-  event AccessControlManagerAdded(address _policy);
-  event AccessControlManagerRemoved(address _policy);
+  event AccessControlPolicyAdded(address _policy);
+  event AccessControlPolicyRemoved(address _policy);
 }
 
 // This implementation will allow us to set an allowed list of user addresses
-contract AccessControlManager is AbstractAccessControlManager, Governable {
-  address[] public accessControlPolicies;
+contract AccessControlManager is AbstractAccessControlManager {
+  // Add the library methods
+  using EnumerableSet for EnumerableSet.AddressSet;
 
-  constructor(address _accessControlPolicy) {
-    if (_accessControlPolicy != address(0)) {
-      accessControlPolicies.push(_accessControlPolicy);
+  EnumerableSet.AddressSet internal accessControlPolicies;
+
+  constructor(address[] memory _accessControlPolicies) {
+    _addAccessControlPolicys(_accessControlPolicies);
+  }
+
+  // Had to use memory here instead of calldata as the function is
+  // used in the constructor
+  function _addAccessControlPolicys(address[] memory _policies) internal {
+    for (uint256 i = 0; i < _policies.length; i++) {
+      if (_policies[i] != address(0)) {
+        bool added = accessControlPolicies.add(_policies[i]);
+        if (added) {
+          emit AccessControlPolicyAdded(_policies[i]);
+        }
+      }
     }
   }
 
-  function _addAccessControlManager(address _policy) internal onlyGovernance {
-    require(_policy != address(0), "invalid address");
-    accessControlPolicies.push(_policy);
-    emit AccessControlManagerAdded(_policy);
-  }
-
-  function _removeAccessControlManager(address _policy) internal onlyGovernance {
-    require(_policy != address(0), "invalid address");
-    for (uint256 i; i < accessControlPolicies.length; i++) {
-      if (accessControlPolicies[i] == _policy)
-        ///@dev to efeciently delete from an array without preserving order move the last item to
-        // the deleted items index.
-        accessControlPolicies[i] = accessControlPolicies[accessControlPolicies.length - 1];
-      accessControlPolicies.pop();
-      emit AccessControlManagerRemoved(_policy);
+  function _removeAccessControlPolicys(address[] calldata _policies) internal {
+    for (uint256 i = 0; i < _policies.length; i++) {
+      if (_policies[i] != address(0)) {
+        bool removed = accessControlPolicies.remove(_policies[i]);
+        if (removed) {
+          emit AccessControlPolicyRemoved(_policies[i]);
+        }
+      }
     }
   }
 
@@ -48,9 +56,11 @@ contract AccessControlManager is AbstractAccessControlManager, Governable {
   }
 
   function _hasAccess(address _user, address _vault) internal view returns (bool) {
+    require(_vault != address(0), "invalid vault address");
+    require(_user != address(0), "invalid user address");
     bool userHasAccess = false;
-    for (uint256 i = 0; i < accessControlPolicies.length; i++) {
-      if (IAccessControl(accessControlPolicies[i]).hasAccess(_user, _vault)) {
+    for (uint256 i = 0; i < accessControlPolicies.length(); i++) {
+      if (IAccessControl(accessControlPolicies.at(i)).hasAccess(_user, _vault)) {
         userHasAccess = true;
         break;
       }

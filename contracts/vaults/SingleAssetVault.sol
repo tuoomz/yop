@@ -65,6 +65,6 @@ interface ISingleAssetVault is IAccessControlledVault {
   ) external returns (uint256);
 }
 
-contract SingleAssetVault is BaseVault, AccessControlledVault, Pausable, ReentrancyGuard {
+abstract contract SingleAssetVault is BaseVault, AccessControlledVault, Pausable, ReentrancyGuard {
   ERC20 private token;
 }

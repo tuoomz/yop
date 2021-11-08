@@ -4,4 +4,4 @@
 npx solhint 'contracts/**/*.sol' --fix
 npx eslint '**/*.{js,ts}' --fix
 npx prettier '**/*.{json,sol,md,js,yaml}' --write
-
+npx hardhat size-contracts

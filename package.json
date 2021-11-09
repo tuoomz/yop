@@ -11,6 +11,7 @@
     "lint": "solhint 'contracts/**/*.sol' --fix && eslint '**/*.{js,ts}' --fix && npx prettier '**/*.{json,sol,md,js,yaml}' --write"
   },
   "dependencies": {
+    "@ethersproject/contracts": "^5.5.0",
     "@openzeppelin/contracts": "^4.3.2",
     "hardhat-watcher": "^2.1.1",
     "hardhat-contract-sizer": "^2.1.1"

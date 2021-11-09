@@ -28,6 +28,9 @@ jobs:
       - name: Installing dependencies
         run: npm ci
 
+      - name: Generate Types
+        run: npx hardhat typechain
+
       - name: Run test
         run: npx hardhat test
 

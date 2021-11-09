@@ -2,10 +2,7 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-interface IAccessControl {
-  function hasAccess(address _user, address _vault) external view returns (bool);
-}
+import "./IAccessControl.sol";
 
 contract AllowlistAccessControl is IAccessControl {
   mapping(address => bool) public globalAccessMap;

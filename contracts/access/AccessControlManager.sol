@@ -4,7 +4,7 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./AllowListAccessControl.sol";
-import "../vaults/Governable.sol";
+import "../vaults/roles/Governable.sol";
 
 // this interface will allow us to implement different types of access policies for Vaults.
 // e.g. allowedList/blockedlist based, NFT based etc. Then a vault can reuse these to control access to them.

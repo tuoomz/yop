@@ -12,7 +12,7 @@ struct Limits {
 
 contract CommonHealthCheck {
   // Default Settings for all strategies
-  uint256 constant MAX_BPS = 10_000;
+  uint256 public constant MAX_BPS = 10_000;
   uint256 public profitLimitRatio;
   uint256 public lossLimitRatio;
   mapping(address => Limits) public strategiesLimits;
@@ -46,22 +46,22 @@ contract CommonHealthCheck {
   }
 
   function setGovernance(address _governance) external onlyGovernance {
-    require(_governance != address(0));
+    require(_governance != address(0), "invalid address");
     governance = _governance;
   }
 
   function setManagement(address _management) external onlyGovernance {
-    require(_management != address(0));
+    require(_management != address(0), "invalid address");
     management = _management;
   }
 
   function setProfitLimitRatio(uint256 _profitLimitRatio) external onlyAuthorized {
-    require(_profitLimitRatio < MAX_BPS);
+    require(_profitLimitRatio < MAX_BPS, "invalid ratio");
     profitLimitRatio = _profitLimitRatio;
   }
 
   function setlossLimitRatio(uint256 _lossLimitRatio) external onlyAuthorized {
-    require(_lossLimitRatio < MAX_BPS);
+    require(_lossLimitRatio < MAX_BPS, "invalid ratio");
     lossLimitRatio = _lossLimitRatio;
   }
 
@@ -70,8 +70,8 @@ contract CommonHealthCheck {
     uint256 _profitLimitRatio,
     uint256 _lossLimitRatio
   ) external onlyAuthorized {
-    require(_lossLimitRatio < MAX_BPS);
-    require(_profitLimitRatio < MAX_BPS);
+    require(_lossLimitRatio < MAX_BPS, "invalid ratio");
+    require(_profitLimitRatio < MAX_BPS, "invalid ratio");
     strategiesLimits[_strategy] = Limits(_profitLimitRatio, _lossLimitRatio, true);
   }
 
@@ -111,7 +111,7 @@ contract CommonHealthCheck {
     uint256 debtOutstanding,
     uint256 totalDebt
   ) external view returns (bool) {
-    require(strategy != address(0));
+    require(strategy != address(0), "invalid address");
 
     return _runChecks(strategy, profit, loss, debtPayment, debtOutstanding, totalDebt);
   }

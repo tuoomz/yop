@@ -70,6 +70,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
   /// @dev Can't put into the {VaultStrategyConfig} struct because nested mappings can't be constructed
   mapping(address => mapping(address => StrategyParams)) public strategies;
 
+  // solhint-disable-next-line
   constructor(address _governance) Governable(_governance) {}
 
   function strategyPerformanceFee(address _vault, address _strategy) external view returns (uint256) {
@@ -203,6 +204,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     );
     require(_performanceFee <= MAX_BASIS_POINTS.div(2), "invalid performance fee");
 
+    /* solhint-disable not-rely-on-time */
     strategies[_vault][_strategy] = StrategyParams({
       performanceFee: _performanceFee,
       activation: block.timestamp,
@@ -211,6 +213,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
       maxDebtPerHarvest: _maxDebtPerHarvest,
       vault: _vault
     });
+    /* solhint-enable */
 
     require(IBaseVault(_vault).addStrategy(_strategy), "vault error");
     if (IStrategy(_strategy).vault() == address(0)) {

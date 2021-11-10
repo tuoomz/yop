@@ -5,6 +5,7 @@ import "../BaseVault.sol";
 
 /// @dev this is mainly used to test functions in the BaseVault
 contract BaseVaultMock is BaseVault {
+  /* solhint-disable no-empty-blocks */
   constructor(
     string memory _name,
     string memory _symbol,
@@ -14,4 +15,5 @@ contract BaseVaultMock is BaseVault {
     address _rewards,
     address _strategyDataStoreAddress
   ) BaseVault(_name, _symbol, _decimals, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress) {}
+  /* solhint-enable */
 }

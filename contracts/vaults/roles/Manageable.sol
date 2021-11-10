@@ -20,6 +20,7 @@ contract Manageable is Context {
   /// @dev set the initial value for the manager.
   /// @param _manager the default address of the _manager
   constructor(address _manager) {
+    require(_msgSender() != _manager, "invalid address");
     _updateManager(_manager);
   }
 

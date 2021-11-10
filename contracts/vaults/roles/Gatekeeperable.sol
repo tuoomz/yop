@@ -28,6 +28,7 @@ contract Gatekeeperable is Context {
   /// @dev set the initial value for the gatekeeper.
   /// @param _gatekeeper the default address of the guardian
   constructor(address _gatekeeper) {
+    require(_msgSender() != _gatekeeper, "invalid address");
     _updateGatekeeper(_gatekeeper);
   }
 

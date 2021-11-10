@@ -33,14 +33,15 @@ contract Governable is IGovernable, Context {
   }
 
   /// @dev the deployer of the contract will be set as the initial governance
-  constructor(address _governanace) {
-    _updateGovernance(_governanace);
+  constructor(address _governance) {
+    require(_msgSender() != _governance, "invalid address");
+    _updateGovernance(_governance);
   }
 
   ///@notice propose a new governance of the vault. Only can be called by the existing governance.
   ///@param _pendingGovernance the address of the pending governance
   function proposeGovernance(address _pendingGovernance) external onlyGovernance {
-    require(_pendingGovernance != address(0), "governance address is not valid");
+    require(_pendingGovernance != address(0), "invalid address");
     require(_pendingGovernance != governance, "already the governance");
     pendingGovernance = _pendingGovernance;
     emit GovenanceProposed(_pendingGovernance);

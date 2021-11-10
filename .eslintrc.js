@@ -6,20 +6,16 @@ module.exports = {
     node: true,
   },
   plugins: ["@typescript-eslint"],
-  extends: [
-    "standard",
-    "plugin:prettier/recommended",
-    "plugin:node/recommended",
-  ],
+  extends: ["standard", "plugin:node/recommended", "plugin:prettier/recommended"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: 12,
   },
   rules: {
-    "node/no-unsupported-features/es-syntax": [
-      "error",
-      { ignores: ["modules"] },
-    ],
+    "node/no-unsupported-features/es-syntax": ["error", { ignores: ["modules"] }],
     "node/no-unpublished-import": "off",
+    // this is not ideal as it duplicates configs in prettierrc, but it helps clear the errors in VSCode.
+    // `usePrettierrc` doesn't work for some reason.
+    "prettier/prettier": ["error", { printWidth: 145 }],
   },
 };

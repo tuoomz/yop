@@ -14,6 +14,7 @@ contract VaultMetaDataStore is Context, Governable, Gatekeeperable {
   event ManagementFeeUpdated(uint256 _managementFee);
   event StrategyDataStoreUpdated(address indexed _strategyDataStore);
   event DepositLimitUpdated(uint256 _limit);
+  event LockedProfitDegradationUpdated(uint256 _degradation);
 
   /// @notice The maximum basis points. 1 basis point is 0.01% and 100% is 10000 basis points
   uint256 internal constant MAX_BASIS_POINTS = 10_000;
@@ -23,7 +24,7 @@ contract VaultMetaDataStore is Context, Governable, Gatekeeperable {
   /// @dev the value is based on 6-hour degradation period (1/(60*60*6) = 0.000046)
   ///   NOTE: This is being deprecated by Yearn. See https://github.com/yearn/yearn-vaults/pull/471
   uint256 public lockedProfitDegradation = DEGRADATION_COEFFICIENT.mul(46).div(10**6);
-  uint256 public depositLimit;
+  uint256 public depositLimit = type(uint256).max;
   address public rewards;
   address public healthCheck;
   address public strategyDataStore;
@@ -84,8 +85,10 @@ contract VaultMetaDataStore is Context, Governable, Gatekeeperable {
     } else {
       _onlyGovernance();
     }
-    emergencyShutdown = _active;
-    emit EmergencyShutdown(_active);
+    if (emergencyShutdown != _active) {
+      emergencyShutdown = _active;
+      emit EmergencyShutdown(_active);
+    }
   }
 
   /// @notice Changes the locked profit degradation.
@@ -93,7 +96,10 @@ contract VaultMetaDataStore is Context, Governable, Gatekeeperable {
   function setLockedProfileDegradation(uint256 _degradation) external {
     _onlyGovernance();
     require(_degradation <= DEGRADATION_COEFFICIENT, "degradation value is too large");
-    lockedProfitDegradation = _degradation;
+    if (lockedProfitDegradation != _degradation) {
+      lockedProfitDegradation = _degradation;
+      emit LockedProfitDegradationUpdated(_degradation);
+    }
   }
 
   function setDepositLimit(uint256 _limit) external {

@@ -30,10 +30,14 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
     uint256 totalLoss;
   }
 
+  event StrategyAdded(address indexed _strategy);
+  event StrategyMigrated(address indexed _oldVersion, address indexed _newVersion);
+  event StrategyRevoked(address indexed _strategy);
+
   // ### Vault base properties
-  uint8 internal vaultDecimals;
+  uint8 internal immutable vaultDecimals;
   /// @notice timestamp for when the vault is deployed
-  uint256 public activation;
+  uint256 public immutable activation;
   mapping(address => StrategyInfo) internal strategies;
 
   /// @dev BaseVault constructor. The deployer will be set as the governance of the vault by default.
@@ -89,6 +93,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
   function revokeStrategy() external {
     require(strategies[_msgSender()].activation > 0, "not authorised");
     _strategyDataStore().revokeStrategyByStrategy(_msgSender());
+    emit StrategyRevoked(_msgSender());
   }
 
   function _strategyDataStore() internal view returns (IVaultStrategyDataStore) {
@@ -96,7 +101,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
   }
 
   function _onlyStrategyDataStore() internal view {
-    require(_msgSender() == strategyDataStore, "only strategy manager");
+    require(_msgSender() == strategyDataStore, "only strategy store");
   }
 
   /// @dev ensure the vault is not in emergency shutdown mode
@@ -116,6 +121,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
       totalGain: 0,
       totalLoss: 0
     });
+    emit StrategyAdded(_strategy);
     return true;
   }
 
@@ -130,6 +136,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
       totalLoss: 0
     });
     IStrategy(_oldVersion).migrate(_newVersion);
+    emit StrategyMigrated(_oldVersion, _newVersion);
     return true;
   }
 

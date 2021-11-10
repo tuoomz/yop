@@ -7,7 +7,8 @@
     "build": "hardhat compile",
     "console": "hardhat console",
     "prepare": "husky install",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "lint": "solhint 'contracts/**/*.sol' --fix && eslint '**/*.{js,ts}' --fix && npx prettier '**/*.{json,sol,md,js,yaml}' --write"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.2",

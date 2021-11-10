@@ -19,5 +19,13 @@ module.exports = {
         trailingComma: "es5",
       },
     },
+    {
+      files: "*.js",
+      options: {
+        printWidth: 145,
+        semi: true,
+        trailingComma: "es5",
+      },
+    },
   ],
 };

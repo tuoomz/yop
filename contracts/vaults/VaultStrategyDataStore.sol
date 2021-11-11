@@ -64,11 +64,11 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
   uint256 public constant MAX_STRATEGIES_PER_VAULT = 20;
 
   /// @notice vaults and their strategy-related configs
-  mapping(address => VaultStrategyConfig) public configs;
+  mapping(address => VaultStrategyConfig) internal configs;
 
   /// @notice vaults and their strategies.
   /// @dev Can't put into the {VaultStrategyConfig} struct because nested mappings can't be constructed
-  mapping(address => mapping(address => StrategyParams)) public strategies;
+  mapping(address => mapping(address => StrategyParams)) internal strategies;
 
   // solhint-disable-next-line
   constructor(address _governance) Governable(_governance) {}
@@ -361,7 +361,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
       }
     }
     require(idx < config_.withdrawQueue.length, "strategy does not exist");
-    for (uint256 j = idx; j < config_.withdrawQueue.length; j++) {
+    for (uint256 j = idx; j < config_.withdrawQueue.length - 1; j++) {
       config_.withdrawQueue[j] = config_.withdrawQueue[j + 1];
     }
     config_.withdrawQueue.pop();

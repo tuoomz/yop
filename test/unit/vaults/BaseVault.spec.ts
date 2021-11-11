@@ -1,27 +1,11 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers, network } from "hardhat";
+import { ethers } from "hardhat";
 import { BaseVaultMock } from "../../../types/BaseVaultMock";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { MockStrategy } from "../../../types/MockStrategy";
-
-// this is useful to send transactions on behalf of a contract (or any account really).
-// It only works for hardhat network.
-async function impersonate(account: string): Promise<SignerWithAddress> {
-  await network.provider.request({
-    method: "hardhat_impersonateAccount",
-    params: [account],
-  });
-  const signer = await ethers.getSigner(account);
-
-  await network.provider.send("hardhat_setBalance", [
-    account,
-    "0x100000000000000000", // 2.9514791e+20 wei
-  ]);
-
-  return signer;
-}
+import { impersonate } from "../utils/Impersonate";
 
 describe("BaseVault", function () {
   const vaultName = "test vault";

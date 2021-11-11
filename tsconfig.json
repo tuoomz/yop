@@ -14,5 +14,5 @@
     "./deploy",
     "./test"
   ],
-  "files": ["./hardhat.config.ts"]
+  "files": ["./hardhat.config.ts", "test/unit/utils/Impersonate.ts"]
 }

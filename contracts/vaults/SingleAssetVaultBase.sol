@@ -3,6 +3,7 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./BaseVault.sol";
 
 abstract contract SingleAssetVaultBase is BaseVault {
@@ -22,16 +23,17 @@ abstract contract SingleAssetVaultBase is BaseVault {
   constructor(
     string memory _name,
     string memory _symbol,
-    uint8 _decimals,
     address _governance,
     address _gatekeeper,
     address _rewards,
     address _strategyDataStoreAddress,
     address _token
-  ) BaseVault(_name, _symbol, _decimals, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress) {
+  ) BaseVault(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress) {
     require(_token != address(0), "invalid token address");
     tokenAddress = _token;
     token = IERC20(_token);
+    // the vault decimals need to match the tokens to avoid any conversion
+    vaultDecimals = ERC20(tokenAddress).decimals();
   }
 
   /// @notice Returns the total quantity of all assets under control of this

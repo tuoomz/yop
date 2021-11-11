@@ -9,11 +9,10 @@ contract BaseVaultMock is BaseVault {
   constructor(
     string memory _name,
     string memory _symbol,
-    uint8 _decimals,
     address _governance,
     address _gatekeeper,
     address _rewards,
     address _strategyDataStoreAddress
-  ) BaseVault(_name, _symbol, _decimals, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress) {}
+  ) BaseVault(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress) {}
   /* solhint-enable */
 }

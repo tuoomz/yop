@@ -5,13 +5,12 @@ import { Governable } from "../../../../types/Governable";
 
 describe("Governable", async () => {
   let governable: Governable;
-  let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let pendingGovernance: SignerWithAddress;
   let user: SignerWithAddress;
 
   beforeEach(async () => {
-    [deployer, governance, pendingGovernance, user] = await ethers.getSigners();
+    [, governance, pendingGovernance, user] = await ethers.getSigners();
     const Gonvernable = await ethers.getContractFactory("Governable");
     governable = (await Gonvernable.deploy(governance.address)) as Governable;
     await governable.deployed();

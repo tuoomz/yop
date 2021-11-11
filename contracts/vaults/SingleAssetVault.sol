@@ -30,32 +30,23 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
   /// @dev construct a vault using a single asset.
   /// @param _name the name of the vault
   /// @param _symbol the symbol of the vault
-  /// @param _decimals vault decimals
   /// @param _governance the address of the manager of the vault
   /// @param _token the address of the token asset
   /* solhint-disable no-empty-blocks */
   constructor(
     string memory _name,
     string memory _symbol,
-    uint8 _decimals,
     address _governance,
     address _gatekeeper,
     address _rewards,
     address _strategyDataStoreAddress,
     address _token
   )
-    SingleAssetVaultBase(
-      _name,
-      _symbol,
-      _decimals,
-      _governance,
-      _gatekeeper,
-      _rewards,
-      _strategyDataStoreAddress,
-      _token
-    )
+    SingleAssetVaultBase(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _token)
     AccessControlManager(new address[](0))
-  {}
+  {
+    _pause();
+  }
 
   /* solhint-enable */
 
@@ -251,7 +242,7 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
   }
 
   function _deposit(uint256 _amount, address _recipient) internal returns (uint256) {
-    require(_recipient != address(0), "invalid receipient");
+    require(_recipient != address(0), "invalid recipient");
     require(_hasAccess(_msgSender(), address(this)), "no access");
     //TODO: do we also want to cap the `_amount` too?
     uint256 amount = _ensureValidDepositAmount(_msgSender(), _amount);
@@ -272,7 +263,7 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
     }
 
     require(shares > 0, "invalid share amount");
-    _mint(_recipient, _amount);
+    _mint(_recipient, shares);
     return shares;
   }
 

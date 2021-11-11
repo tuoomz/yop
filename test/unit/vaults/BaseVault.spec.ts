@@ -28,6 +28,7 @@ describe("BaseVault", function () {
   const vaultSymbol = "tVault";
   const vaultDecimals = 10;
   let baseVault: BaseVaultMock;
+  let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
@@ -35,7 +36,7 @@ describe("BaseVault", function () {
   let user2: SignerWithAddress;
 
   beforeEach(async () => {
-    [governance, gatekeeper, rewards, user1, user2] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, rewards, user1, user2] = await ethers.getSigners();
     const BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
     baseVault = (await BaseVaultMock.deploy(
       vaultName,

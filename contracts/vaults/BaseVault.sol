@@ -59,6 +59,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
     VaultMetaDataStore(_governance, _gatekeeper, _rewards, _strategyDataStoreAddress)
   {
     vaultDecimals = _decimals;
+    // solhint-disable-next-line not-rely-on-time
     activation = block.timestamp;
   }
 
@@ -114,6 +115,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
   }
 
   function _addStrategy(address _strategy) internal returns (bool) {
+    /* solhint-disable not-rely-on-time */
     strategies[_strategy] = StrategyInfo({
       activation: block.timestamp,
       lastReport: block.timestamp,
@@ -123,6 +125,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
     });
     emit StrategyAdded(_strategy);
     return true;
+    /* solhint-enable */
   }
 
   function _migrateStrategy(address _oldVersion, address _newVersion) internal returns (bool) {

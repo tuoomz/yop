@@ -5,6 +5,7 @@ import "./AccessControlManager.sol";
 
 /// @notice This Mock will allow us test the access control mananger
 contract AccessControlManagerMock is AccessControlManager {
+  // solhint-disable-next-line
   constructor(address[] memory _accessControlPolicies) AccessControlManager(_accessControlPolicies) {}
 
   /// @dev since solidity 0.7.0 'using ... for' is no longer inheirited, so we need to repeat it here

@@ -126,6 +126,7 @@ abstract contract SingleAssetVaultBase is BaseVault {
   }
 
   function _calculateLockedProfit() internal view returns (uint256) {
+    // solhint-disable-next-line not-rely-on-time
     uint256 lockedFundRatio = block.timestamp.sub(lastReport).mul(lockedProfitDegradation);
     if (lockedFundRatio < DEGRADATION_COEFFICIENT) {
       return lockedProfit.sub(lockedFundRatio.mul(lockedProfit).div(DEGRADATION_COEFFICIENT));
@@ -211,6 +212,7 @@ abstract contract SingleAssetVaultBase is BaseVault {
   function _expectedReturn(address _strategy) internal view returns (uint256) {
     _validateStrategy(_strategy);
     uint256 strategyLastReport_ = strategies[_strategy].lastReport;
+    // solhint-disable-next-line not-rely-on-time
     uint256 sinceLastHarvest_ = block.timestamp.sub(strategyLastReport_);
     uint256 totalHarvestTime_ = strategyLastReport_.sub(strategies[_strategy].activation);
 

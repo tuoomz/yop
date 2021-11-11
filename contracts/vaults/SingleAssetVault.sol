@@ -9,8 +9,9 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IHealthCheck.sol";
 import "../interfaces/IStrategy.sol";
 import "./SingleAssetVaultBase.sol";
+import "../access/AccessControlManager.sol";
 
-contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard {
+contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, AccessControlManager {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
@@ -32,6 +33,7 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard {
   /// @param _decimals vault decimals
   /// @param _governance the address of the manager of the vault
   /// @param _token the address of the token asset
+  /* solhint-disable no-empty-blocks */
   constructor(
     string memory _name,
     string memory _symbol,
@@ -52,7 +54,30 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard {
       _strategyDataStoreAddress,
       _token
     )
+    AccessControlManager(new address[](0))
   {}
+
+  /* solhint-enable */
+
+  function pause() external {
+    _onlyGovernanceOrGatekeeper();
+    _pause();
+  }
+
+  function unpause() external {
+    _onlyGovernanceOrGatekeeper();
+    _unpause();
+  }
+
+  function addAccessControlPolicies(address[] calldata _policies) external {
+    _onlyGovernanceOrGatekeeper();
+    _addAccessControlPolicys(_policies);
+  }
+
+  function removeAccessControlPolicies(address[] calldata _policies) external {
+    _onlyGovernanceOrGatekeeper();
+    _removeAccessControlPolicys(_policies);
+  }
 
   /// @notice Deposits `_amount` `token`, issuing shares to `recipient`. If the
   ///  Vault is in Emergency Shutdown, deposits will not be accepted and this
@@ -196,7 +221,9 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard {
     // else, don't do anything because it is balanced
 
     _updateLockedProfit(_gain, totalFees, _loss);
+    // solhint-disable-next-line not-rely-on-time
     strategies[callerStrategy].lastReport = block.timestamp;
+    // solhint-disable-next-line not-rely-on-time
     lastReport = block.timestamp;
 
     StrategyInfo memory info = strategies[callerStrategy];
@@ -225,17 +252,12 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard {
 
   function _deposit(uint256 _amount, address _recipient) internal returns (uint256) {
     require(_recipient != address(0), "invalid receipient");
-    require(_canAccessVault() == true, "no access");
+    require(_hasAccess(_msgSender(), address(this)), "no access");
     //TODO: do we also want to cap the `_amount` too?
     uint256 amount = _ensureValidDepositAmount(_msgSender(), _amount);
     uint256 shares = _issueSharesForAmount(_recipient, amount);
     token.safeTransferFrom(_msgSender(), address(this), amount);
     return shares;
-  }
-
-  // TODO: implement this!
-  function _canAccessVault() internal pure returns (bool) {
-    return true;
   }
 
   function _issueSharesForAmount(address _recipient, uint256 _amount) internal returns (uint256) {
@@ -380,6 +402,7 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard {
 
   // calculate the management fee based on TVL.
   function _assessManagementFee(address _strategy) internal view returns (uint256) {
+    // solhint-disable-next-line not-rely-on-time
     uint256 duration = block.timestamp - strategies[_strategy].lastReport;
     require(duration > 0, "same block"); // should not be called twice within the same block
     // the managementFee is per year, so only charge the management fee for the period since last time it is charged.
@@ -444,6 +467,7 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard {
     // Issue new shares to cover fees
     // NOTE: In effect, this reduces overall share price by the combined fee
     // NOTE: may throw if Vault.totalAssets() > 1e64, or not called for more than a year
+    // solhint-disable-next-line not-rely-on-time
     if (strategies[_strategy].activation == block.timestamp) {
       return (0, 0); // NOTE: Just added, no fees to assess
     }

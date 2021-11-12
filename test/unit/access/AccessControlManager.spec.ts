@@ -1,33 +1,41 @@
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { ContractFactory } from "ethers";
 import { ethers } from "hardhat";
+import { AllowlistAccessControl } from "../../../types";
+import { AccessControlManagerMock } from "../../../types/AccessControlManagerMock";
 
 describe("AccessControlManager", function () {
-  let owner: any;
-  let addr1: any;
-  let vaultA: any;
-  let vaultB: any;
-  let address0: any;
-  let accessControl1: any;
-  let accessControl2: any;
-  let AccessControl: any;
-  let accessControlManager: any;
-  let AccessControlManager: any;
+  let owner: SignerWithAddress;
+  let governance: SignerWithAddress;
+  let addr1: SignerWithAddress;
+  let vaultA: string;
+  let vaultB: string;
+  let accessControl1: AllowlistAccessControl;
+  let accessControl2: AllowlistAccessControl;
+  let AccessControl: ContractFactory;
+  let accessControlManager: AccessControlManagerMock;
+  let AccessControlManager: ContractFactory;
 
   beforeEach(async function () {
-    [owner, addr1] = await ethers.getSigners();
+    [owner, governance, addr1] = await ethers.getSigners();
     vaultA = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-    address0 = "0x0000000000000000000000000000000000000000";
     vaultB = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
     AccessControl = await ethers.getContractFactory("AllowlistAccessControl");
     AccessControlManager = await ethers.getContractFactory("AccessControlManagerMock");
 
-    accessControl1 = await AccessControl.deploy();
+    accessControl1 = (await AccessControl.deploy(governance.address)) as AllowlistAccessControl;
     await accessControl1.deployed();
-    accessControl2 = await AccessControl.deploy();
+    accessControl2 = (await AccessControl.deploy(governance.address)) as AllowlistAccessControl;
     await accessControl2.deployed();
 
-    accessControlManager = await AccessControlManager.deploy([accessControl1.address]);
+    accessControlManager = (await AccessControlManager.deploy([accessControl1.address])) as AccessControlManagerMock;
     await accessControlManager.deployed();
+  });
+
+  it("should allow access if no policies are set", async () => {
+    const policy = (await AccessControlManager.deploy([ethers.constants.AddressZero])) as AccessControlManagerMock;
+    expect(await policy.hasAccess(addr1.address, vaultA)).to.equal(true);
   });
 
   it("Should return false when access not granted", async function () {
@@ -35,39 +43,39 @@ describe("AccessControlManager", function () {
   });
 
   it("Should return true when global access is granted", async function () {
-    await accessControl1.allowGlobalAccess([addr1.address]);
+    await accessControl1.connect(governance).allowGlobalAccess([addr1.address]);
     expect(await accessControlManager.hasAccess(addr1.address, vaultA)).to.equal(true);
   });
 
   it("Should return false when global access is granted and then revoked", async function () {
-    await accessControl1.allowGlobalAccess([addr1.address]);
+    await accessControl1.connect(governance).allowGlobalAccess([addr1.address]);
     expect(await accessControlManager.hasAccess(addr1.address, vaultA)).to.equal(true);
 
-    await accessControl1.removeGlobalAccess([addr1.address]);
+    await accessControl1.connect(governance).removeGlobalAccess([addr1.address]);
     expect(await accessControlManager.hasAccess(addr1.address, vaultA)).to.equal(false);
   });
 
   it("Should return true when local access is granted", async function () {
-    await accessControl1.allowVaultAccess([addr1.address], vaultA);
+    await accessControl1.connect(governance).allowVaultAccess([addr1.address], vaultA);
     expect(await accessControlManager.hasAccess(addr1.address, vaultA)).to.equal(true);
     expect(await accessControlManager.hasAccess(addr1.address, vaultB)).to.equal(false);
   });
 
   it("Should return false when local access is granted and then revoked", async function () {
-    await accessControl1.allowVaultAccess([addr1.address], vaultA);
+    await accessControl1.connect(governance).allowVaultAccess([addr1.address], vaultA);
     expect(await accessControlManager.hasAccess(addr1.address, vaultA)).to.equal(true);
 
-    await accessControl1.removeVaultAccess([addr1.address], vaultA);
+    await accessControl1.connect(governance).removeVaultAccess([addr1.address], vaultA);
     expect(await accessControlManager.hasAccess(addr1.address, vaultA)).to.equal(false);
   });
 
   it("Should return the correct value when both local and global access are set", async function () {
-    await accessControl1.allowVaultAccess([addr1.address], vaultA);
-    await accessControl1.allowGlobalAccess([addr1.address]);
+    await accessControl1.connect(governance).allowVaultAccess([addr1.address], vaultA);
+    await accessControl1.connect(governance).allowGlobalAccess([addr1.address]);
     expect(await accessControlManager.hasAccess(addr1.address, vaultA)).to.equal(true);
 
-    await accessControl1.removeVaultAccess([addr1.address], vaultA);
-    await accessControl1.removeGlobalAccess([addr1.address]);
+    await accessControl1.connect(governance).removeVaultAccess([addr1.address], vaultA);
+    await accessControl1.connect(governance).removeGlobalAccess([addr1.address]);
     expect(await accessControlManager.hasAccess(addr1.address, vaultA)).to.equal(false);
   });
 
@@ -85,13 +93,13 @@ describe("AccessControlManager", function () {
 
   it("Should not add an invalid address", async function () {
     expect(await accessControlManager.getNumberOfAccessControlPolicies()).to.equal(1);
-    await accessControlManager.addAccessControlPolicys([address0]);
+    await accessControlManager.addAccessControlPolicys([ethers.constants.AddressZero]);
     expect(await accessControlManager.getNumberOfAccessControlPolicies()).to.equal(1);
   });
 
   it("Should be unchanged when removing an invalid address", async function () {
     expect(await accessControlManager.getNumberOfAccessControlPolicies()).to.equal(1);
-    await accessControlManager.removeAccessControlPolicys([address0]);
+    await accessControlManager.removeAccessControlPolicys([ethers.constants.AddressZero]);
     expect(await accessControlManager.getNumberOfAccessControlPolicies()).to.equal(1);
   });
 
@@ -119,10 +127,10 @@ describe("AccessControlManager", function () {
   });
 
   it("Should revert when calling hasAccess on invalid address", async function () {
-    expect(accessControlManager.hasAccess(address0, vaultA)).to.be.revertedWith("invalid user address");
+    expect(accessControlManager.hasAccess(ethers.constants.AddressZero, vaultA)).to.be.revertedWith("invalid user address");
   });
 
   it("Should revert when calling hasAccess on invalid vault", async function () {
-    expect(accessControlManager.hasAccess(addr1.address, address0)).to.be.revertedWith("invalid vault address");
+    expect(accessControlManager.hasAccess(addr1.address, ethers.constants.AddressZero)).to.be.revertedWith("invalid vault address");
   });
 });

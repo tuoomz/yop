@@ -26,9 +26,8 @@ async function impersonate(account: string): Promise<SignerWithAddress> {
 describe("BaseVault", function () {
   const vaultName = "test vault";
   const vaultSymbol = "tVault";
-  const vaultDecimals = 10;
+  const defaultDecimals = 18;
   let baseVault: BaseVaultMock;
-  let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
@@ -36,12 +35,11 @@ describe("BaseVault", function () {
   let user2: SignerWithAddress;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, rewards, user1, user2] = await ethers.getSigners();
+    [, governance, gatekeeper, rewards, user1, user2] = await ethers.getSigners();
     const BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
     baseVault = (await BaseVaultMock.deploy(
       vaultName,
       vaultSymbol,
-      vaultDecimals,
       governance.address,
       gatekeeper.address,
       rewards.address,
@@ -55,7 +53,7 @@ describe("BaseVault", function () {
     baseVault = baseVault.connect(user1);
     expect(await baseVault.name()).to.equal(vaultName);
     expect(await baseVault.symbol()).to.equal(vaultSymbol);
-    expect(await baseVault.decimals()).to.equal(vaultDecimals);
+    expect(await baseVault.decimals()).to.equal(defaultDecimals);
     expect(await baseVault.governance()).to.equal(governance.address);
     expect(await baseVault.gatekeeper()).to.equal(gatekeeper.address);
     expect(await baseVault.rewards()).to.equal(rewards.address);

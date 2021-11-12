@@ -58,6 +58,10 @@ contract AccessControlManager is AbstractAccessControlManager {
   function _hasAccess(address _user, address _vault) internal view returns (bool) {
     require(_vault != address(0), "invalid vault address");
     require(_user != address(0), "invalid user address");
+    // if no policies set, open by default
+    if (accessControlPolicies.length() == 0) {
+      return true;
+    }
     bool userHasAccess = false;
     for (uint256 i = 0; i < accessControlPolicies.length(); i++) {
       if (IAccessControl(accessControlPolicies.at(i)).hasAccess(_user, _vault)) {

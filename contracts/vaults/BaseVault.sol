@@ -35,7 +35,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
   event StrategyRevoked(address indexed _strategy);
 
   // ### Vault base properties
-  uint8 internal immutable vaultDecimals;
+  uint8 internal vaultDecimals = 18;
   /// @notice timestamp for when the vault is deployed
   uint256 public immutable activation;
   mapping(address => StrategyInfo) internal strategies;
@@ -43,12 +43,10 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
   /// @dev BaseVault constructor. The deployer will be set as the governance of the vault by default.
   /// @param _name the name of the vault
   /// @param _symbol the symbol of the vault
-  /// @param _decimals vault decimals
   /// @param _governance the address of the manager of the vault
   constructor(
     string memory _name,
     string memory _symbol,
-    uint8 _decimals,
     address _governance,
     address _gatekeeper,
     address _rewards,
@@ -58,7 +56,6 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
     ERC20(_name, _symbol)
     VaultMetaDataStore(_governance, _gatekeeper, _rewards, _strategyDataStoreAddress)
   {
-    vaultDecimals = _decimals;
     // solhint-disable-next-line not-rely-on-time
     activation = block.timestamp;
   }

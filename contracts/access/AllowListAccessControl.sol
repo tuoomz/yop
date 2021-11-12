@@ -3,25 +3,37 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IAccessControl.sol";
+import "../vaults/roles/Governable.sol";
+import "./PerVaultGatekeeper.sol";
 
-contract AllowlistAccessControl is IAccessControl {
+contract AllowlistAccessControl is IAccessControl, PerVaultGatekeeper {
   mapping(address => bool) public globalAccessMap;
   mapping(address => mapping(address => bool)) public vaultAccessMap;
 
-  function allowGlobalAccess(address[] calldata _users) external {
+  event GlobalAccessGranted(address indexed _user);
+  event GlobalAccessRemoved(address indexed _user);
+  event VaultAccessGranted(address indexed _user, address indexed _vault);
+  event VaultAccessRemoved(address indexed _user, address indexed _vault);
+
+  // solhint-disable-next-line no-empty-blocks
+  constructor(address _governance) PerVaultGatekeeper(_governance) {}
+
+  function allowGlobalAccess(address[] calldata _users) external onlyGovernance {
     _updateGlobalAccess(_users, true);
   }
 
-  function removeGlobalAccess(address[] calldata _users) external {
+  function removeGlobalAccess(address[] calldata _users) external onlyGovernance {
     _updateGlobalAccess(_users, false);
   }
 
-  function allowVaultAccess(address[] calldata _users, address vault) external {
-    _updateAllowVaultAccess(_users, vault, true);
+  function allowVaultAccess(address[] calldata _users, address _vault) external {
+    _onlyGovernanceOrGatekeeper(_vault);
+    _updateAllowVaultAccess(_users, _vault, true);
   }
 
-  function removeVaultAccess(address[] calldata _users, address vault) external {
-    _updateAllowVaultAccess(_users, vault, false);
+  function removeVaultAccess(address[] calldata _users, address _vault) external {
+    _onlyGovernanceOrGatekeeper(_vault);
+    _updateAllowVaultAccess(_users, _vault, false);
   }
 
   function _hasAccess(address _user, address _vault) internal view returns (bool) {
@@ -35,26 +47,36 @@ contract AllowlistAccessControl is IAccessControl {
   }
 
   /// @dev updates the users global access
-  function _updateGlobalAccess(address[] calldata _users, bool permission) internal {
+  function _updateGlobalAccess(address[] calldata _users, bool _permission) internal {
     for (uint256 i = 0; i < _users.length; i++) {
       require(_users[i] != address(0), "invalid address");
       /// @dev only update mappign if permissions are changed
-      if (globalAccessMap[_users[i]] != permission) {
-        globalAccessMap[_users[i]] = permission;
+      if (globalAccessMap[_users[i]] != _permission) {
+        globalAccessMap[_users[i]] = _permission;
+        if (_permission) {
+          emit GlobalAccessGranted(_users[i]);
+        } else {
+          emit GlobalAccessRemoved(_users[i]);
+        }
       }
     }
   }
 
   function _updateAllowVaultAccess(
     address[] calldata _users,
-    address vault,
-    bool permission
+    address _vault,
+    bool _permission
   ) internal {
-    require(vault != address(0), "invalid vault address");
+    require(_vault != address(0), "invalid vault address");
     for (uint256 i = 0; i < _users.length; i++) {
       require(_users[i] != address(0), "invalid user address");
-      if (vaultAccessMap[_users[i]][vault] != permission) {
-        vaultAccessMap[_users[i]][vault] = permission;
+      if (vaultAccessMap[_users[i]][_vault] != _permission) {
+        vaultAccessMap[_users[i]][_vault] = _permission;
+        if (_permission) {
+          emit VaultAccessGranted(_users[i], _vault);
+        } else {
+          emit VaultAccessRemoved(_users[i], _vault);
+        }
       }
     }
   }

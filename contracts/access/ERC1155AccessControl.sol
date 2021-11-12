@@ -4,25 +4,19 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "./IAccessControl.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "../vaults/roles/Governable.sol";
-import "../vaults/roles/Gatekeeperable.sol";
+import "./PerVaultGatekeeper.sol";
 
-contract ERC1155AccessControl is IAccessControl, Gatekeeperable, Governable {
-  modifier onlyGovernanceOrGatekeeper() {
-    require((_msgSender() == governance) || (_msgSender() == gatekeeper), "governance or gatekeeper only");
-    _;
-  }
+contract ERC1155AccessControl is IAccessControl, PerVaultGatekeeper {
   using EnumerableSet for EnumerableSet.UintSet;
+
+  event VaultAccessGranted(address indexed _vault, uint256 indexed _nftId);
+  event VaultAccessRemoved(address indexed _vault, uint256 indexed _nftId);
 
   ERC1155 private erc1155;
 
   mapping(address => EnumerableSet.UintSet) private vaultToNftIds;
 
-  constructor(
-    address _nftContractAddress,
-    address _gatekeeper,
-    address _governer
-  ) Gatekeeperable(_gatekeeper) Governable(_governer) {
+  constructor(address _nftContractAddress, address _governer) PerVaultGatekeeper(_governer) {
     require(_nftContractAddress != address(0), "invalid nft address");
     erc1155 = ERC1155(_nftContractAddress);
   }
@@ -52,14 +46,13 @@ contract ERC1155AccessControl is IAccessControl, Gatekeeperable, Governable {
    * The mapping is based on the order of the two arrays, ie the first vault is mapped to the first id and so on
    */
 
-  function addVaultToNftMapping(address[] calldata _vaults, uint256[] calldata _nftIds)
-    external
-    onlyGovernanceOrGatekeeper
-  {
+  function addVaultToNftMapping(address[] calldata _vaults, uint256[] calldata _nftIds) external {
     require(_vaults.length == _nftIds.length, "invalid input");
     for (uint256 i = 0; i < _vaults.length; i++) {
+      _onlyGovernanceOrGatekeeper(_vaults[i]);
       require(_vaults[i] != address(0), "invalid vault address");
       vaultToNftIds[_vaults[i]].add(_nftIds[i]);
+      emit VaultAccessGranted(_vaults[i], _nftIds[i]);
     }
   }
 
@@ -68,19 +61,13 @@ contract ERC1155AccessControl is IAccessControl, Gatekeeperable, Governable {
    * The parameters work in the same was as the add the addVaultToNftMapping
    */
 
-  function removeVaultToNftMapping(address[] calldata _vaults, uint256[] calldata _nftIds)
-    external
-    onlyGovernanceOrGatekeeper
-  {
+  function removeVaultToNftMapping(address[] calldata _vaults, uint256[] calldata _nftIds) external {
     require(_vaults.length == _nftIds.length, "invalid input");
     for (uint256 i = 0; i < _vaults.length; i++) {
+      _onlyGovernanceOrGatekeeper(_vaults[i]);
       require(_vaults[i] != address(0), "invalid vault address");
       vaultToNftIds[_vaults[i]].remove(_nftIds[i]);
+      emit VaultAccessRemoved(_vaults[i], _nftIds[i]);
     }
-  }
-
-  function setGatekeeper(address _gatekeeper) external onlyGovernance {
-    require(_gatekeeper != address(0), "invalid gatekeeper");
-    _updateGatekeeper(_gatekeeper);
   }
 }

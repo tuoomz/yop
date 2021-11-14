@@ -27,6 +27,8 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
     uint256 _debtRatio
   );
 
+  uint256 internal constant SECONDS_PER_YEAR = 31_556_952; // 365.2425 days
+
   /// @dev construct a vault using a single asset.
   /// @param _name the name of the vault
   /// @param _symbol the symbol of the vault
@@ -389,10 +391,7 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
   }
 
   function _assessStrategyPerformanceFee(address _strategy, uint256 _gain) internal view returns (uint256) {
-    if (_gain > 0) {
-      return _gain.mul(_strategyDataStore().strategyPerformanceFee(address(this), _strategy)).div(MAX_BASIS_POINTS);
-    }
-    return 0;
+    return _gain.mul(_strategyDataStore().strategyPerformanceFee(address(this), _strategy)).div(MAX_BASIS_POINTS);
   }
 
   // calculate the management fee based on TVL.

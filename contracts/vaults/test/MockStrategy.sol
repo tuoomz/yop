@@ -15,9 +15,11 @@ contract MockStrategy {
   uint256 public estimatedTotalAssets;
   uint256 public returnAmount;
 
+  address internal tokenAddress;
   IERC20 public token;
 
   constructor(address _token) {
+    tokenAddress = _token;
     token = IERC20(_token);
   }
 
@@ -26,6 +28,9 @@ contract MockStrategy {
 
   function setVault(address _vault) external {
     vault = _vault;
+    if (tokenAddress != address(0)) {
+      token.approve(vault, type(uint256).max);
+    }
   }
 
   function setProfit(uint256 _profit) external {
@@ -56,5 +61,9 @@ contract MockStrategy {
   function withdraw(uint256 _amount) external returns (uint256) {
     SafeERC20.safeTransfer(token, msg.sender, returnAmount);
     return loss;
+  }
+
+  function delegatedAssets() external pure returns (uint256) {
+    return 0;
   }
 }

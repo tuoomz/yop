@@ -10,7 +10,6 @@ abstract contract SingleAssetVaultBase is BaseVault {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
-  uint256 internal constant SECONDS_PER_YEAR = 31_556_952; // 365.2425 days
   /// @notice the timestamp of the last report received from a strategy
   uint256 internal lastReport;
   /// @notice how much profit is locked and cant be withdrawn

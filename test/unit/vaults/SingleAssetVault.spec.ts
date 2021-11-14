@@ -1,12 +1,13 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { AllowlistAccessControl } from "../../../types";
 import { LosPolosHermanosTokenMock } from "../../../types/LosPolosHermanosTokenMock";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { MockStrategy } from "../../../types/MockStrategy";
+import { MockHealthCheck } from "../../../types/MockHealthCheck";
 
 describe("SingleAssetVault", async () => {
   const name = "test vault";
@@ -343,6 +344,153 @@ describe("SingleAssetVault", async () => {
             .to.emit(token, "Transfer")
             .withArgs(vault.address, user.address, ethers.utils.parseEther("0.9"));
         });
+      });
+    });
+  });
+
+  describe("test report", async () => {
+    const amountIn = ethers.utils.parseEther("1");
+    let mockStrategy: MockStrategy;
+    let healthCheck: MockHealthCheck;
+    beforeEach(async () => {
+      await vault.connect(governance).unpause();
+      await token.mint(user.address, ethers.utils.parseEther("10"));
+      await token.connect(user).approve(vault.address, ethers.constants.MaxUint256);
+      await vault.connect(user).deposit(amountIn, user.address);
+      // deploy the mock strategy
+      const MockStrategyContract = await ethers.getContractFactory("MockStrategy");
+      mockStrategy = (await MockStrategyContract.deploy(token.address)) as MockStrategy;
+      await mockStrategy.deployed();
+
+      const MockHealthCheck = await ethers.getContractFactory("MockHealthCheck");
+      healthCheck = (await MockHealthCheck.deploy()) as MockHealthCheck;
+      await healthCheck.deployed();
+
+      await vault.connect(governance).setHealthCheck(healthCheck.address);
+    });
+
+    it("should not be able to call the vault if it's not a strategy for the vault", async () => {
+      await mockStrategy.setVault(vault.address);
+      expect(mockStrategy.callVault()).to.be.revertedWith("invalid strategy");
+    });
+
+    describe("report from valid strategy", async () => {
+      const sDebtRatio = BigNumber.from("9000"); // 90%
+      const sMinDebtPerHarvest = BigNumber.from("0");
+      const sMaxDebtPerHarvest = ethers.constants.MaxUint256;
+      const sPerformanceFee = BigNumber.from("100"); // 1%
+      beforeEach(async () => {
+        await vault.connect(governance).setManagementFee(BigNumber.from("200")); // 2%
+        // add the mock strategy for the vault
+        await strategyDataStore.connect(governance).setVaultManager(vault.address, manager.address);
+        await strategyDataStore
+          .connect(manager)
+          .addStrategy(vault.address, mockStrategy.address, sDebtRatio, sMinDebtPerHarvest, sMaxDebtPerHarvest, sPerformanceFee);
+      });
+
+      it("should fail if the strategy doesn't have enough balance", async () => {
+        await mockStrategy.setProfit(ethers.utils.parseEther("0.1"));
+        await mockStrategy.setDebtPayment(ethers.utils.parseEther("0.1"));
+        expect(mockStrategy.callVault()).to.be.revertedWith("not enough balance");
+      });
+
+      it("report profit", async () => {
+        const profit = ethers.utils.parseEther("0.5");
+        await healthCheck.setDoCheck(true);
+        // both rewards and strategies should have not fees before hand
+        expect(await vault.balanceOf(rewards.address)).to.eq(ethers.constants.Zero);
+        expect(await vault.balanceOf(mockStrategy.address)).to.eq(ethers.constants.Zero);
+        await mockStrategy.callVault(); // allocate some funds to the strategy first
+        await network.provider.send("evm_increaseTime", [1800]);
+        await mockStrategy.setProfit(profit);
+        await network.provider.send("evm_increaseTime", [1800]); // 1 hour gap between the two reports
+        expect(await mockStrategy.callVault())
+          .to.emit(vault, "StrategyReported")
+          .withArgs(
+            mockStrategy.address,
+            profit,
+            ethers.constants.Zero,
+            ethers.constants.Zero,
+            profit,
+            ethers.constants.Zero,
+            ethers.utils.parseEther("0.9"),
+            ethers.constants.Zero,
+            sDebtRatio
+          )
+          .to.emit(token, "Transfer")
+          .withArgs(mockStrategy.address, vault.address, profit);
+        const performanceFee = ethers.utils.parseEther("0.005");
+        expect(await vault.balanceOf(mockStrategy.address)).to.eq(performanceFee);
+        // management fee = 0.9 * 0.02 * (3600/SECONDS_PER_YEAR) ~= 0.000002053430255
+        const managementFee = BigNumber.from("2053430255241");
+        expect(await vault.balanceOf(rewards.address)).to.eq(managementFee);
+        expect(await vault.lockedProfit()).to.eq(profit.sub(performanceFee).sub(managementFee));
+      });
+
+      it("report loss", async () => {
+        const loss = ethers.utils.parseEther("0.5");
+        await healthCheck.setDoCheck(true);
+        await mockStrategy.callVault(); // allocate some funds to the strategy first
+        await mockStrategy.setLoss(loss);
+        expect(await mockStrategy.callVault())
+          .to.emit(vault, "StrategyReported")
+          .withArgs(
+            mockStrategy.address,
+            ethers.constants.Zero,
+            loss,
+            ethers.constants.Zero,
+            ethers.constants.Zero,
+            loss,
+            ethers.utils.parseEther("0.4"),
+            ethers.constants.Zero,
+            BigNumber.from("4000")
+          );
+      });
+
+      it("report debt payment", async () => {
+        const debtPayment = ethers.utils.parseEther("0.45");
+        await mockStrategy.callVault(); // allocate some funds to the strategy first
+        await strategyDataStore
+          .connect(manager)
+          .updateStrategyDebtRatio(vault.address, mockStrategy.address, sDebtRatio.div(ethers.constants.Two));
+        await mockStrategy.setDebtPayment(debtPayment);
+        expect(await mockStrategy.callVault())
+          .to.emit(vault, "StrategyReported")
+          .withArgs(
+            mockStrategy.address,
+            ethers.constants.Zero,
+            ethers.constants.Zero,
+            debtPayment,
+            ethers.constants.Zero,
+            ethers.constants.Zero,
+            debtPayment,
+            ethers.constants.Zero,
+            sDebtRatio.div(ethers.constants.Two)
+          )
+          .to.emit(token, "Transfer")
+          .withArgs(mockStrategy.address, vault.address, debtPayment);
+      });
+
+      it("should withdraw everything in emergency mode", async () => {
+        const debtPayment = ethers.utils.parseEther("0.9");
+        await mockStrategy.callVault(); // allocate some funds to the strategy first
+        await vault.connect(governance).setVaultEmergencyShutdown(true);
+        await mockStrategy.setDebtPayment(debtPayment);
+        expect(await mockStrategy.callVault())
+          .to.emit(vault, "StrategyReported")
+          .withArgs(
+            mockStrategy.address,
+            ethers.constants.Zero,
+            ethers.constants.Zero,
+            debtPayment,
+            ethers.constants.Zero,
+            ethers.constants.Zero,
+            ethers.constants.Zero,
+            ethers.constants.Zero,
+            sDebtRatio
+          )
+          .to.emit(token, "Transfer")
+          .withArgs(mockStrategy.address, vault.address, debtPayment);
       });
     });
   });

@@ -7,6 +7,8 @@ import { AllowlistAccessControl } from "../../../types";
 describe("AllowlistAccessControl", function () {
   let governer: SignerWithAddress;
   let addr1: SignerWithAddress;
+  let gatekeeper: SignerWithAddress;
+  let gatekeeper2: SignerWithAddress;
   let addressArray: Array<string>;
   let vaultA: string;
   let vaultB: string;
@@ -15,7 +17,7 @@ describe("AllowlistAccessControl", function () {
   const address0 = ethers.constants.AddressZero;
   beforeEach(async function () {
     AllowlistAccessControl = await ethers.getContractFactory("AllowlistAccessControl");
-    [, governer, addr1] = await ethers.getSigners();
+    [, governer, gatekeeper, gatekeeper2, addr1] = await ethers.getSigners();
     addressArray = [addr1.address];
     vaultA = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
     vaultB = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
@@ -101,5 +103,33 @@ describe("AllowlistAccessControl", function () {
     await expect(allowlistAccessControl.connect(governer).allowVaultAccess([addr1.address], address0)).to.be.revertedWith(
       "invalid vault address"
     );
+  });
+
+  it("only governance can set gatekeeper", async () => {
+    expect(allowlistAccessControl.connect(addr1).setVaultGatekeeper(vaultA, gatekeeper.address)).to.be.revertedWith("governance only");
+    expect(allowlistAccessControl.connect(governer).setVaultGatekeeper(vaultA, gatekeeper.address))
+      .to.emit(allowlistAccessControl, "GatekeeperUpdated")
+      .withArgs(gatekeeper.address, vaultA);
+  });
+
+  it("only gatekeeper of a vault can update allowlist for the vault", async () => {
+    await allowlistAccessControl.connect(governer).setVaultGatekeeper(vaultA, gatekeeper.address);
+    await allowlistAccessControl.connect(governer).setVaultGatekeeper(vaultB, gatekeeper2.address);
+    expect(allowlistAccessControl.connect(gatekeeper).allowVaultAccess([addr1.address], vaultB)).to.be.revertedWith("not authorised");
+    expect(await allowlistAccessControl.connect(gatekeeper).allowVaultAccess([addr1.address], vaultA))
+      .to.emit(allowlistAccessControl, "VaultAccessGranted")
+      .withArgs(addr1.address, vaultA);
+    expect(allowlistAccessControl.connect(gatekeeper2).allowVaultAccess([addr1.address], vaultA)).to.be.revertedWith("not authorised");
+    expect(await allowlistAccessControl.connect(gatekeeper2).allowVaultAccess([addr1.address], vaultB))
+      .to.emit(allowlistAccessControl, "VaultAccessGranted")
+      .withArgs(addr1.address, vaultB);
+    expect(allowlistAccessControl.connect(gatekeeper).removeVaultAccess([addr1.address], vaultB)).to.be.revertedWith("not authorised");
+    expect(await allowlistAccessControl.connect(gatekeeper).removeVaultAccess([addr1.address], vaultA))
+      .to.emit(allowlistAccessControl, "VaultAccessRemoved")
+      .withArgs(addr1.address, vaultA);
+    expect(allowlistAccessControl.connect(gatekeeper2).removeVaultAccess([addr1.address], vaultA)).to.be.revertedWith("not authorised");
+    expect(await allowlistAccessControl.connect(gatekeeper2).removeVaultAccess([addr1.address], vaultB))
+      .to.emit(allowlistAccessControl, "VaultAccessRemoved")
+      .withArgs(addr1.address, vaultB);
   });
 });

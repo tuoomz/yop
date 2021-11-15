@@ -3,7 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { AllowlistAccessControl } from "../../../types";
-import { LosPolosHermanosTokenMock } from "../../../types/LosPolosHermanosTokenMock";
+import { TokenMock } from "../../../types/TokenMock";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { MockStrategy } from "../../../types/MockStrategy";
@@ -18,14 +18,14 @@ describe("SingleAssetVault", async () => {
   let manager: SignerWithAddress;
   let rewards: SignerWithAddress;
   let user: SignerWithAddress;
-  let token: LosPolosHermanosTokenMock;
+  let token: TokenMock;
   let strategyDataStore: VaultStrategyDataStore;
   let vault: SingleAssetVault;
 
   beforeEach(async () => {
     [deployer, governance, gatekeeper, manager, rewards, user] = await ethers.getSigners();
-    const MockToken = await ethers.getContractFactory("LosPolosHermanosTokenMock");
-    token = (await MockToken.deploy("LosPolosHermanos", "lph")) as LosPolosHermanosTokenMock;
+    const MockToken = await ethers.getContractFactory("TokenMock");
+    token = (await MockToken.deploy("LosPolosHermanos", "lph")) as TokenMock;
     await token.deployed();
 
     const StrategyDataStore = await ethers.getContractFactory("VaultStrategyDataStore");

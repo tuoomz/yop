@@ -1,19 +1,26 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { ContractFactory } from "ethers";
 import { ethers } from "hardhat";
 import { Governable } from "../../../../types/Governable";
 
 describe("Governable", async () => {
+  let GonvernaleContract: ContractFactory;
   let governable: Governable;
   let governance: SignerWithAddress;
   let pendingGovernance: SignerWithAddress;
   let user: SignerWithAddress;
+  let deployer: SignerWithAddress;
 
   beforeEach(async () => {
-    [, governance, pendingGovernance, user] = await ethers.getSigners();
-    const Gonvernable = await ethers.getContractFactory("Governable");
-    governable = (await Gonvernable.deploy(governance.address)) as Governable;
+    [deployer, governance, pendingGovernance, user] = await ethers.getSigners();
+    GonvernaleContract = await ethers.getContractFactory("Governable");
+    governable = (await GonvernaleContract.deploy(governance.address)) as Governable;
     await governable.deployed();
+  });
+
+  it("test deployer can not be governance", async () => {
+    expect(GonvernaleContract.deploy(deployer.address)).to.be.revertedWith("invalid address");
   });
 
   it("test governance", async () => {

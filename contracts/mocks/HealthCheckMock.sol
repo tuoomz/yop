@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-contract MockHealthCheck {
+contract HealthCheckMock {
   bool internal doCheck;
 
   function setDoCheck(bool _check) external {

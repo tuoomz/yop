@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BaseVaultMock } from "../../../types/BaseVaultMock";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
-import { MockStrategy } from "../../../types/MockStrategy";
+import { StrategyMock } from "../../../types/StrategyMock";
 import { impersonate } from "../utils/Impersonate";
 
 describe("BaseVault", function () {
@@ -157,7 +157,7 @@ describe("BaseVault", function () {
   describe("BaseVault strategies", async () => {
     let vaultStrategyDataStore: VaultStrategyDataStore;
     let vaultStrategyDataStoreSigner: SignerWithAddress;
-    let mockStrategy: MockStrategy;
+    let mockStrategy: StrategyMock;
     let mockStrategySigner: SignerWithAddress;
 
     beforeEach(async () => {
@@ -166,8 +166,8 @@ describe("BaseVault", function () {
       await vaultStrategyDataStore.deployed();
       vaultStrategyDataStoreSigner = await impersonate(vaultStrategyDataStore.address);
 
-      const MockStrategy = await ethers.getContractFactory("MockStrategy");
-      mockStrategy = (await MockStrategy.deploy(ethers.constants.AddressZero)) as MockStrategy;
+      const MockStrategy = await ethers.getContractFactory("StrategyMock");
+      mockStrategy = (await MockStrategy.deploy(ethers.constants.AddressZero)) as StrategyMock;
       await mockStrategy.deployed();
       mockStrategySigner = await impersonate(mockStrategy.address);
       // add the datastore to the vault
@@ -188,8 +188,8 @@ describe("BaseVault", function () {
     });
 
     it("test migrateStrategy", async () => {
-      const MockStrategy = await ethers.getContractFactory("MockStrategy");
-      const mockStrategy1 = (await MockStrategy.deploy(ethers.constants.AddressZero)) as MockStrategy;
+      const MockStrategy = await ethers.getContractFactory("StrategyMock");
+      const mockStrategy1 = (await MockStrategy.deploy(ethers.constants.AddressZero)) as StrategyMock;
       await mockStrategy1.deployed();
       expect(baseVault.connect(governance).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith(
         "only strategy store"

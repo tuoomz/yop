@@ -6,8 +6,8 @@ import { AllowlistAccessControl } from "../../../types";
 import { TokenMock } from "../../../types/TokenMock";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
-import { MockStrategy } from "../../../types/MockStrategy";
-import { MockHealthCheck } from "../../../types/MockHealthCheck";
+import { StrategyMock } from "../../../types/StrategyMock";
+import { HealthCheckMock } from "../../../types/HealthCheckMock";
 
 describe("SingleAssetVault", async () => {
   const name = "test vault";
@@ -261,11 +261,11 @@ describe("SingleAssetVault", async () => {
       });
 
       describe("withdraw from strategies", async () => {
-        let mockStrategy: MockStrategy;
+        let mockStrategy: StrategyMock;
         beforeEach(async () => {
           // deploy the mock strategy
-          const MockStrategyContract = await ethers.getContractFactory("MockStrategy");
-          mockStrategy = (await MockStrategyContract.deploy(token.address)) as MockStrategy;
+          const MockStrategyContract = await ethers.getContractFactory("StrategyMock");
+          mockStrategy = (await MockStrategyContract.deploy(token.address)) as StrategyMock;
           await mockStrategy.deployed();
 
           // add the mock strategy for the vault
@@ -350,20 +350,20 @@ describe("SingleAssetVault", async () => {
 
   describe("test report", async () => {
     const amountIn = ethers.utils.parseEther("1");
-    let mockStrategy: MockStrategy;
-    let healthCheck: MockHealthCheck;
+    let mockStrategy: StrategyMock;
+    let healthCheck: HealthCheckMock;
     beforeEach(async () => {
       await vault.connect(governance).unpause();
       await token.mint(user.address, ethers.utils.parseEther("10"));
       await token.connect(user).approve(vault.address, ethers.constants.MaxUint256);
       await vault.connect(user).deposit(amountIn, user.address);
       // deploy the mock strategy
-      const MockStrategyContract = await ethers.getContractFactory("MockStrategy");
-      mockStrategy = (await MockStrategyContract.deploy(token.address)) as MockStrategy;
+      const MockStrategyContract = await ethers.getContractFactory("StrategyMock");
+      mockStrategy = (await MockStrategyContract.deploy(token.address)) as StrategyMock;
       await mockStrategy.deployed();
 
-      const MockHealthCheck = await ethers.getContractFactory("MockHealthCheck");
-      healthCheck = (await MockHealthCheck.deploy()) as MockHealthCheck;
+      const MockHealthCheck = await ethers.getContractFactory("HealthCheckMock");
+      healthCheck = (await MockHealthCheck.deploy()) as HealthCheckMock;
       await healthCheck.deployed();
 
       await vault.connect(governance).setHealthCheck(healthCheck.address);

@@ -13,12 +13,6 @@ contract Gatekeeperable is Context {
   /// @notice the address of the guardian for the vault
   address public gatekeeper;
 
-  /// @dev make sure msg.sender is the guardian
-  modifier onlyGatekeeper() {
-    require(_msgSender() == gatekeeper, "gatekeeper only");
-    _;
-  }
-
   // /// @dev make sure msg.sender is the guardian or the governance
   // modifier onlyGovernanceOrGuardian() {
   //   require((_msgSender() == governance) || (_msgSender() == guardian), "governance or guardian only");
@@ -38,9 +32,5 @@ contract Gatekeeperable is Context {
     require(_gatekeeper != gatekeeper, "already the guardian");
     gatekeeper = _gatekeeper;
     emit GatekeeperUpdated(_gatekeeper);
-  }
-
-  function _onlyGatekeeper() internal view {
-    require(_msgSender() == gatekeeper, "gatekeeper only");
   }
 }

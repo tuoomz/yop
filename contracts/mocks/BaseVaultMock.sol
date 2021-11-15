@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "../BaseVault.sol";
+import "../vaults/BaseVault.sol";
 
 /// @dev this is mainly used to test functions in the BaseVault
 contract BaseVaultMock is BaseVault {

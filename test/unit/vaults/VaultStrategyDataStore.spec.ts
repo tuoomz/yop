@@ -4,7 +4,7 @@ import { ContractFactory } from "@ethersproject/contracts";
 import { BaseVaultMock, StrategyMock, VaultStrategyDataStore } from "../../../types";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { ContractTransaction } from "ethers";
+import { constants, ContractTransaction } from "ethers";
 import { impersonate } from "../utils/Impersonate";
 
 describe("VaultStrategyDataStore", function () {
@@ -37,8 +37,8 @@ describe("VaultStrategyDataStore", function () {
     StrategyMockFactory = await ethers.getContractFactory("StrategyMock");
     VaultStrategyDataStoreFactory = await ethers.getContractFactory("VaultStrategyDataStore");
     BaseVaultMockFactroy = await ethers.getContractFactory("BaseVaultMock");
-    strategyA = (await StrategyMockFactory.deploy()) as StrategyMock;
-    strategyB = (await StrategyMockFactory.deploy()) as StrategyMock;
+    strategyA = (await StrategyMockFactory.deploy(constants.AddressZero)) as StrategyMock;
+    strategyB = (await StrategyMockFactory.deploy(constants.AddressZero)) as StrategyMock;
     vaultStrategyDS = (await VaultStrategyDataStoreFactory.deploy(governer.address)) as VaultStrategyDataStore;
     vaultMock = (await BaseVaultMockFactroy.deploy(
       name,

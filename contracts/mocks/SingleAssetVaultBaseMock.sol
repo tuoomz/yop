@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "../SingleAssetVaultBase.sol";
+import "../vaults/SingleAssetVaultBase.sol";
 
 contract SingleAssetVaultBaseMock is SingleAssetVaultBase {
   /* solhint-disable no-empty-blocks */

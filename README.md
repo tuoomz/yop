@@ -18,6 +18,10 @@ npx hardhat compile
 npx hardhat test
 ```
 
+### Run Tests in VSCode
+
+To run the tests in VSCode, install the [Mocha Test Explorer](https://marketplace.visualstudio.com/items?itemName=hbenl.vscode-mocha-test-adapter) extension, and then update this VSCode option `mochaExplorer.files` to `test/**/*.{j,t}s`.
+
 ## Static Analysis
 
 Static analysis is used to test contracts for possible issues and optimizations. This should be done in development and as part of PR review process.

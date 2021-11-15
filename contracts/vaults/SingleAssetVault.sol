@@ -295,6 +295,7 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
     address _recipient,
     uint256 _maxLoss
   ) internal returns (uint256) {
+    require(_recipient != address(0), "invalid recipient");
     require(_maxLoss <= MAX_BASIS_POINTS, "invalid maxLoss");
     uint256 shares = _ensureValidShares(_msgSender(), _maxShares);
     uint256 value = _shareValue(shares);
@@ -310,8 +311,11 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
       // to prevent excessive losses on their withdrawals (which may
       // happen in certain edge cases where Strategies realize a loss)
       totalLoss = _withdrawFromStrategies(value);
+      if (totalLoss > 0) {
+        value = value.sub(totalLoss);
+      }
+      vaultBalance = token.balanceOf(address(this));
     }
-    vaultBalance = token.balanceOf(address(this));
     // NOTE: We have withdrawn everything possible out of the withdrawal queue,
     // but we still don't have enough to fully pay them back, so adjust
     // to the total amount we've freed up through forced withdrawals
@@ -319,7 +323,7 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
       value = vaultBalance;
       // NOTE: Burn # of shares that corresponds to what Vault has on-hand,
       // including the losses that were incurred above during withdrawals
-      shares = _sharesForAmount(value + totalLoss);
+      shares = _sharesForAmount(value.add(totalLoss));
     }
     // NOTE: This loss protection is put in place to revert if losses from
     // withdrawing are more than what is considered acceptable.

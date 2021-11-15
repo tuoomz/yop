@@ -1,3 +1,4 @@
+import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
@@ -5,6 +6,7 @@ import { AllowlistAccessControl } from "../../../types";
 import { LosPolosHermanosTokenMock } from "../../../types/LosPolosHermanosTokenMock";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
+import { MockStrategy } from "../../../types/MockStrategy";
 
 describe("SingleAssetVault", async () => {
   const name = "test vault";
@@ -182,13 +184,13 @@ describe("SingleAssetVault", async () => {
 
     describe("verify the amount of LP token received", async () => {
       beforeEach(async () => {
-        await token.mint(user.address, ethers.utils.parseEther("10"));
+        await token.mint(user.address, ethers.utils.parseEther("1"));
         await token.connect(user).approve(vault.address, ethers.constants.MaxUint256);
       });
 
       it("should receive the same amount LP tokens as input for the first deposit", async () => {
         const amountIn = ethers.utils.parseEther("1");
-        expect(await vault.connect(user).deposit(amountIn, user.address))
+        expect(await vault.connect(user).deposit(ethers.constants.MaxUint256, user.address))
           .to.emit(token, "Transfer")
           .withArgs(user.address, vault.address, amountIn)
           .to.emit(vault, "Transfer")
@@ -206,10 +208,141 @@ describe("SingleAssetVault", async () => {
         expect(await vault.totalSupply()).to.equal(amountIn);
         // for the next deposit, it should only get half of what then put in as the balance of the vault has doubled
         const expectedAmount = ethers.utils.parseEther("0.5");
+        await token.mint(user.address, amountIn);
         expect(await vault.connect(user).deposit(amountIn, user.address))
           .to.emit(vault, "Transfer")
           .withArgs(ethers.constants.AddressZero, user.address, expectedAmount);
         expect(await vault.balanceOf(user.address)).to.equal(amountIn.add(expectedAmount));
+      });
+    });
+  });
+
+  describe("withdraw", async () => {
+    const maxLoss = BigNumber.from("100");
+    beforeEach(async () => {
+      await vault.connect(governance).unpause();
+    });
+    it("can not withdraw when the vault is paused", async () => {
+      await vault.connect(governance).pause();
+      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, maxLoss)).to.be.revertedWith("Pausable: paused");
+    });
+    it("can not withdraw when the vault is in emergency shutdown", async () => {
+      await vault.connect(governance).setVaultEmergencyShutdown(true);
+      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, maxLoss)).to.be.revertedWith("emergency shutdown");
+    });
+    it("can not withdraw if recipient address is not valid", async () => {
+      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, ethers.constants.AddressZero, maxLoss)).to.be.revertedWith(
+        "invalid recipient"
+      );
+    });
+    it("can not withdraw when the maxLoss value is over the limit", async () => {
+      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, BigNumber.from("11000"))).to.be.revertedWith(
+        "invalid maxLoss"
+      );
+    });
+    it("can not withdraw when users don't have LP tokens", async () => {
+      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, maxLoss)).to.be.revertedWith("no shares");
+    });
+    describe("verify withdraw values", async () => {
+      const amountIn = ethers.utils.parseEther("1");
+      beforeEach(async () => {
+        await token.mint(user.address, ethers.utils.parseEther("10"));
+        await token.connect(user).approve(vault.address, ethers.constants.MaxUint256);
+        await vault.connect(user).deposit(amountIn, user.address);
+      });
+
+      it("can withdraw when vault has enough tokens", async () => {
+        expect(await vault.connect(user).withdraw(amountIn, user.address, maxLoss))
+          .to.emit(vault, "Transfer")
+          .withArgs(user.address, ethers.constants.AddressZero, amountIn)
+          .to.emit(token, "Transfer")
+          .withArgs(vault.address, user.address, amountIn);
+      });
+
+      describe("withdraw from strategies", async () => {
+        let mockStrategy: MockStrategy;
+        beforeEach(async () => {
+          // deploy the mock strategy
+          const MockStrategyContract = await ethers.getContractFactory("MockStrategy");
+          mockStrategy = (await MockStrategyContract.deploy(token.address)) as MockStrategy;
+          await mockStrategy.deployed();
+
+          // add the mock strategy for the vault
+          const sDebtRatio = BigNumber.from("9000"); // 90%
+          const sMinDebtPerHarvest = BigNumber.from("0");
+          const sMaxDebtPerHarvest = ethers.constants.MaxUint256;
+          const sPerformanceFee = BigNumber.from("100"); // 1%
+          await strategyDataStore.connect(governance).setVaultManager(vault.address, manager.address);
+          await strategyDataStore
+            .connect(manager)
+            .addStrategy(vault.address, mockStrategy.address, sDebtRatio, sMinDebtPerHarvest, sMaxDebtPerHarvest, sPerformanceFee);
+        });
+
+        it("will withdraw from strategies when vault does not have enough tokens", async () => {
+          // let the vault allocate the fund to the strategy by report back to the vault
+          await mockStrategy.callVault();
+          expect(await token.balanceOf(mockStrategy.address)).to.equal(ethers.utils.parseEther("0.9"));
+          // withdraw more than what the vault have to trigger the withdraw from the strategies, no loss reported by the strategy
+          // make sure that:
+          // 1. the tokens are transferred from the strategy to the vault
+          // 2. the LP tokens are burnt
+          // 3. the tokens are transferred from the vault to the user
+          await mockStrategy.setReturnAmount(ethers.utils.parseEther("0.9"));
+          expect(await vault.connect(user).withdraw(amountIn, user.address, maxLoss))
+            .to.emit(token, "Transfer")
+            .withArgs(mockStrategy.address, vault.address, ethers.utils.parseEther("0.9"))
+            .to.emit(vault, "Transfer")
+            .withArgs(user.address, ethers.constants.AddressZero, amountIn)
+            .to.emit(token, "Transfer")
+            .withArgs(vault.address, user.address, amountIn);
+        });
+
+        it("will not withdraw when loss is over the limit", async () => {
+          // allocate some fund first
+          await mockStrategy.callVault();
+          // set the loss to be more than 1% of 1 ether
+          const loss = ethers.utils.parseEther("0.011");
+          await mockStrategy.setLoss(loss);
+          await mockStrategy.setReturnAmount(ethers.utils.parseEther("0.9").sub(loss));
+          expect(vault.connect(user).withdraw(amountIn, user.address, maxLoss)).to.be.revertedWith("loss is over limit");
+        });
+
+        it("will withdraw when loss is not over the limit", async () => {
+          // allocate some fund first
+          await mockStrategy.callVault();
+          // set the loss to be less than 1% of 1 ether
+          const loss = ethers.utils.parseEther("0.009");
+          await mockStrategy.setLoss(loss);
+          await mockStrategy.setReturnAmount(ethers.utils.parseEther("0.9").sub(loss));
+          expect(await vault.connect(user).withdraw(amountIn, user.address, maxLoss))
+            .to.emit(token, "Transfer")
+            .withArgs(mockStrategy.address, vault.address, ethers.utils.parseEther("0.891"))
+            .to.emit(vault, "Transfer")
+            .withArgs(user.address, ethers.constants.AddressZero, amountIn)
+            .to.emit(token, "Transfer")
+            .withArgs(vault.address, user.address, ethers.utils.parseEther("0.991"));
+        });
+
+        it("will withdraw the maximum balance of the vault", async () => {
+          // allocate some fund first
+          await mockStrategy.callVault();
+          // set the loss to be 1% of 1 ether
+          const loss = ethers.utils.parseEther("0.01");
+          await mockStrategy.setLoss(loss);
+          // the strategy should send back (0.9-0.01 = 0.89) eth, but only send back 0.8 instead
+          await mockStrategy.setReturnAmount(ethers.utils.parseEther("0.8"));
+          // in this case, the vault will only have 0.9 eth, not enough to cover 0.99 eth
+          // so the vault should only burn shares that worth 0.91 (include the loss) eth
+          // taking into account the loss, the totalSupply of LP token is 1 eth, the total fund in the vault is 0.99 eth
+          // so the shares that should be burnt is 0.91/0.99*1 ~= 0.9191919191 eth
+          expect(await vault.connect(user).withdraw(amountIn, user.address, maxLoss.mul(2)))
+            .to.emit(token, "Transfer")
+            .withArgs(mockStrategy.address, vault.address, ethers.utils.parseEther("0.8"))
+            .to.emit(vault, "Transfer")
+            .withArgs(user.address, ethers.constants.AddressZero, BigNumber.from("919191919191919191"))
+            .to.emit(token, "Transfer")
+            .withArgs(vault.address, user.address, ethers.utils.parseEther("0.9"));
+        });
       });
     });
   });

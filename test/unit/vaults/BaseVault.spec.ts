@@ -183,7 +183,7 @@ describe("BaseVault", function () {
       vaultStrategyDataStoreSigner = await impersonate(vaultStrategyDataStore.address);
 
       const MockStrategy = await ethers.getContractFactory("MockStrategy");
-      mockStrategy = (await MockStrategy.deploy()) as MockStrategy;
+      mockStrategy = (await MockStrategy.deploy(ethers.constants.AddressZero)) as MockStrategy;
       await mockStrategy.deployed();
       mockStrategySigner = await impersonate(mockStrategy.address);
       // add the datastore to the vault
@@ -205,7 +205,7 @@ describe("BaseVault", function () {
 
     it("test migrateStrategy", async () => {
       const MockStrategy = await ethers.getContractFactory("MockStrategy");
-      const mockStrategy1 = (await MockStrategy.deploy()) as MockStrategy;
+      const mockStrategy1 = (await MockStrategy.deploy(ethers.constants.AddressZero)) as MockStrategy;
       await mockStrategy1.deployed();
       expect(baseVault.connect(governance).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith(
         "only strategy store"

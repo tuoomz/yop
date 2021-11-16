@@ -60,7 +60,7 @@ contract CommonHealthCheck {
     profitLimitRatio = _profitLimitRatio;
   }
 
-  function setlossLimitRatio(uint256 _lossLimitRatio) external onlyAuthorized {
+  function setLossLimitRatio(uint256 _lossLimitRatio) external onlyAuthorized {
     require(_lossLimitRatio < MAX_BPS, "invalid ratio");
     lossLimitRatio = _lossLimitRatio;
   }
@@ -89,18 +89,6 @@ contract CommonHealthCheck {
 
   function doHealthCheck(address _strategy) external view returns (bool) {
     return !disabledCheck[_strategy];
-  }
-
-  function check(
-    uint256 profit,
-    uint256 loss,
-    uint256 debtPayment,
-    uint256 debtOutstanding,
-    uint256 totalDebt
-  ) external view returns (bool) {
-    address strategy = msg.sender;
-
-    return _runChecks(strategy, profit, loss, debtPayment, debtOutstanding, totalDebt);
   }
 
   function check(

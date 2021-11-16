@@ -13,14 +13,30 @@ import "hardhat-spdx-license-identifier";
 import "hardhat-watcher";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import "@rumblefishdev/hardhat-kms-signer";
+import { NetworkUserConfig, HardhatUserConfig } from "hardhat/types";
+import assert from "assert";
 
 // eslint-disable-next-line node/no-missing-import
 import "./tasks";
 
-import { HardhatUserConfig } from "hardhat/types";
 import { removeConsoleLog } from "hardhat-preprocessor";
 
 dotenv.config();
+
+// Allow CI to pass but fail for dev use to help show where the problem is
+if (!process.env.CI) {
+  const requiredEnvVar = ["ALCHEMY_API_KEY", "DEV_SIGNER_KMSID"];
+  requiredEnvVar.forEach((conf) => assert(process.env[conf], `Missing ENV VAR variable: ${conf}. Please set your .env`));
+}
+const chainIds = {
+  goerli: 5,
+  hardhat: 31337,
+  kovan: 42,
+  mainnet: 1,
+  rinkeby: 4,
+  ropsten: 3,
+};
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -34,29 +50,18 @@ const config: HardhatUserConfig = {
     // except: []
   },
   defaultNetwork: "hardhat",
-  namedAccounts: {
-    deployer: 0,
-    tokenOwner: 1,
-  },
   networks: {
-    localhost: {
-      live: false,
-      // saveDeployments: false,
-      tags: ["local"],
-    },
     hardhat: {
       forking: {
         enabled: process.env.FORKING === "true",
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
       },
-      live: false,
-      // saveDeployments: true,
-      tags: ["test", "local"],
+      chainId: 31337,
     },
-    ropsten: {
-      url: process.env.ROPSTEN_URL || "",
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    },
+    goerli: createTestnetConfig("goerli"),
+    kovan: createTestnetConfig("kovan"),
+    rinkeby: createTestnetConfig("rinkeby"),
+    ropsten: createTestnetConfig("ropsten"),
   },
   paths: {
     artifacts: "artifacts",
@@ -119,5 +124,15 @@ const config: HardhatUserConfig = {
     strict: false,
   },
 };
+
+function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig {
+  const url: string = "https://eth-" + network + ".alchemyapi.io/v2/" + process.env.ALCHEMY_API_KEY;
+  return {
+    chainId: chainIds[network],
+    gas: "auto",
+    url,
+    kmsKeyId: process.env.DEV_SIGNER_KMSID,
+  };
+}
 
 export default config;

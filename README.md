@@ -97,6 +97,24 @@ ERCs: ERC20
 contracts/vaults/BaseVault.sol analyzed (27 contracts)
 ```
 
+## Deploy
+
+Before you can deploy you need to have a populated .env file in the root of this project using .env.example as an example.
+
+### Testnets
+
+#### Rinkeby
+
+```bash
+# Deploy to rinkeby
+npx hardhat run --network rinkeby scripts/deploy.ts
+
+# Verify with Etherscan (rinkeby) contract verification service.
+npx hardhat run --network rinkeby scripts/deploy.ts
+```
+
+#### More Coming Soon
+
 ## Other available commands
 
 ```bash

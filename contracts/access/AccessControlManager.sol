@@ -17,13 +17,22 @@ abstract contract AbstractAccessControlManager {
 }
 
 // This implementation will allow us to set an allowed list of user addresses
-contract AccessControlManager is AbstractAccessControlManager {
+abstract contract AccessControlManager is AbstractAccessControlManager {
   // Add the library methods
   using EnumerableSet for EnumerableSet.AddressSet;
 
   EnumerableSet.AddressSet internal accessControlPolicies;
 
-  constructor(address[] memory _accessControlPolicies) {
+  // solhint-disable-next-line no-empty-blocks
+  constructor() {}
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __AccessControlManager_init(address[] memory _accessControlPolicies) internal {
+    __AccessControlManager_init_unchained(_accessControlPolicies);
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __AccessControlManager_init_unchained(address[] memory _accessControlPolicies) internal {
     _addAccessControlPolicys(_accessControlPolicies);
   }
 

@@ -3,11 +3,12 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./BaseVault.sol";
 
 abstract contract SingleAssetVaultBase is BaseVault {
-  using SafeERC20 for IERC20;
+  using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMath for uint256;
 
   /// @notice the timestamp of the last report received from a strategy
@@ -17,9 +18,22 @@ abstract contract SingleAssetVaultBase is BaseVault {
   /// @notice total value borrowed by all the strategies
   uint256 public totalDebt;
   address internal tokenAddress;
-  IERC20 public token;
+  IERC20Upgradeable public token;
 
-  constructor(
+  // solhint-disable-next-line no-empty-blocks
+  constructor() {}
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __SingleAssetVaultBase_init_unchained(address _token) internal {
+    require(_token != address(0), "invalid token address");
+    tokenAddress = _token;
+    token = IERC20Upgradeable(_token);
+    // the vault decimals need to match the tokens to avoid any conversion
+    vaultDecimals = ERC20Upgradeable(tokenAddress).decimals();
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __SingleAssetVaultBase_init(
     string memory _name,
     string memory _symbol,
     address _governance,
@@ -27,12 +41,9 @@ abstract contract SingleAssetVaultBase is BaseVault {
     address _rewards,
     address _strategyDataStoreAddress,
     address _token
-  ) BaseVault(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress) {
-    require(_token != address(0), "invalid token address");
-    tokenAddress = _token;
-    token = IERC20(_token);
-    // the vault decimals need to match the tokens to avoid any conversion
-    vaultDecimals = ERC20(tokenAddress).decimals();
+  ) internal {
+    __BaseVault__init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress);
+    __SingleAssetVaultBase_init_unchained(_token);
   }
 
   /// @notice Returns the total quantity of all assets under control of this

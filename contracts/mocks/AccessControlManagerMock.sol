@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "./AccessControlManager.sol";
+import "../access/AccessControlManager.sol";
 
 /// @notice This Mock will allow us test the access control mananger
 contract AccessControlManagerMock is AccessControlManager {
-  // solhint-disable-next-line
-  constructor(address[] memory _accessControlPolicies) AccessControlManager(_accessControlPolicies) {}
+  constructor(address[] memory _accessControlPolicies) {
+    __AccessControlManager_init(_accessControlPolicies);
+  }
 
   /// @dev since solidity 0.7.0 'using ... for' is no longer inheirited, so we need to repeat it here
   using EnumerableSet for EnumerableSet.AddressSet;

@@ -1,18 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IHealthCheck.sol";
 import "../interfaces/IStrategy.sol";
-import "./SingleAssetVaultBase.sol";
 import "../access/AccessControlManager.sol";
+import "./SingleAssetVaultBase.sol";
 
-contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, AccessControlManager {
-  using SafeERC20 for IERC20;
+contract SingleAssetVault is
+  SingleAssetVaultBase,
+  PausableUpgradeable,
+  ReentrancyGuardUpgradeable,
+  AccessControlManager
+{
+  using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMath for uint256;
 
   event StrategyReported(
@@ -29,13 +36,10 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
 
   uint256 internal constant SECONDS_PER_YEAR = 31_556_952; // 365.2425 days
 
-  /// @dev construct a vault using a single asset.
-  /// @param _name the name of the vault
-  /// @param _symbol the symbol of the vault
-  /// @param _governance the address of the manager of the vault
-  /// @param _token the address of the token asset
-  /* solhint-disable no-empty-blocks */
-  constructor(
+  // solhint-disable-next-line no-empty-blocks
+  constructor() {}
+
+  function initialize(
     string memory _name,
     string memory _symbol,
     address _governance,
@@ -43,14 +47,24 @@ contract SingleAssetVault is SingleAssetVaultBase, Pausable, ReentrancyGuard, Ac
     address _rewards,
     address _strategyDataStoreAddress,
     address _token
-  )
-    SingleAssetVaultBase(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _token)
-    AccessControlManager(new address[](0))
-  {
-    _pause();
+  ) external initializer {
+    __SingleAssetVault_init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _token);
   }
 
-  /* solhint-enable */
+  // solhint-disable-next-line func-name-mixedcase
+  function __SingleAssetVault_init(
+    string memory _name,
+    string memory _symbol,
+    address _governance,
+    address _gatekeeper,
+    address _rewards,
+    address _strategyDataStoreAddress,
+    address _token
+  ) internal {
+    __SingleAssetVaultBase_init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _token);
+    __AccessControlManager_init(new address[](0));
+    _pause();
+  }
 
   function pause() external {
     _onlyGovernanceOrGatekeeper();

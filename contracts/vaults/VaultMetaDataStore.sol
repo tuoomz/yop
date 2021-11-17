@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./roles/Governable.sol";
 import "./roles/Gatekeeperable.sol";
 
-contract VaultMetaDataStore is Context, Governable, Gatekeeperable {
+abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable {
   using SafeMath for uint256;
 
   event EmergencyShutdown(bool _active);
@@ -23,19 +23,32 @@ contract VaultMetaDataStore is Context, Governable, Gatekeeperable {
   /// @notice degradation for locked profit per second
   /// @dev the value is based on 6-hour degradation period (1/(60*60*6) = 0.000046)
   ///   NOTE: This is being deprecated by Yearn. See https://github.com/yearn/yearn-vaults/pull/471
-  uint256 public lockedProfitDegradation = DEGRADATION_COEFFICIENT.mul(46).div(10**6);
-  uint256 public depositLimit = type(uint256).max;
+  uint256 public lockedProfitDegradation;
+  uint256 public depositLimit;
   address public rewards;
   address public healthCheck;
   address public strategyDataStore;
   bool public emergencyShutdown;
 
-  constructor(
-    address _governanace,
+  // solhint-disable-next-line no-empty-blocks
+  constructor() {}
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __VaultMetaDataStore_init(
+    address _governance,
     address _gatekeeper,
     address _rewards,
     address _strategyDataStore
-  ) Governable(_governanace) Gatekeeperable(_gatekeeper) {
+  ) internal {
+    __Governable_init(_governance);
+    __Gatekeeperable_init(_gatekeeper);
+    __VaultMetaDataStore_init_unchained(_rewards, _strategyDataStore);
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __VaultMetaDataStore_init_unchained(address _rewards, address _strategyDataStore) internal {
+    lockedProfitDegradation = DEGRADATION_COEFFICIENT.mul(46).div(10**6);
+    depositLimit = type(uint256).max;
     _updateRewards(_rewards);
     _updateStrategyDataStore(_strategyDataStore);
   }
@@ -54,7 +67,6 @@ contract VaultMetaDataStore is Context, Governable, Gatekeeperable {
   }
 
   function setGatekeeper(address _gatekeeper) external onlyGovernance {
-    require(_gatekeeper != address(0), "invalid gatekeeper");
     _updateGatekeeper(_gatekeeper);
   }
 

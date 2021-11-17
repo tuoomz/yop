@@ -1,7 +1,7 @@
 import { BigNumber, utils } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers, network } from "hardhat";
+import { ethers, network, upgrades } from "hardhat";
 import { AllowlistAccessControl, TokenMock, SingleAssetVault, VaultStrategyDataStore, StrategyMock, HealthCheckMock } from "../../../types";
 
 describe("SingleAssetVault", async () => {
@@ -28,16 +28,9 @@ describe("SingleAssetVault", async () => {
     await strategyDataStore.deployed();
 
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
-    vault = (await SingleAssetVault.deploy(
-      name,
-      symbol,
-      governance.address,
-      gatekeeper.address,
-      rewards.address,
-      strategyDataStore.address,
-      token.address
-    )) as SingleAssetVault;
-    await vault.deployed;
+    vault = (await SingleAssetVault.deploy()) as SingleAssetVault;
+    await vault.deployed();
+    await vault.initialize(name, symbol, governance.address, gatekeeper.address, rewards.address, strategyDataStore.address, token.address);
   });
 
   describe("test pause", async () => {
@@ -389,7 +382,7 @@ describe("SingleAssetVault", async () => {
         expect(mockStrategy.callVault()).to.be.revertedWith("not enough balance");
       });
 
-      it.only("report profit", async () => {
+      it("report profit", async () => {
         const profit = ethers.utils.parseEther("0.5");
         await healthCheck.setDoCheck(true);
         // both rewards and strategies should have not fees before hand
@@ -707,5 +700,71 @@ describe("SingleAssetVault", async () => {
       const res = await vault.expectedReturn(mockStrategy.address);
       expect(res).to.be.gt(expectedMinValue).and.to.be.lt(expectedMaxValue);
     });
+  });
+});
+
+// the tests are skipped during coverage because the coverage tool will generate constructors which are not allowed by the upgrades library.
+// these tests doesn't really affect coverage anyway.
+describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
+  const vaultName1 = "vaultA";
+  const vaultSymbol1 = "va";
+  const vaultName2 = "vaultA";
+  const vaultSymbol2 = "vb";
+  let deployer: SignerWithAddress;
+  let governance: SignerWithAddress;
+  let gatekeeper: SignerWithAddress;
+  let manager: SignerWithAddress;
+  let rewards: SignerWithAddress;
+  let user: SignerWithAddress;
+  let token1: TokenMock;
+  let token2: TokenMock;
+  let strategyDataStore: VaultStrategyDataStore;
+  let vault1: SingleAssetVault;
+  let vault2: SingleAssetVault;
+
+  beforeEach(async () => {
+    [deployer, governance, gatekeeper, manager, rewards, user] = await ethers.getSigners();
+    const MockToken = await ethers.getContractFactory("TokenMock");
+    token1 = (await MockToken.deploy("LosPolosHermanos", "lph")) as TokenMock;
+    await token1.deployed();
+    token2 = (await MockToken.deploy("HeisenbergToken", "hbt")) as TokenMock;
+    await token2.deployed();
+
+    const StrategyDataStore = await ethers.getContractFactory("VaultStrategyDataStore");
+    strategyDataStore = (await StrategyDataStore.deploy(governance.address)) as VaultStrategyDataStore;
+    await strategyDataStore.deployed();
+
+    const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
+    const params1 = [
+      vaultName1,
+      vaultSymbol1,
+      governance.address,
+      gatekeeper.address,
+      rewards.address,
+      strategyDataStore.address,
+      token1.address,
+    ];
+    vault1 = (await upgrades.deployProxy(SingleAssetVault, params1)) as SingleAssetVault;
+    await vault1.deployed();
+    const params2 = [
+      vaultName2,
+      vaultSymbol2,
+      governance.address,
+      gatekeeper.address,
+      rewards.address,
+      strategyDataStore.address,
+      token2.address,
+    ];
+    vault2 = (await upgrades.deployProxy(SingleAssetVault, params2)) as SingleAssetVault;
+    await vault2.deployed();
+  });
+
+  it("two vaults should have different properties", async () => {
+    expect(await vault1.name()).to.equal(vaultName1);
+    expect(await vault1.symbol()).to.equal(vaultSymbol1);
+    expect(await vault1.token()).to.equal(token1.address);
+    expect(await vault2.name()).to.equal(vaultName2);
+    expect(await vault2.symbol()).to.equal(vaultSymbol2);
+    expect(await vault2.token()).to.equal(token2.address);
   });
 });

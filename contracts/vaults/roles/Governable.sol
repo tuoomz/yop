@@ -2,6 +2,7 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 
 interface IGovernable {
   function proposeGovernance(address _pendingGovernance) external;
@@ -9,9 +10,7 @@ interface IGovernable {
   function acceptGovernance() external;
 }
 
-/// @dev Add a `governance` and a `pendingGovernance` role to the contract, and implements a 2-phased nominatiom process to change the governance.
-///   Also provides a modifier to allow controlling access to functions of the contract.
-contract Governable is IGovernable, Context {
+abstract contract GovernableInternal {
   event GovenanceUpdated(address _govenance);
   event GovenanceProposed(address _pendingGovenance);
 
@@ -22,19 +21,20 @@ contract Governable is IGovernable, Context {
 
   /// @dev ensure msg.send is the governanace
   modifier onlyGovernance() {
-    require(_msgSender() == governance, "governance only");
+    require(_getMsgSender() == governance, "governance only");
     _;
   }
 
   /// @dev ensure msg.send is the pendingGovernance
   modifier onlyPendingGovernance() {
-    require(_msgSender() == pendingGovernance, "pending governance only");
+    require(_getMsgSender() == pendingGovernance, "pending governance only");
     _;
   }
 
   /// @dev the deployer of the contract will be set as the initial governance
-  constructor(address _governance) {
-    require(_msgSender() != _governance, "invalid address");
+  // solhint-disable-next-line func-name-mixedcase
+  function __Governable_init_unchained(address _governance) internal {
+    require(_getMsgSender() != _governance, "invalid address");
     _updateGovernance(_governance);
   }
 
@@ -59,6 +59,37 @@ contract Governable is IGovernable, Context {
 
   /// @dev provides an internal function to allow reduce the contract size
   function _onlyGovernance() internal view {
-    require(_msgSender() == governance, "governance only");
+    require(_getMsgSender() == governance, "governance only");
+  }
+
+  function _getMsgSender() internal view virtual returns (address);
+}
+
+/// @dev Add a `governance` and a `pendingGovernance` role to the contract, and implements a 2-phased nominatiom process to change the governance.
+///   Also provides a modifier to allow controlling access to functions of the contract.
+contract Governable is Context, GovernableInternal {
+  constructor(address _governance) GovernableInternal() {
+    __Governable_init_unchained(_governance);
+  }
+
+  function _getMsgSender() internal view override returns (address) {
+    return _msgSender();
+  }
+}
+
+/// @dev ungradeable version of the {Governable} contract. Can be used as part of an upgradeable contract.
+abstract contract GovernableUpgradeable is ContextUpgradeable, GovernableInternal {
+  // solhint-disable-next-line no-empty-blocks
+  constructor() {}
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __Governable_init(address _governance) internal {
+    __Context_init();
+    __Governable_init_unchained(_governance);
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function _getMsgSender() internal view override returns (address) {
+    return _msgSender();
   }
 }

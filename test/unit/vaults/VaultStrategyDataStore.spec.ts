@@ -40,14 +40,9 @@ describe("VaultStrategyDataStore", function () {
     strategyA = (await StrategyMockFactory.deploy(constants.AddressZero)) as StrategyMock;
     strategyB = (await StrategyMockFactory.deploy(constants.AddressZero)) as StrategyMock;
     vaultStrategyDS = (await VaultStrategyDataStoreFactory.deploy(governer.address)) as VaultStrategyDataStore;
-    vaultMock = (await BaseVaultMockFactroy.deploy(
-      name,
-      symbol,
-      governer.address,
-      gatekeeper.address,
-      rewards.address,
-      vaultStrategyDS.address
-    )) as BaseVaultMock;
+    vaultMock = (await BaseVaultMockFactroy.deploy()) as BaseVaultMock;
+    await vaultMock.deployed();
+    await vaultMock.initialize(name, symbol, governer.address, gatekeeper.address, rewards.address, vaultStrategyDS.address);
 
     await vaultStrategyDS
       .connect(governer)

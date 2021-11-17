@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
 import "./VaultMetaDataStore.sol";
 
 // the Vault itself also represents an ERC20 token, which means it also inherits all methods that are available on the ERC20 interface.
 // This token is the shares that the users will get when they deposit money into the Vault
-interface IBaseVault is IERC20, IERC20Permit {
+interface IBaseVault is IERC20Upgradeable, IERC20PermitUpgradeable {
   function addStrategy(address _strategy) external returns (bool);
 
   function migrateStrategy(address _oldVersion, address _newVersion) external returns (bool);
@@ -19,8 +19,8 @@ interface IBaseVault is IERC20, IERC20Permit {
 }
 
 /// @dev This contract is marked abstract to avoid being used directly.
-abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDataStore {
-  using SafeERC20 for IERC20;
+abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaDataStore {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
 
   struct StrategyInfo {
     uint256 activation;
@@ -35,29 +35,34 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
   event StrategyRevoked(address indexed _strategy);
 
   // ### Vault base properties
-  uint8 internal vaultDecimals = 18;
+  uint8 internal vaultDecimals;
   /// @notice timestamp for when the vault is deployed
-  uint256 public immutable activation;
+  uint256 public activation;
   mapping(address => StrategyInfo) internal strategies;
 
-  /// @dev BaseVault constructor. The deployer will be set as the governance of the vault by default.
-  /// @param _name the name of the vault
-  /// @param _symbol the symbol of the vault
-  /// @param _governance the address of the manager of the vault
-  constructor(
+  // solhint-disable-next-line no-empty-blocks
+  constructor() {}
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __BaseVault__init_unchained() internal {
+    vaultDecimals = 18;
+    // solhint-disable-next-line not-rely-on-time
+    activation = block.timestamp;
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __BaseVault__init(
     string memory _name,
     string memory _symbol,
     address _governance,
     address _gatekeeper,
     address _rewards,
     address _strategyDataStoreAddress
-  )
-    ERC20Permit(_name)
-    ERC20(_name, _symbol)
-    VaultMetaDataStore(_governance, _gatekeeper, _rewards, _strategyDataStoreAddress)
-  {
-    // solhint-disable-next-line not-rely-on-time
-    activation = block.timestamp;
+  ) internal {
+    __ERC20_init(_name, _symbol);
+    __ERC20Permit_init(_name);
+    __VaultMetaDataStore_init(_governance, _gatekeeper, _rewards, _strategyDataStoreAddress);
+    __BaseVault__init_unchained();
   }
 
   /// @notice returns decimals value of the vault
@@ -145,7 +150,7 @@ abstract contract BaseVault is IBaseVault, ERC20Permit, Governable, VaultMetaDat
     uint256 _amount,
     address _to
   ) internal {
-    IERC20 token_ = IERC20(_token);
+    IERC20Upgradeable token_ = IERC20Upgradeable(_token);
     if (_amount == type(uint256).max) {
       _amount = token_.balanceOf(address(this));
     }

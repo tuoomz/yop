@@ -1,17 +1,20 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { BaseVaultMock } from "../../../types/BaseVaultMock";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { StrategyMock } from "../../../types/StrategyMock";
 import { impersonate } from "../utils/Impersonate";
+import { ContractFactory } from "ethers";
 
 describe("BaseVault", function () {
   const vaultName = "test vault";
   const vaultSymbol = "tVault";
   const defaultDecimals = 18;
+  let BaseVaultMock: ContractFactory;
   let baseVault: BaseVaultMock;
+  let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
@@ -19,17 +22,29 @@ describe("BaseVault", function () {
   let user2: SignerWithAddress;
 
   beforeEach(async () => {
-    [, governance, gatekeeper, rewards, user1, user2] = await ethers.getSigners();
-    const BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
-    baseVault = (await BaseVaultMock.deploy(
-      vaultName,
-      vaultSymbol,
-      governance.address,
-      gatekeeper.address,
-      rewards.address,
-      ethers.constants.AddressZero
-    )) as BaseVaultMock;
+    [deployer, governance, gatekeeper, rewards, user1, user2] = await ethers.getSigners();
+    BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
+    baseVault = (await BaseVaultMock.deploy()) as BaseVaultMock;
     await baseVault.deployed();
+    await baseVault.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero);
+  });
+
+  describe("initialize", async () => {
+    it("can not set the initial deployer as the governor", async () => {
+      const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
+      await baseVault2.deployed();
+      expect(
+        baseVault2.initialize(vaultName, vaultSymbol, deployer.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero)
+      ).to.be.revertedWith("invalid address");
+    });
+
+    it("can not set the initial deployer as the gatekeeper", async () => {
+      const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
+      await baseVault2.deployed();
+      expect(
+        baseVault2.initialize(vaultName, vaultSymbol, governance.address, deployer.address, rewards.address, ethers.constants.AddressZero)
+      ).to.be.revertedWith("invalid address");
+    });
   });
 
   it("basic information should match", async () => {
@@ -69,14 +84,24 @@ describe("BaseVault", function () {
     expect(await baseVault.managementFee()).to.equal(newFee);
   });
 
-  it("test setGatekeeper", async () => {
-    expect(baseVault.connect(user1).setGatekeeper(user2.address)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(gatekeeper).setGatekeeper(user2.address)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(governance).setGatekeeper(ethers.constants.AddressZero)).to.be.revertedWith("invalid gatekeeper");
-    expect(await baseVault.connect(governance).setGatekeeper(user2.address))
-      .to.emit(baseVault, "GatekeeperUpdated")
-      .withArgs(user2.address);
-    expect(await baseVault.gatekeeper()).to.equal(user2.address);
+  describe("test setGatekeeper", async () => {
+    it("validate inputs", async () => {
+      expect(baseVault.connect(user1).setGatekeeper(user2.address)).to.be.revertedWith("governance only");
+      expect(baseVault.connect(gatekeeper).setGatekeeper(user2.address)).to.be.revertedWith("governance only");
+      expect(baseVault.connect(governance).setGatekeeper(ethers.constants.AddressZero)).to.be.revertedWith("address is not valid");
+    });
+
+    it("should update gatekeeper", async () => {
+      expect(await baseVault.connect(governance).setGatekeeper(user2.address))
+        .to.emit(baseVault, "GatekeeperUpdated")
+        .withArgs(user2.address);
+      expect(await baseVault.gatekeeper()).to.equal(user2.address);
+    });
+
+    it("can not set the same gatekeeper again", async () => {
+      await baseVault.connect(governance).setGatekeeper(user2.address);
+      expect(baseVault.connect(governance).setGatekeeper(user2.address)).to.be.revertedWith("already the gatekeeper");
+    });
   });
 
   it("test setStrategyDataStore", async () => {
@@ -211,5 +236,43 @@ describe("BaseVault", function () {
         .to.emit(baseVault, "StrategyRevoked")
         .withArgs(mockStrategy.address);
     });
+  });
+});
+
+// the tests are skipped during coverage because the coverage tool will generate constructors which are not allowed by the upgrades library.
+// these tests doesn't really affect coverage anyway.
+describe("BaseVault Proxy [ @skip-on-coverage ]", async () => {
+  const vaultName = "test vault";
+  const vaultSymbol = "tVault";
+  const defaultDecimals = 18;
+  let baseVault: BaseVaultMock;
+  let governance: SignerWithAddress;
+  let gatekeeper: SignerWithAddress;
+  let rewards: SignerWithAddress;
+  let user1: SignerWithAddress;
+
+  beforeEach(async () => {
+    [, governance, gatekeeper, rewards, user1] = await ethers.getSigners();
+    const BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
+    const params = [vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero];
+    baseVault = (await upgrades.deployProxy(BaseVaultMock, params)) as BaseVaultMock;
+    await baseVault.deployed();
+  });
+
+  it("basic information should match", async () => {
+    // any users should be able to read these information
+    baseVault = baseVault.connect(user1);
+    expect(await baseVault.name()).to.equal(vaultName);
+    expect(await baseVault.symbol()).to.equal(vaultSymbol);
+    expect(await baseVault.decimals()).to.equal(defaultDecimals);
+    expect(await baseVault.governance()).to.equal(governance.address);
+    expect(await baseVault.gatekeeper()).to.equal(gatekeeper.address);
+    expect(await baseVault.rewards()).to.equal(rewards.address);
+    expect(await baseVault.strategyDataStore()).to.equal(ethers.constants.AddressZero);
+    expect(await baseVault.managementFee()).to.equal(0);
+    expect(await baseVault.depositLimit()).to.equal(ethers.constants.MaxUint256);
+    expect(await baseVault.healthCheck()).to.equal(ethers.constants.AddressZero);
+    expect(await baseVault.emergencyShutdown()).to.equal(false);
+    expect(await baseVault.lockedProfitDegradation()).to.equal(BigNumber.from("46000000000000"));
   });
 });

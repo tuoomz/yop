@@ -66,4 +66,8 @@ contract StrategyMock {
   function delegatedAssets() external pure returns (uint256) {
     return 0;
   }
+
+  function isActive() external view returns (bool) {
+    return true;
+  }
 }

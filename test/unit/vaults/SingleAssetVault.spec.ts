@@ -1,13 +1,8 @@
-import { BigNumber } from "@ethersproject/bignumber";
+import { BigNumber, utils } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { AllowlistAccessControl } from "../../../types";
-import { TokenMock } from "../../../types/TokenMock";
-import { SingleAssetVault } from "../../../types/SingleAssetVault";
-import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
-import { StrategyMock } from "../../../types/StrategyMock";
-import { HealthCheckMock } from "../../../types/HealthCheckMock";
+import { AllowlistAccessControl, TokenMock, SingleAssetVault, VaultStrategyDataStore, StrategyMock, HealthCheckMock } from "../../../types";
 
 describe("SingleAssetVault", async () => {
   const name = "test vault";
@@ -394,7 +389,7 @@ describe("SingleAssetVault", async () => {
         expect(mockStrategy.callVault()).to.be.revertedWith("not enough balance");
       });
 
-      it("report profit", async () => {
+      it.only("report profit", async () => {
         const profit = ethers.utils.parseEther("0.5");
         await healthCheck.setDoCheck(true);
         // both rewards and strategies should have not fees before hand
@@ -492,6 +487,225 @@ describe("SingleAssetVault", async () => {
           .to.emit(token, "Transfer")
           .withArgs(mockStrategy.address, vault.address, debtPayment);
       });
+    });
+  });
+
+  describe("test sweep", () => {
+    let otherToken: TokenMock;
+
+    beforeEach(async () => {
+      const OtherToken = await ethers.getContractFactory("TokenMock");
+      otherToken = (await OtherToken.deploy("HeisenbergToken", "CRYSTAL")) as TokenMock;
+      await otherToken.deployed();
+    });
+
+    it("Should allow sweep for full amount", async () => {
+      await otherToken.mint(vault.address, utils.parseEther("12"));
+      const balance = await otherToken.balanceOf(vault.address);
+      expect(balance).to.equal(utils.parseEther("12"), "Failed to deposit into token");
+      await vault.connect(governance).sweep(otherToken.address, utils.parseEther("12"));
+      expect(await otherToken.balanceOf(vault.address)).to.equal(ethers.constants.Zero);
+    });
+
+    it("Should revert when sweeping for greater amount than available", async () => {
+      await otherToken.mint(vault.address, utils.parseEther("12"));
+      await expect(vault.connect(governance).sweep(otherToken.address, utils.parseEther("13"))).to.be.revertedWith(
+        "ERC20: transfer amount exceeds balance"
+      );
+    });
+
+    it("Should now allow sweep to not governance", async () => {
+      await otherToken.mint(vault.address, utils.parseEther("12"));
+      await expect(vault.connect(user).sweep(otherToken.address, utils.parseEther("12"))).to.be.revertedWith("governance only");
+    });
+  });
+
+  describe("test base init data", () => {
+    const vaultDecimals = 18;
+
+    it("Should check initial state", async () => {
+      expect(await vault.totalAsset()).to.equal(ethers.constants.Zero);
+      expect(await vault.availableDepositLimit()).to.equal(ethers.constants.MaxUint256);
+      expect(await vault.maxAvailableShares()).to.equal(ethers.constants.Zero);
+      expect(await vault.pricePerShare()).to.equal(BigNumber.from(`${10 ** vaultDecimals}`));
+      expect(await vault.totalDebt()).to.equal(ethers.constants.Zero);
+      expect(await vault.lockedProfit()).to.equal(ethers.constants.Zero);
+    });
+  });
+  describe("test debtOutstanding", async () => {
+    let mockStrategy: StrategyMock;
+    beforeEach(async () => {
+      // deploy the mock strategy
+      const MockStrategyContract = await ethers.getContractFactory("StrategyMock");
+      mockStrategy = (await MockStrategyContract.deploy(token.address)) as StrategyMock;
+      await mockStrategy.deployed();
+
+      // add the mock strategy for the vault
+      const sDebtRatio = BigNumber.from("5000"); // 50%
+      const sMinDebtPerHarvest = BigNumber.from("0");
+      const sMaxDebtPerHarvest = ethers.constants.MaxUint256;
+      const sPerformanceFee = BigNumber.from("100"); // 1%
+      await strategyDataStore.connect(governance).setVaultManager(vault.address, manager.address);
+      await strategyDataStore
+        .connect(manager)
+        .addStrategy(vault.address, mockStrategy.address, sDebtRatio, sMinDebtPerHarvest, sMaxDebtPerHarvest, sPerformanceFee);
+    });
+    it("Should return 0 when strategy debt is at the vault debt limit", async () => {
+      await token.mint(vault.address, utils.parseEther("100"));
+      // should drawdown 50% of 100eth
+      await mockStrategy.callVault();
+      expect(await vault.debtOutstanding(mockStrategy.address)).to.equal(ethers.constants.Zero);
+    });
+
+    it("Should return 0 when strategy debt is lower than the vault debt limit", async () => {
+      await token.mint(vault.address, utils.parseEther("100"));
+      // should drawdown 50% of 100eth
+      await mockStrategy.callVault();
+      // increase debt ratio by 25%
+      await strategyDataStore.connect(governance).updateStrategyDebtRatio(vault.address, mockStrategy.address, BigNumber.from("7500"));
+      expect(await vault.debtOutstanding(mockStrategy.address)).to.equal(ethers.constants.Zero);
+    });
+
+    it("Should check if strategy is past its debt limit and return overage", async () => {
+      await token.mint(vault.address, utils.parseEther("100"));
+      // should drawdown 50% of 100eth
+      await mockStrategy.callVault();
+
+      // outstanding debt should be 0
+      expect(await vault.debtOutstanding(mockStrategy.address)).to.equal(ethers.constants.Zero);
+
+      // lower max debt ratio by 50% - from 50% to 25%
+      await strategyDataStore.connect(governance).updateStrategyDebtRatio(vault.address, mockStrategy.address, BigNumber.from("2500"));
+
+      // should have 25eth outstanding debt
+      expect(await vault.debtOutstanding(mockStrategy.address)).to.equal(utils.parseEther("25"));
+    });
+
+    it("Should return totalDebt while in emergency shutdown", async () => {
+      await token.mint(vault.address, utils.parseEther("100"));
+      // should drawdown 50% of 100eth
+      await mockStrategy.callVault();
+      // outstanding debt should be 0
+      expect(await vault.debtOutstanding(mockStrategy.address)).to.equal(ethers.constants.Zero);
+
+      // lower max debt ratio by 50% - from 50% to 25%
+      await strategyDataStore.connect(governance).updateStrategyDebtRatio(vault.address, mockStrategy.address, BigNumber.from("2500"));
+      await vault.connect(governance).setVaultEmergencyShutdown(true);
+      // in shutdown the outstanding debt should be equal to what strategy drawdown
+      expect(await vault.debtOutstanding(mockStrategy.address)).to.equal(utils.parseEther("50"));
+    });
+  });
+
+  describe("test creditAvailable", async () => {
+    let mockStrategy: StrategyMock;
+    beforeEach(async () => {
+      // deploy the mock strategy
+      const MockStrategyContract = await ethers.getContractFactory("StrategyMock");
+      mockStrategy = (await MockStrategyContract.deploy(token.address)) as StrategyMock;
+      await mockStrategy.deployed();
+
+      // add the mock strategy for the vault
+      const sDebtRatio = BigNumber.from("5000"); // 50%
+      const sMinDebtPerHarvest = BigNumber.from("0");
+      const sMaxDebtPerHarvest = ethers.constants.MaxUint256;
+      const sPerformanceFee = BigNumber.from("100"); // 1%
+      await strategyDataStore.connect(governance).setVaultManager(vault.address, manager.address);
+      await strategyDataStore
+        .connect(manager)
+        .addStrategy(vault.address, mockStrategy.address, sDebtRatio, sMinDebtPerHarvest, sMaxDebtPerHarvest, sPerformanceFee);
+    });
+
+    it("should return max allowed by debtRatio", async () => {
+      await token.mint(vault.address, utils.parseEther("100"));
+      expect(await vault.creditAvailable(mockStrategy.address)).to.equal(utils.parseEther("50"));
+    });
+
+    it("should return 0 while in emergency shutdown", async () => {
+      await token.mint(vault.address, utils.parseEther("100"));
+      expect(await vault.creditAvailable(mockStrategy.address)).to.equal(utils.parseEther("50"));
+      await vault.connect(governance).setVaultEmergencyShutdown(true);
+      expect(await vault.creditAvailable(mockStrategy.address)).to.equal(ethers.constants.Zero);
+    });
+
+    it("should return 0 while strategy has outstandingDebt", async () => {
+      await token.mint(vault.address, utils.parseEther("100"));
+      // should drawdown 50% of 100eth
+      await mockStrategy.callVault();
+
+      // lower max debt ratio by 50% - from 50% to 25%
+      await strategyDataStore.connect(governance).updateStrategyDebtRatio(vault.address, mockStrategy.address, BigNumber.from("2500"));
+
+      // should have 25eth outstanding debt
+      expect(await vault.debtOutstanding(mockStrategy.address)).to.equal(utils.parseEther("25"));
+      expect(await vault.creditAvailable(mockStrategy.address)).to.equal(ethers.constants.Zero);
+    });
+
+    it("should return 0 available balance is less than strategyMinDebtPerHarvest_", async () => {
+      await token.mint(vault.address, utils.parseEther("100"));
+      await strategyDataStore.connect(governance).updateStrategyMinDebtHarvest(vault.address, mockStrategy.address, utils.parseEther("51"));
+      expect(await vault.creditAvailable(mockStrategy.address)).to.equal(ethers.constants.Zero);
+    });
+
+    describe("should return lower of available and strategyMaxDebtPerHarvest_", async () => {
+      it("available is lower", async () => {
+        await token.mint(vault.address, utils.parseEther("100"));
+        await strategyDataStore.connect(governance).updateStrategyMinDebtHarvest(vault.address, mockStrategy.address, utils.parseEther("23"));
+        await strategyDataStore.connect(governance).updateStrategyMaxDebtHarvest(vault.address, mockStrategy.address, utils.parseEther("27"));
+        await mockStrategy.callVault();
+        expect(await vault.creditAvailable(mockStrategy.address)).to.equal(utils.parseEther("23"));
+      });
+      it("strategyMaxDebtPerHarvest is lower", async () => {
+        await token.mint(vault.address, utils.parseEther("100"));
+        await strategyDataStore.connect(governance).updateStrategyMinDebtHarvest(vault.address, mockStrategy.address, utils.parseEther("13"));
+        await strategyDataStore.connect(governance).updateStrategyMaxDebtHarvest(vault.address, mockStrategy.address, utils.parseEther("15"));
+        await mockStrategy.callVault();
+        expect(await vault.creditAvailable(mockStrategy.address)).to.equal(utils.parseEther("15"));
+      });
+    });
+  });
+
+  describe("test expectedReturn", async () => {
+    let mockStrategy: StrategyMock;
+
+    beforeEach(async () => {
+      // deploy the mock strategy
+      const MockStrategyContract = await ethers.getContractFactory("StrategyMock");
+      mockStrategy = (await MockStrategyContract.deploy(token.address)) as StrategyMock;
+      await mockStrategy.deployed();
+
+      // add the mock strategy for the vault
+      const sDebtRatio = BigNumber.from("5000"); // 50%
+      const sMinDebtPerHarvest = BigNumber.from("0");
+      const sMaxDebtPerHarvest = ethers.constants.MaxUint256;
+      const sPerformanceFee = BigNumber.from("100"); // 1%
+      await strategyDataStore.connect(governance).setVaultManager(vault.address, manager.address);
+      await strategyDataStore
+        .connect(manager)
+        .addStrategy(vault.address, mockStrategy.address, sDebtRatio, sMinDebtPerHarvest, sMaxDebtPerHarvest, sPerformanceFee);
+    });
+
+    it("should return 0 for new strategy", async () => {
+      expect(await vault.expectedReturn(mockStrategy.address)).to.equal(ethers.constants.Zero);
+    });
+
+    it("should return positive expected profit", async () => {
+      const profit = ethers.utils.parseEther("3");
+      await token.mint(vault.address, utils.parseEther("100"));
+
+      await mockStrategy.callVault();
+      await mockStrategy.setProfit(profit);
+      await mockStrategy.callVault();
+      await network.provider.send("evm_increaseTime", [1800]);
+      await network.provider.send("evm_mine");
+
+      // formula for expected profit is profit * msSinceLastHarvest / (lastReportTimestamp - StrategyActivationTimestamp)
+      // because it is time based we set min and max approximate values and check if returned value is within the range
+      // 1800 because we moved chain time by 1800ms
+      // on local system (lastReportTimestamp - StrategyActivationTimestamp) is usually 4, making range for 2 to 6 adds more reliability for testing on other systems.
+      const expectedMinValue = profit.mul(1800).div(6);
+      const expectedMaxValue = profit.mul(1800).div(2);
+      const res = await vault.expectedReturn(mockStrategy.address);
+      expect(res).to.be.gt(expectedMinValue).and.to.be.lt(expectedMaxValue);
     });
   });
 });

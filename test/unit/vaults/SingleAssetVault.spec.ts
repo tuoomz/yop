@@ -411,7 +411,7 @@ describe("SingleAssetVault", async () => {
         expect(await vault.balanceOf(mockStrategy.address)).to.eq(performanceFee);
         // management fee = 0.9 * 0.02 * (3600/SECONDS_PER_YEAR) ~= 0.000002053430255
         const managementFee = BigNumber.from("2053430255241");
-        expect(await vault.balanceOf(rewards.address)).to.be.closeTo(managementFee, 10); // this is to fix intermittent test failures in coverage tests
+        expect(await vault.balanceOf(rewards.address)).to.be.closeTo(managementFee, Math.pow(10, 10)); // this is to fix intermittent test failures in coverage tests
         expect(await vault.lockedProfit()).to.eq(profit.sub(performanceFee).sub(managementFee));
       });
 
@@ -699,6 +699,12 @@ describe("SingleAssetVault", async () => {
       const expectedMaxValue = profit.mul(1800).div(2);
       const res = await vault.expectedReturn(mockStrategy.address);
       expect(res).to.be.gt(expectedMinValue).and.to.be.lt(expectedMaxValue);
+    });
+  });
+
+  describe("test version", async () => {
+    it("should return version information", async () => {
+      expect(await vault.version()).to.equal("0.1.0");
     });
   });
 });

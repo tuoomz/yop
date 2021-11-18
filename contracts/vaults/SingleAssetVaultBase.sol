@@ -7,18 +7,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./BaseVault.sol";
 
+///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 abstract contract SingleAssetVaultBase is BaseVault {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMath for uint256;
-
-  /// @notice the timestamp of the last report received from a strategy
-  uint256 internal lastReport;
-  /// @notice how much profit is locked and cant be withdrawn
-  uint256 public lockedProfit;
-  /// @notice total value borrowed by all the strategies
-  uint256 public totalDebt;
-  address internal tokenAddress;
-  IERC20Upgradeable public token;
 
   // solhint-disable-next-line no-empty-blocks
   constructor() {}

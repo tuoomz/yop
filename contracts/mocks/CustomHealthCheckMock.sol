@@ -11,7 +11,6 @@ contract CustomHealthCheckMock is ICustomHealthCheck {
   }
 
   /* solhint-disable */
-
   function check(
     address callerStrategy,
     uint256 profit,

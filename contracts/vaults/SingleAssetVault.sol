@@ -13,6 +13,7 @@ import "../interfaces/IStrategy.sol";
 import "../access/AccessControlManager.sol";
 import "./SingleAssetVaultBase.sol";
 
+///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 contract SingleAssetVault is
   SingleAssetVaultBase,
   PausableUpgradeable,
@@ -35,6 +36,7 @@ contract SingleAssetVault is
   );
 
   uint256 internal constant SECONDS_PER_YEAR = 31_556_952; // 365.2425 days
+  string internal constant API_VERSION = "0.1.0";
 
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
@@ -64,6 +66,10 @@ contract SingleAssetVault is
     __SingleAssetVaultBase_init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _token);
     __AccessControlManager_init(new address[](0));
     _pause();
+  }
+
+  function version() external pure returns (string memory) {
+    return API_VERSION;
   }
 
   function pause() external {

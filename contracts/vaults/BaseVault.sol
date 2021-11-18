@@ -19,36 +19,19 @@ interface IBaseVault is IERC20Upgradeable, IERC20PermitUpgradeable {
 }
 
 /// @dev This contract is marked abstract to avoid being used directly.
+///  NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaDataStore {
   using SafeERC20Upgradeable for IERC20Upgradeable;
-
-  struct StrategyInfo {
-    uint256 activation;
-    uint256 lastReport;
-    uint256 totalDebt;
-    uint256 totalGain;
-    uint256 totalLoss;
-  }
 
   event StrategyAdded(address indexed _strategy);
   event StrategyMigrated(address indexed _oldVersion, address indexed _newVersion);
   event StrategyRevoked(address indexed _strategy);
 
-  // ### Vault base properties
-  uint8 internal vaultDecimals;
-  /// @notice timestamp for when the vault is deployed
-  uint256 public activation;
-  mapping(address => StrategyInfo) internal strategies;
-
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
 
-  // solhint-disable-next-line func-name-mixedcase
-  function __BaseVault__init_unchained() internal {
-    vaultDecimals = 18;
-    // solhint-disable-next-line not-rely-on-time
-    activation = block.timestamp;
-  }
+  // solhint-disable-next-line
+  function __BaseVault__init_unchained() internal {}
 
   // solhint-disable-next-line func-name-mixedcase
   function __BaseVault__init(

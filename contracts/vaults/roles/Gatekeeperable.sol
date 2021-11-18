@@ -11,6 +11,8 @@ abstract contract Gatekeeperable is ContextUpgradeable {
   event GatekeeperUpdated(address _guardian);
 
   /// @notice the address of the guardian for the vault
+  /// @dev This contract is used as part of the Vault contract and it is upgradeable.
+  ///  which means any changes to the state variables could corrupt the data. Do not modify this at all.
   address public gatekeeper;
 
   // /// @dev make sure msg.sender is the guardian or the governance

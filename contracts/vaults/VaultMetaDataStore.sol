@@ -4,8 +4,10 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./roles/Governable.sol";
 import "./roles/Gatekeeperable.sol";
+import "./VaultDataStorage.sol";
 
-abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable {
+///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
+abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, VaultDataStorage {
   using SafeMath for uint256;
 
   event EmergencyShutdown(bool _active);
@@ -18,17 +20,6 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable {
 
   /// @notice The maximum basis points. 1 basis point is 0.01% and 100% is 10000 basis points
   uint256 internal constant MAX_BASIS_POINTS = 10_000;
-  uint256 internal constant DEGRADATION_COEFFICIENT = 10**18;
-  uint256 public managementFee;
-  /// @notice degradation for locked profit per second
-  /// @dev the value is based on 6-hour degradation period (1/(60*60*6) = 0.000046)
-  ///   NOTE: This is being deprecated by Yearn. See https://github.com/yearn/yearn-vaults/pull/471
-  uint256 public lockedProfitDegradation;
-  uint256 public depositLimit;
-  address public rewards;
-  address public healthCheck;
-  address public strategyDataStore;
-  bool public emergencyShutdown;
 
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
@@ -42,13 +33,12 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable {
   ) internal {
     __Governable_init(_governance);
     __Gatekeeperable_init(_gatekeeper);
+    __VaultDataStorage_init();
     __VaultMetaDataStore_init_unchained(_rewards, _strategyDataStore);
   }
 
   // solhint-disable-next-line func-name-mixedcase
   function __VaultMetaDataStore_init_unchained(address _rewards, address _strategyDataStore) internal {
-    lockedProfitDegradation = DEGRADATION_COEFFICIENT.mul(46).div(10**6);
-    depositLimit = type(uint256).max;
     _updateRewards(_rewards);
     _updateStrategyDataStore(_strategyDataStore);
   }

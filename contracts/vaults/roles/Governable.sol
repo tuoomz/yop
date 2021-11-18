@@ -14,6 +14,8 @@ abstract contract GovernableInternal {
   event GovenanceUpdated(address _govenance);
   event GovenanceProposed(address _pendingGovenance);
 
+  /// @dev This contract is used as part of the Vault contract and it is upgradeable.
+  ///  which means any changes to the state variables could corrupt the data. Do not modify these at all.
   /// @notice the address of the current governance
   address public governance;
   /// @notice the address of the pending governance

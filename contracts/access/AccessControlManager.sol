@@ -80,4 +80,6 @@ abstract contract AccessControlManager is AbstractAccessControlManager {
     }
     return userHasAccess;
   }
+
+  uint256[50] private __gap; // keep some storage slots in case we need to add more variables
 }

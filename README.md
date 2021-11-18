@@ -101,6 +101,20 @@ contracts/vaults/BaseVault.sol analyzed (27 contracts)
 
 Before you can deploy you need to have a populated .env file in the root of this project using .env.example as an example.
 
+### Local Mainnet Fork
+
+```bash
+#Start a local fork of mainnet
+npm run start-fork
+#Deploy contracts and seed wallets
+npm run deploy-contracts-fork
+npm run populate-fork
+#Reset local fork
+npm run reset-fork
+```
+
+More detail information on forking can be found [here](docs/dev_forking_mainnet.md).
+
 ### Testnets
 
 #### Rinkeby

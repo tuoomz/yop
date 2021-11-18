@@ -11,7 +11,14 @@
     "console": "hardhat console",
     "prepare": "husky install",
     "test": "hardhat test",
-    "lint": "solhint 'contracts/**/*.sol' --fix && eslint '**/*.{js,ts}' --fix && npx prettier '**/*.{json,sol,md,js,yaml}' --write"
+    "lint": "solhint 'contracts/**/*.sol' --fix && eslint '**/*.{js,ts}' --fix && npx prettier '**/*.{json,sol,md,js,yaml}' --write",
+    "start-fork": "ENABLE_FORKING=true hardhat node --hostname 127.0.0.1",
+    "deploy-contracts-fork": "ENABLE_FORKING=true rm -rf deployments/localhost.json && npx hardhat run --network localhost scripts/deploy.ts",
+    "populate-fork": "ENABLE_FORKING=true  npm run impersonate-accounts && npm run distribute-funds",
+    "reset-fork": "ENABLE_FORKING=true hardhat --network localhost fork:reset",
+    "impersonate-accounts": "hardhat --network localhost fork:impersonate-accounts",
+    "distribute-funds": "hardhat --network localhost fork:fetch-funds-from-binance",
+    "deploy": "hardhat run --network localhost scripts/deploy.ts"
   },
   "dependencies": {
     "@ethersproject/contracts": "^5.5.0",
@@ -32,6 +39,7 @@
     "@openzeppelin/hardhat-upgrades": "^1.12.0",
     "@openzeppelin/test-helpers": "^0.5.15",
     "@rumblefishdev/hardhat-kms-signer": "^0.1.3",
+    "@studydefi/money-legos": "^2.4.2",
     "@tenderly/hardhat-tenderly": "^1.0.12",
     "@typechain/ethers-v5": "^8.0.1",
     "@typechain/hardhat": "^3.0.0",

@@ -5,6 +5,8 @@ cache
 typechain
 types
 
+deployments/localhost.json
+
 node_modules
 build
 .vscode

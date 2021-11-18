@@ -6,7 +6,6 @@ import "@nomiclabs/hardhat-waffle";
 import "hardhat-abi-exporter";
 import "@tenderly/hardhat-tenderly";
 import "@typechain/hardhat";
-import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
@@ -54,8 +53,10 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        enabled: process.env.FORKING === "true",
+        // eslint-disable-next-line eqeqeq
+        enabled: process.env.ENABLE_FORKING == "true",
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
+        blockNumber: 13612911,
       },
       chainId: 31337,
     },
@@ -67,9 +68,6 @@ const config: HardhatUserConfig = {
   paths: {
     artifacts: "artifacts",
     cache: "cache",
-    deploy: "deploy",
-    deployments: "deployments",
-    imports: "imports",
     sources: "contracts",
     tests: "test",
   },

@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 ///  The only safe operation is to add new fields, or rename an existing one (still not recommended to rename a field).
 ///  To avoid any issues, if a new field is needed, we should create a new version of the data store and extend the previous version,
 ///  rather than modifying the state variables directly.
+// solhint-disable-next-line max-states-count
 contract VaultDataStorage {
   using SafeMath for uint256;
 
@@ -39,6 +40,7 @@ contract VaultDataStorage {
   address public rewards;
   address public healthCheck;
   address public strategyDataStore;
+  address public accessManager;
   address internal tokenAddress;
 
   IERC20Upgradeable public token;

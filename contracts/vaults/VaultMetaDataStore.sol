@@ -17,6 +17,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   event StrategyDataStoreUpdated(address indexed _strategyDataStore);
   event DepositLimitUpdated(uint256 _limit);
   event LockedProfitDegradationUpdated(uint256 _degradation);
+  event AccessManagerUpdated(address indexed _accessManager);
 
   /// @notice The maximum basis points. 1 basis point is 0.01% and 100% is 10000 basis points
   uint256 internal constant MAX_BASIS_POINTS = 10_000;
@@ -107,6 +108,14 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   function setDepositLimit(uint256 _limit) external {
     _onlyGovernanceOrGatekeeper();
     _updateDepositLimit(_limit);
+  }
+
+  function setAccessManager(address _accessManager) external {
+    _onlyGovernanceOrGatekeeper();
+    if (accessManager != _accessManager) {
+      accessManager = _accessManager;
+      emit AccessManagerUpdated(_accessManager);
+    }
   }
 
   function _onlyGovernanceOrGatekeeper() internal view {

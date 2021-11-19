@@ -6,20 +6,16 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IHealthCheck.sol";
 import "../interfaces/IStrategy.sol";
-import "../access/AccessControlManager.sol";
+import "../access/IAccessControl.sol";
 import "./SingleAssetVaultBase.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
-contract SingleAssetVault is
-  SingleAssetVaultBase,
-  PausableUpgradeable,
-  ReentrancyGuardUpgradeable,
-  AccessControlManager
-{
+contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMath for uint256;
 
@@ -64,11 +60,10 @@ contract SingleAssetVault is
     address _token
   ) internal {
     __SingleAssetVaultBase_init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _token);
-    __AccessControlManager_init(new address[](0));
     _pause();
   }
 
-  function version() external pure returns (string memory) {
+  function version() external pure virtual returns (string memory) {
     return API_VERSION;
   }
 
@@ -80,16 +75,6 @@ contract SingleAssetVault is
   function unpause() external {
     _onlyGovernanceOrGatekeeper();
     _unpause();
-  }
-
-  function addAccessControlPolicies(address[] calldata _policies) external {
-    _onlyGovernanceOrGatekeeper();
-    _addAccessControlPolicys(_policies);
-  }
-
-  function removeAccessControlPolicies(address[] calldata _policies) external {
-    _onlyGovernanceOrGatekeeper();
-    _removeAccessControlPolicys(_policies);
   }
 
   /// @notice Deposits `_amount` `token`, issuing shares to `recipient`. If the
@@ -265,7 +250,9 @@ contract SingleAssetVault is
 
   function _deposit(uint256 _amount, address _recipient) internal returns (uint256) {
     require(_recipient != address(0), "invalid recipient");
-    require(_hasAccess(_msgSender(), address(this)), "no access");
+    if (accessManager != address(0)) {
+      require(IAccessControl(accessManager).hasAccess(_msgSender(), address(this)), "no access");
+    }
     //TODO: do we also want to cap the `_amount` too?
     uint256 amount = _ensureValidDepositAmount(_msgSender(), _amount);
     uint256 shares = _issueSharesForAmount(_recipient, amount);
@@ -525,5 +512,10 @@ contract SingleAssetVault is
     } else {
       lockedProfit = 0;
     }
+  }
+
+  // solhint-disable-next-line no-unused-vars
+  function _authorizeUpgrade(address implementation) internal override {
+    _onlyGovernance();
   }
 }

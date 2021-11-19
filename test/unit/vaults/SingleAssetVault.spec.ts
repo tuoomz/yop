@@ -3,6 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 import { AllowlistAccessControl, TokenMock, SingleAssetVault, VaultStrategyDataStore, StrategyMock, HealthCheckMock } from "../../../types";
+import { AccessControlManager } from "../../../types/AccessControlManager";
 
 describe("SingleAssetVault", async () => {
   const name = "test vault";
@@ -88,42 +89,28 @@ describe("SingleAssetVault", async () => {
     });
   });
 
-  describe("add access control policy", async () => {
+  describe("setAccessControlManager", async () => {
     // just need an address, don't need an actual contract for our tests
     const randomAddress1 = "0x8888888888888888888888888888888888888888";
     const randomAddress2 = "0x9999999999999999999999999999999999999999";
     it("normal user have no access", async () => {
-      expect(vault.connect(user).addAccessControlPolicies([randomAddress1])).to.be.revertedWith("not authorised");
+      expect(vault.connect(user).setAccessManager(randomAddress1)).to.be.revertedWith("not authorised");
     });
-    it("gatekeeper can add access control policy", async () => {
-      expect(await vault.connect(gatekeeper).addAccessControlPolicies([randomAddress1]))
-        .to.emit(vault, "AccessControlPolicyAdded")
+    it("gatekeeper can set access control manager", async () => {
+      expect(await vault.connect(gatekeeper).setAccessManager(randomAddress1))
+        .to.emit(vault, "AccessManagerUpdated")
         .withArgs(randomAddress1);
     });
-    it("governance can add access control policy", async () => {
-      expect(await vault.connect(governance).addAccessControlPolicies([randomAddress2]))
-        .to.emit(vault, "AccessControlPolicyAdded")
+    it("governance can set access control manager", async () => {
+      expect(await vault.connect(governance).setAccessManager(randomAddress2))
+        .to.emit(vault, "AccessManagerUpdated")
         .withArgs(randomAddress2);
     });
-  });
-
-  describe("remove access control policy", async () => {
-    const randomAddress = "0x8888888888888888888888888888888888888888";
-    beforeEach(async () => {
-      await vault.connect(governance).addAccessControlPolicies([randomAddress]);
-    });
-    it("normal user have no access", async () => {
-      expect(vault.connect(user).removeAccessControlPolicies([randomAddress])).to.be.revertedWith("not authorised");
-    });
-    it("gatekeeper can remove access control policy", async () => {
-      expect(await vault.connect(gatekeeper).removeAccessControlPolicies([randomAddress]))
-        .to.emit(vault, "AccessControlPolicyRemoved")
-        .withArgs(randomAddress);
-    });
-    it("governance can add access control policy", async () => {
-      expect(await vault.connect(governance).removeAccessControlPolicies([randomAddress]))
-        .to.emit(vault, "AccessControlPolicyRemoved")
-        .withArgs(randomAddress);
+    it("should no change if the access manager address is not changed", async () => {
+      await vault.connect(governance).setAccessManager(randomAddress2);
+      await expect(await vault.connect(governance).setAccessManager(randomAddress2))
+        .not.to.emit(vault, "AccessManagerUpdated")
+        .withArgs(randomAddress2);
     });
   });
 
@@ -144,13 +131,20 @@ describe("SingleAssetVault", async () => {
     });
     describe("check access control policy", async () => {
       let allowlistPolicy: AllowlistAccessControl;
+      let accessControlManager: AccessControlManager;
 
       beforeEach(async () => {
         const AllowlistAccessControlContract = await ethers.getContractFactory("AllowlistAccessControl");
         allowlistPolicy = (await AllowlistAccessControlContract.deploy(governance.address)) as AllowlistAccessControl;
         await allowlistPolicy.deployed();
 
-        await vault.connect(governance).addAccessControlPolicies([allowlistPolicy.address]);
+        const AccessControlContract = await ethers.getContractFactory("AccessControlManager");
+        accessControlManager = (await AccessControlContract.deploy(governance.address)) as AccessControlManager;
+        await accessControlManager.deployed();
+
+        await accessControlManager.connect(governance).addAccessControlPolicies(vault.address, [allowlistPolicy.address]);
+
+        await vault.connect(governance).setAccessManager(accessControlManager.address);
       });
 
       it("should not allow access if user is not on the allowlist", async () => {
@@ -750,7 +744,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       strategyDataStore.address,
       token1.address,
     ];
-    vault1 = (await upgrades.deployProxy(SingleAssetVault, params1)) as SingleAssetVault;
+    vault1 = (await upgrades.deployProxy(SingleAssetVault, params1, { kind: "uups" })) as SingleAssetVault;
     await vault1.deployed();
     const params2 = [
       vaultName2,
@@ -761,7 +755,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       strategyDataStore.address,
       token2.address,
     ];
-    vault2 = (await upgrades.deployProxy(SingleAssetVault, params2)) as SingleAssetVault;
+    vault2 = (await upgrades.deployProxy(SingleAssetVault, params2, { kind: "uups" })) as SingleAssetVault;
     await vault2.deployed();
   });
 
@@ -772,5 +766,14 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
     expect(await vault2.name()).to.equal(vaultName2);
     expect(await vault2.symbol()).to.equal(vaultSymbol2);
     expect(await vault2.token()).to.equal(token2.address);
+  });
+
+  it("only governance can upgrade", async () => {
+    let SingleAssetVaultV2Mock = await ethers.getContractFactory("SingleAssetVaultV2Mock");
+    await expect(upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock)).to.be.revertedWith("governance only");
+    // see https://forum.openzeppelin.com/t/execute-upgrade-using-different-signer/14264
+    SingleAssetVaultV2Mock = await ethers.getContractFactory("SingleAssetVaultV2Mock", governance);
+    const vaultv2 = await upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock);
+    expect(await vaultv2.version()).to.equal("2.0.0");
   });
 });

@@ -255,7 +255,7 @@ describe("BaseVault Proxy [ @skip-on-coverage ]", async () => {
     [, governance, gatekeeper, rewards, user1] = await ethers.getSigners();
     const BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
     const params = [vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero];
-    baseVault = (await upgrades.deployProxy(BaseVaultMock, params)) as BaseVaultMock;
+    baseVault = (await upgrades.deployProxy(BaseVaultMock, params, { kind: "uups" })) as BaseVaultMock;
     await baseVault.deployed();
   });
 

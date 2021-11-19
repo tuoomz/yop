@@ -12,49 +12,53 @@ import "../vaults/roles/Governable.sol";
 abstract contract AbstractAccessControlManager {
   /// @notice access policies set on the vault
 
-  event AccessControlPolicyAdded(address _policy);
-  event AccessControlPolicyRemoved(address _policy);
+  event AccessControlPolicyAdded(address indexed _vault, address indexed _policy);
+  event AccessControlPolicyRemoved(address indexed _vault, address indexed _policy);
 }
 
 // This implementation will allow us to set an allowed list of user addresses
-abstract contract AccessControlManager is AbstractAccessControlManager {
+contract AccessControlManager is AbstractAccessControlManager, PerVaultGatekeeper {
   // Add the library methods
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  EnumerableSet.AddressSet internal accessControlPolicies;
+  mapping(address => EnumerableSet.AddressSet) internal accessControlPolicies;
 
   // solhint-disable-next-line no-empty-blocks
-  constructor() {}
+  constructor(address _governance) PerVaultGatekeeper(_governance) {}
 
-  // solhint-disable-next-line func-name-mixedcase
-  function __AccessControlManager_init(address[] memory _accessControlPolicies) internal {
-    __AccessControlManager_init_unchained(_accessControlPolicies);
+  function addAccessControlPolicies(address _vault, address[] calldata _policies) external {
+    _onlyGovernanceOrGatekeeper(_vault);
+    _addAccessControlPolicys(_vault, _policies);
   }
 
-  // solhint-disable-next-line func-name-mixedcase
-  function __AccessControlManager_init_unchained(address[] memory _accessControlPolicies) internal {
-    _addAccessControlPolicys(_accessControlPolicies);
+  function removeAccessControlPolicies(address _vault, address[] calldata _policies) external {
+    _onlyGovernanceOrGatekeeper(_vault);
+    _removeAccessControlPolicys(_vault, _policies);
+  }
+
+  function getAccessControlPolicies(address _vault) external view returns (address[] memory) {
+    return accessControlPolicies[_vault].values();
   }
 
   // Had to use memory here instead of calldata as the function is
   // used in the constructor
-  function _addAccessControlPolicys(address[] memory _policies) internal {
+  function _addAccessControlPolicys(address _vault, address[] calldata _policies) internal {
     for (uint256 i = 0; i < _policies.length; i++) {
       if (_policies[i] != address(0)) {
-        bool added = accessControlPolicies.add(_policies[i]);
+        bool added = accessControlPolicies[_vault].add(_policies[i]);
         if (added) {
-          emit AccessControlPolicyAdded(_policies[i]);
+          emit AccessControlPolicyAdded(_vault, _policies[i]);
         }
       }
     }
   }
 
-  function _removeAccessControlPolicys(address[] calldata _policies) internal {
+  function _removeAccessControlPolicys(address _vault, address[] calldata _policies) internal {
     for (uint256 i = 0; i < _policies.length; i++) {
       if (_policies[i] != address(0)) {
-        bool removed = accessControlPolicies.remove(_policies[i]);
+        bool removed = accessControlPolicies[_vault].remove(_policies[i]);
         if (removed) {
-          emit AccessControlPolicyRemoved(_policies[i]);
+          emit AccessControlPolicyRemoved(_vault, _policies[i]);
         }
       }
     }
@@ -68,18 +72,16 @@ abstract contract AccessControlManager is AbstractAccessControlManager {
     require(_vault != address(0), "invalid vault address");
     require(_user != address(0), "invalid user address");
     // if no policies set, open by default
-    if (accessControlPolicies.length() == 0) {
+    if (accessControlPolicies[_vault].length() == 0) {
       return true;
     }
     bool userHasAccess = false;
-    for (uint256 i = 0; i < accessControlPolicies.length(); i++) {
-      if (IAccessControl(accessControlPolicies.at(i)).hasAccess(_user, _vault)) {
+    for (uint256 i = 0; i < accessControlPolicies[_vault].length(); i++) {
+      if (IAccessControl(accessControlPolicies[_vault].at(i)).hasAccess(_user, _vault)) {
         userHasAccess = true;
         break;
       }
     }
     return userHasAccess;
   }
-
-  uint256[50] private __gap; // keep some storage slots in case we need to add more variables
 }

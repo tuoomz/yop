@@ -7,10 +7,12 @@ import { AllowlistAccessControl, ERC1155AccessControl, VaultStrategyDataStore, S
 
 import AllowListAccessControlArtifact from "../artifacts/contracts/access/AllowListAccessControl.sol/AllowlistAccessControl.json";
 import ERC1155AccessControlArtifact from "../artifacts/contracts/access/ERC1155AccessControl.sol/ERC1155AccessControl.json";
+import AccessControlManagerArtifact from "../artifacts/contracts/access/AccessControlManager.sol/AccessControlManager.json";
 import VaultStrategyDataStoreArtifact from "../artifacts/contracts/vaults/VaultStrategyDataStore.sol/VaultStrategyDataStore.json";
 import SingleAssetVaultArtifact from "../artifacts/contracts/vaults/SingleAssetVault.sol/SingleAssetVault.json";
 
 import { readDeploymentFile, writeDeploymentFile, verifyEnvVar } from "./util";
+import { AccessControlManager } from "../types/AccessControlManager";
 
 const requireEnvVar = [
   "ETHERSCAN_API_KEY",
@@ -107,6 +109,29 @@ async function main(): Promise<void> {
     `ERC1155AccessControl deployed - txHash: ${ERC1155AccessControlContract.deployTransaction.hash} - address: ${ERC1155AccessControlContract.address}`
   );
 
+  console.log("Deploying AccessControlManager contract");
+  const AccessControlManagerFactory = await ethers.getContractFactory("AccessControlManager");
+  const AccessControlManagerContract: AccessControlManager = (await AccessControlManagerFactory.deploy(
+    process.env.GOVERNANCE_ADDRESS
+  )) as AccessControlManager;
+
+  console.log(`Deploying AccessControlManager contract - txHash: ${AccessControlManagerContract.deployTransaction.hash}`);
+  await AccessControlManagerContract.deployed();
+
+  deployRecord = {
+    ...deployRecord,
+    AccessControlManager: {
+      address: AccessControlManagerContract.address,
+      abi: AccessControlManagerArtifact,
+      deployTransaction: await getTxn(AccessControlManagerContract.deployTransaction),
+    },
+  };
+
+  await writeDeploymentFile(deployRecord);
+  console.log(
+    `AccessControlManager deployed - txHash: ${AccessControlManagerContract.deployTransaction.hash} - address: ${AccessControlManagerContract.address}`
+  );
+
   /*
    *
    * Start VaultStrategyDataStore Contract Deploy
@@ -142,19 +167,23 @@ async function main(): Promise<void> {
    *
    * */
 
-  console.log("Deploying SingleAssetVault contract");
+  console.log("Deploying SingleAssetVault contract proxy");
   const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault");
-  const SingleAssetVaultContract: SingleAssetVault = (await SingleAssetVaultFactory.deploy(
+  const params = [
     process.env.VAULT_NAME,
     process.env.VAULT_SYMBOL,
     process.env.GOVERNANCE_ADDRESS,
     process.env.GATEKEEPER_ADDRESS,
     process.env.REWARDS_ADDRESS,
     VaultStrategyDataStoreContract.address,
-    process.env.VAULT_TOKEN
-  )) as SingleAssetVault;
+    process.env.VAULT_TOKEN,
+    AccessControlManagerContract.address,
+  ];
+  const SingleAssetVaultContract: SingleAssetVault = (await hre.upgrades.deployProxy(SingleAssetVaultFactory, params, {
+    kind: "uups",
+  })) as SingleAssetVault;
 
-  console.log(`Deploying SingleAssetVault contract - txHash: ${SingleAssetVaultContract.deployTransaction.hash}`);
+  console.log(`Deploying SingleAssetVault contract proxy - txHash: ${SingleAssetVaultContract.deployTransaction.hash}`);
   await SingleAssetVaultContract.deployed();
 
   deployRecord = {
@@ -168,7 +197,7 @@ async function main(): Promise<void> {
 
   await writeDeploymentFile(deployRecord);
   console.log(
-    `SingleAssetVault deployed - txHash: ${SingleAssetVaultContract.deployTransaction.hash} - address: ${SingleAssetVaultContract.address}`
+    `SingleAssetVault proxy deployed - txHash: ${SingleAssetVaultContract.deployTransaction.hash} - address: ${SingleAssetVaultContract.address}`
   );
 }
 

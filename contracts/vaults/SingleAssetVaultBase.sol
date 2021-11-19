@@ -32,9 +32,10 @@ abstract contract SingleAssetVaultBase is BaseVault {
     address _gatekeeper,
     address _rewards,
     address _strategyDataStoreAddress,
-    address _token
+    address _token,
+    address _accessManager
   ) internal {
-    __BaseVault__init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress);
+    __BaseVault__init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _accessManager);
     __SingleAssetVaultBase_init_unchained(_token);
   }
 

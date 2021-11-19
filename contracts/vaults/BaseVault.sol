@@ -40,11 +40,12 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
     address _governance,
     address _gatekeeper,
     address _rewards,
-    address _strategyDataStoreAddress
+    address _strategyDataStoreAddress,
+    address _accessManager
   ) internal {
     __ERC20_init(_name, _symbol);
     __ERC20Permit_init(_name);
-    __VaultMetaDataStore_init(_governance, _gatekeeper, _rewards, _strategyDataStoreAddress);
+    __VaultMetaDataStore_init(_governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _accessManager);
     __BaseVault__init_unchained();
   }
 

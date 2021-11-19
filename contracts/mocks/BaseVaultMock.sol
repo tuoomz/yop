@@ -14,7 +14,7 @@ contract BaseVaultMock is Initializable, BaseVault, UUPSUpgradeable {
     address _rewards,
     address _strategyDataStoreAddress
   ) public initializer {
-    __BaseVault__init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress);
+    __BaseVault__init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, address(0));
   }
 
   // solhint-disable-next-line no-unused-vars

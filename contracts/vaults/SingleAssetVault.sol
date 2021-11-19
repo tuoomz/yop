@@ -44,9 +44,19 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     address _gatekeeper,
     address _rewards,
     address _strategyDataStoreAddress,
-    address _token
+    address _token,
+    address _accessManager
   ) external initializer {
-    __SingleAssetVault_init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _token);
+    __SingleAssetVault_init(
+      _name,
+      _symbol,
+      _governance,
+      _gatekeeper,
+      _rewards,
+      _strategyDataStoreAddress,
+      _token,
+      _accessManager
+    );
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -57,9 +67,19 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     address _gatekeeper,
     address _rewards,
     address _strategyDataStoreAddress,
-    address _token
+    address _token,
+    address _accessManager
   ) internal {
-    __SingleAssetVaultBase_init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _token);
+    __SingleAssetVaultBase_init(
+      _name,
+      _symbol,
+      _governance,
+      _gatekeeper,
+      _rewards,
+      _strategyDataStoreAddress,
+      _token,
+      _accessManager
+    );
     _pause();
   }
 

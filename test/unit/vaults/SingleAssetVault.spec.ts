@@ -31,7 +31,16 @@ describe("SingleAssetVault", async () => {
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
     vault = (await SingleAssetVault.deploy()) as SingleAssetVault;
     await vault.deployed();
-    await vault.initialize(name, symbol, governance.address, gatekeeper.address, rewards.address, strategyDataStore.address, token.address);
+    await vault.initialize(
+      name,
+      symbol,
+      governance.address,
+      gatekeeper.address,
+      rewards.address,
+      strategyDataStore.address,
+      token.address,
+      ethers.constants.AddressZero
+    );
   });
 
   describe("test pause", async () => {
@@ -743,6 +752,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       rewards.address,
       strategyDataStore.address,
       token1.address,
+      ethers.constants.AddressZero,
     ];
     vault1 = (await upgrades.deployProxy(SingleAssetVault, params1, { kind: "uups" })) as SingleAssetVault;
     await vault1.deployed();
@@ -754,6 +764,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       rewards.address,
       strategyDataStore.address,
       token2.address,
+      ethers.constants.AddressZero,
     ];
     vault2 = (await upgrades.deployProxy(SingleAssetVault, params2, { kind: "uups" })) as SingleAssetVault;
     await vault2.deployed();

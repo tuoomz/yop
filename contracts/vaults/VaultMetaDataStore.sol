@@ -30,18 +30,24 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     address _governance,
     address _gatekeeper,
     address _rewards,
-    address _strategyDataStore
+    address _strategyDataStore,
+    address _accessManager
   ) internal {
     __Governable_init(_governance);
     __Gatekeeperable_init(_gatekeeper);
     __VaultDataStorage_init();
-    __VaultMetaDataStore_init_unchained(_rewards, _strategyDataStore);
+    __VaultMetaDataStore_init_unchained(_rewards, _strategyDataStore, _accessManager);
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function __VaultMetaDataStore_init_unchained(address _rewards, address _strategyDataStore) internal {
+  function __VaultMetaDataStore_init_unchained(
+    address _rewards,
+    address _strategyDataStore,
+    address _accessManager
+  ) internal {
     _updateRewards(_rewards);
     _updateStrategyDataStore(_strategyDataStore);
+    _updateAccessManager(_accessManager);
   }
 
   /// @notice set the wallet address to send the collected fees to. Only can be called by the governance.
@@ -112,10 +118,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
 
   function setAccessManager(address _accessManager) external {
     _onlyGovernanceOrGatekeeper();
-    if (accessManager != _accessManager) {
-      accessManager = _accessManager;
-      emit AccessManagerUpdated(_accessManager);
-    }
+    _updateAccessManager(_accessManager);
   }
 
   function _onlyGovernanceOrGatekeeper() internal view {
@@ -154,6 +157,13 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     if (depositLimit != _depositLimit) {
       depositLimit = _depositLimit;
       emit DepositLimitUpdated(_depositLimit);
+    }
+  }
+
+  function _updateAccessManager(address _accessManager) internal {
+    if (accessManager != _accessManager) {
+      accessManager = _accessManager;
+      emit AccessManagerUpdated(_accessManager);
     }
   }
 }

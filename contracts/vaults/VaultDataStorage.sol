@@ -2,6 +2,7 @@
 pragma solidity =0.8.9;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {StrategyInfo} from "../interfaces/IVault.sol";
 
 /// @dev this contract is used to declare all the state variables that will be used by a Vault.
 ///  Because the vault itself is upgradeable, changes to state variables could cause data corruption.
@@ -12,13 +13,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 contract VaultDataStorage {
   using SafeMath for uint256;
 
-  struct StrategyInfo {
-    uint256 activation;
-    uint256 lastReport;
-    uint256 totalDebt;
-    uint256 totalGain;
-    uint256 totalLoss;
-  }
   // ### Vault base properties
   uint8 internal vaultDecimals;
   bool public emergencyShutdown;

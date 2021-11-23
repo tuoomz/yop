@@ -4,6 +4,14 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
+struct StrategyInfo {
+  uint256 activation;
+  uint256 lastReport;
+  uint256 totalDebt;
+  uint256 totalGain;
+  uint256 totalLoss;
+}
+
 interface IVault is IERC20, IERC20Permit {
   function name() external view returns (string memory);
 
@@ -50,6 +58,10 @@ interface IVault is IERC20, IERC20Permit {
   function creditAvailable(address _strategy) external view returns (uint256);
 
   function expectedReturn(address _strategy) external view returns (uint256);
+
+  function strategy(address _strategy) external view returns (StrategyInfo memory);
+
+  function strategyDebtRatio(address _strategy) external view returns (uint256);
 
   function setRewards(address _rewards) external;
 

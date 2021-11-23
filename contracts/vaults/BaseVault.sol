@@ -83,6 +83,14 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
     emit StrategyRevoked(_msgSender());
   }
 
+  function strategy(address _strategy) external view returns (StrategyInfo memory) {
+    return strategies[_strategy];
+  }
+
+  function strategyDebtRatio(address _strategy) external view returns (uint256) {
+    return _strategyDataStore().strategyDebtRatio(address(this), _strategy);
+  }
+
   function _strategyDataStore() internal view returns (IVaultStrategyDataStore) {
     return IVaultStrategyDataStore(strategyDataStore);
   }

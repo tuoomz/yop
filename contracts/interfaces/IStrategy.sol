@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 interface IStrategy {
   // *** Events *** //
   event Harvested(uint256 _profit, uint256 _loss, uint256 _debtPayment, uint256 _debtOutstanding);
@@ -15,7 +17,7 @@ interface IStrategy {
 
   // *** The following functions are used by the Vault *** //
   /// @notice returns the address of the token that the strategy wants
-  function want() external view returns (address);
+  function want() external view returns (IERC20);
 
   /// @notice the address of the Vault that the strategy belongs to
   function vault() external view returns (address);

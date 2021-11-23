@@ -8,6 +8,8 @@ import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
 import "./VaultMetaDataStore.sol";
 
+import {StrategyInfo} from "../interfaces/IVault.sol";
+
 // the Vault itself also represents an ERC20 token, which means it also inherits all methods that are available on the ERC20 interface.
 // This token is the shares that the users will get when they deposit money into the Vault
 interface IBaseVault is IERC20Upgradeable, IERC20PermitUpgradeable {

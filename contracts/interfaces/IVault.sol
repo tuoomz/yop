@@ -25,7 +25,9 @@ interface IVault is IERC20, IERC20Permit {
 
   function managementFee() external view returns (uint256);
 
-  function gatekeeper() external view returns (uint256);
+  function gatekeeper() external view returns (address);
+
+  function governance() external view returns (address);
 
   function strategyDataStore() external view returns (address);
 

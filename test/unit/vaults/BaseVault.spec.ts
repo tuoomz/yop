@@ -30,6 +30,12 @@ describe("BaseVault", function () {
   });
 
   describe("initialize", async () => {
+    it("can't initialize the contract again", async () => {
+      await expect(
+        baseVault.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero)
+      ).to.be.revertedWith("Initializable: contract is already initialized");
+    });
+
     it("can not set the initial deployer as the governor", async () => {
       const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
       await baseVault2.deployed();

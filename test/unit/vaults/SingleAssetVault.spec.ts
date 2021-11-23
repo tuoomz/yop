@@ -43,6 +43,23 @@ describe("SingleAssetVault", async () => {
     );
   });
 
+  describe("initialize", async () => {
+    it("can't initialize the contract again", async () => {
+      await expect(
+        vault.initialize(
+          name,
+          symbol,
+          governance.address,
+          gatekeeper.address,
+          rewards.address,
+          strategyDataStore.address,
+          token.address,
+          ethers.constants.AddressZero
+        )
+      ).to.be.revertedWith("Initializable: contract is already initialized");
+    });
+  });
+
   describe("test pause", async () => {
     beforeEach(async () => {
       await vault.connect(governance).unpause();

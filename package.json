@@ -26,7 +26,8 @@
     "@openzeppelin/contracts": "^4.3.2",
     "@openzeppelin/contracts-upgradeable": "^4.3.3",
     "hardhat-contract-sizer": "^2.1.1",
-    "hardhat-watcher": "^2.1.1"
+    "hardhat-watcher": "^2.1.1",
+    "prb-math": "^2.4.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^13.2.1",

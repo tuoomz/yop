@@ -14,7 +14,9 @@ import "solidity-coverage";
 import "hardhat-contract-sizer";
 import "@rumblefishdev/hardhat-kms-signer";
 import "@openzeppelin/hardhat-upgrades";
+
 import { NetworkUserConfig, HardhatUserConfig } from "hardhat/types";
+
 import assert from "assert";
 
 // eslint-disable-next-line node/no-missing-import
@@ -26,7 +28,7 @@ dotenv.config();
 
 // Allow CI to pass but fail for dev use to help show where the problem is
 if (!process.env.CI) {
-  const requiredEnvVar = ["ALCHEMY_API_KEY", "DEV_SIGNER_KMSID"];
+  const requiredEnvVar = ["ALCHEMY_API_KEY", "TESTNET_SIGNER_KMSID"];
   requiredEnvVar.forEach((conf) => assert(process.env[conf], `Missing ENV VAR variable: ${conf}. Please set your .env`));
 }
 const chainIds = {
@@ -130,7 +132,7 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
     chainId: chainIds[network],
     gas: "auto",
     url,
-    kmsKeyId: process.env.DEV_SIGNER_KMSID,
+    kmsKeyId: process.env.TESTNET_SIGNER_KMSID,
   };
 }
 

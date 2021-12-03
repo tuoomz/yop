@@ -13,12 +13,13 @@
     "test": "hardhat test",
     "lint": "solhint 'contracts/**/*.sol' --fix && eslint '**/*.{js,ts}' --fix && npx prettier '**/*.{json,sol,md,js,yaml}' --write",
     "start-fork": "ENABLE_FORKING=true hardhat node --hostname 127.0.0.1",
-    "deploy-contracts-fork": "ENABLE_FORKING=true rm -rf deployments/localhost.json && npx hardhat run --network localhost scripts/deploy.ts",
+    "deploy-contracts-fork": "ENABLE_FORKING=true npx hardhat run --network localhost scripts/deploy-all.ts",
     "populate-fork": "ENABLE_FORKING=true  npm run impersonate-accounts && npm run distribute-funds",
     "reset-fork": "ENABLE_FORKING=true hardhat --network localhost fork:reset",
     "impersonate-accounts": "hardhat --network localhost fork:impersonate-accounts",
     "distribute-funds": "hardhat --network localhost fork:fetch-funds-from-binance",
-    "deploy": "hardhat run --network localhost scripts/deploy.ts"
+    "deploy": "hardhat run --network $npm_config_network scripts/deploy-all.ts",
+    "propose-upgrade": "hardhat run --network $npm_config_network scripts/propose-upgrade.ts"
   },
   "dependencies": {
     "@ethersproject/contracts": "^5.5.0",

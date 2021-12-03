@@ -28,9 +28,10 @@ export async function deployMockNFTContract() {
       address: YopERC1155MockContract.address,
     },
   };
-
   await writeDeploymentFile(deployRecord);
-  console.log(`YopERC1155Mock deployed - txHash: ${YopERC1155MockContract.deployTransaction.hash} - address: ${YopERC1155MockContract.address}`);
+  console.log(
+    `YopERC1155Mock deployed - txHash: ${YopERC1155MockContract.deployTransaction.hash} - address: ${YopERC1155MockContract.address} \n\n`
+  );
 
   return YopERC1155MockContract.address;
 }

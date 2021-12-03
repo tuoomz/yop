@@ -4,6 +4,8 @@ import path from "path";
 import { promises as fs } from "fs";
 import assert from "assert";
 
+import { TransactionResponse } from "@ethersproject/abstract-provider";
+
 const NETWORK_NAME = hre.network.name;
 
 // Read deployment file
@@ -36,4 +38,17 @@ export async function verifyEnvVar(required: Array<string>): Promise<void> {
 // Deployment file per network
 async function getDeploymentFile() {
   return path.join(`deployments/${NETWORK_NAME}.json`);
+}
+
+export async function getTxn(transactionResponse: TransactionResponse) {
+  const txn = await transactionResponse.wait();
+  return {
+    ...transactionResponse,
+    ...txn,
+    gasPrice: transactionResponse.gasPrice?.toString(),
+    gasLimit: transactionResponse.gasLimit.toString(),
+    value: transactionResponse.value.toString(),
+    gasUsed: txn.gasUsed.toString(),
+    cumulativeGasUsed: txn.cumulativeGasUsed.toString(),
+  };
 }

@@ -92,19 +92,11 @@ describe("SingleAssetVault", async () => {
 
   describe("test unpause", async () => {
     it("normal user have no access", async () => {
-      expect(vault.connect(user).unpause()).to.be.revertedWith("not authorised");
+      expect(vault.connect(user).unpause()).to.be.revertedWith("governance only");
     });
 
-    it("gatekeeper can unpause", async () => {
-      expect(await vault.connect(gatekeeper).unpause())
-        .to.emit(vault, "Unpaused")
-        .withArgs(gatekeeper.address);
-      expect(await vault.paused()).to.equal(false);
-    });
-
-    it("can not unpause the vault again if it's unpaused already", async () => {
-      await vault.connect(governance).unpause();
-      expect(vault.connect(governance).unpause()).to.be.revertedWith("Pausable: not paused");
+    it("gatekeeper cannot unpause", async () => {
+      expect(vault.connect(gatekeeper).unpause()).to.be.revertedWith("governance only");
     });
 
     it("governance can unpause the vault", async () => {
@@ -112,6 +104,11 @@ describe("SingleAssetVault", async () => {
         .to.emit(vault, "Unpaused")
         .withArgs(governance.address);
       expect(await vault.paused()).to.equal(false);
+    });
+
+    it("can not unpause the vault again if it's unpaused already", async () => {
+      await vault.connect(governance).unpause();
+      expect(vault.connect(governance).unpause()).to.be.revertedWith("Pausable: not paused");
     });
   });
 

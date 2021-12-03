@@ -93,7 +93,7 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
   }
 
   function unpause() external {
-    _onlyGovernanceOrGatekeeper();
+    _onlyGovernance();
     _unpause();
   }
 

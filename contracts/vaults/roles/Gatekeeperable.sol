@@ -4,7 +4,7 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 
 /// @dev Add the `Gatekeeper` role.
-///   Gatekeepers will help ensure the security of the vaults. They can set vault limits, pause/unpause deposits or withdraws.
+///   Gatekeepers will help ensure the security of the vaults. They can set vault limits, pause deposits or withdraws.
 ///   For vaults that defined restricted access, they will be able to control the access to these vaults as well.
 ///   This contract also provides a `onlyGatekeeper` modifier to allow controlling access to functions of the contract.
 abstract contract Gatekeeperable is ContextUpgradeable {

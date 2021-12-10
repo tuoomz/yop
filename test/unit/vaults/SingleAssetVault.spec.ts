@@ -4,6 +4,7 @@ import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 import { AllowlistAccessControl, TokenMock, SingleAssetVault, VaultStrategyDataStore, StrategyMock, HealthCheckMock } from "../../../types";
 import { AccessControlManager } from "../../../types/AccessControlManager";
+import { YOPVaultRewards } from "../../../types/YOPVaultRewards";
 
 describe("SingleAssetVault", async () => {
   const name = "test vault";
@@ -14,12 +15,14 @@ describe("SingleAssetVault", async () => {
   let manager: SignerWithAddress;
   let rewards: SignerWithAddress;
   let user: SignerWithAddress;
+  let wallet: SignerWithAddress;
   let token: TokenMock;
   let strategyDataStore: VaultStrategyDataStore;
   let vault: SingleAssetVault;
+  let yopRewards: YOPVaultRewards;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, manager, rewards, user] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, manager, rewards, user, wallet] = await ethers.getSigners();
     const MockToken = await ethers.getContractFactory("TokenMock");
     token = (await MockToken.deploy("LosPolosHermanos", "lph")) as TokenMock;
     await token.deployed();
@@ -27,6 +30,10 @@ describe("SingleAssetVault", async () => {
     const StrategyDataStore = await ethers.getContractFactory("VaultStrategyDataStore");
     strategyDataStore = (await StrategyDataStore.deploy(governance.address)) as VaultStrategyDataStore;
     await strategyDataStore.deployed();
+
+    const YOPVaultsRewards = await ethers.getContractFactory("YOPVaultRewards");
+    yopRewards = (await YOPVaultsRewards.deploy(governance.address, wallet.address)) as YOPVaultRewards;
+    await yopRewards.deployed();
 
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
     vault = (await SingleAssetVault.deploy()) as SingleAssetVault;
@@ -39,8 +46,11 @@ describe("SingleAssetVault", async () => {
       rewards.address,
       strategyDataStore.address,
       token.address,
-      ethers.constants.AddressZero
+      ethers.constants.AddressZero,
+      yopRewards.address
     );
+
+    yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address], [100]);
   });
 
   describe("initialize", async () => {
@@ -54,7 +64,8 @@ describe("SingleAssetVault", async () => {
           rewards.address,
           strategyDataStore.address,
           token.address,
-          ethers.constants.AddressZero
+          ethers.constants.AddressZero,
+          yopRewards.address
         )
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
@@ -517,11 +528,11 @@ describe("SingleAssetVault", async () => {
       expect(await otherToken.balanceOf(vault.address)).to.equal(ethers.constants.Zero);
     });
 
-    it("Should revert when sweeping for greater amount than available", async () => {
+    it("Should only transfer user balance", async () => {
       await otherToken.mint(vault.address, utils.parseEther("12"));
-      await expect(vault.connect(governance).sweep(otherToken.address, utils.parseEther("13"))).to.be.revertedWith(
-        "ERC20: transfer amount exceeds balance"
-      );
+      await expect(await vault.connect(governance).sweep(otherToken.address, utils.parseEther("13")))
+        .to.emit(otherToken, "Transfer")
+        .withArgs(vault.address, governance.address, utils.parseEther("12"));
     });
 
     it("Should now allow sweep to not governance", async () => {
@@ -739,14 +750,16 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
   let manager: SignerWithAddress;
   let rewards: SignerWithAddress;
   let user: SignerWithAddress;
+  let wallet: SignerWithAddress;
   let token1: TokenMock;
   let token2: TokenMock;
   let strategyDataStore: VaultStrategyDataStore;
   let vault1: SingleAssetVault;
   let vault2: SingleAssetVault;
+  let yopRewards: YOPVaultRewards;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, manager, rewards, user] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, manager, rewards, user, wallet] = await ethers.getSigners();
     const MockToken = await ethers.getContractFactory("TokenMock");
     token1 = (await MockToken.deploy("LosPolosHermanos", "lph")) as TokenMock;
     await token1.deployed();
@@ -756,6 +769,10 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
     const StrategyDataStore = await ethers.getContractFactory("VaultStrategyDataStore");
     strategyDataStore = (await StrategyDataStore.deploy(governance.address)) as VaultStrategyDataStore;
     await strategyDataStore.deployed();
+
+    const YOPVaultsRewards = await ethers.getContractFactory("YOPVaultRewards");
+    yopRewards = (await YOPVaultsRewards.deploy(governance.address, wallet.address)) as YOPVaultRewards;
+    await yopRewards.deployed();
 
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
     const params1 = [
@@ -767,6 +784,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       strategyDataStore.address,
       token1.address,
       ethers.constants.AddressZero,
+      yopRewards.address,
     ];
     vault1 = (await upgrades.deployProxy(SingleAssetVault, params1, { kind: "uups" })) as SingleAssetVault;
     await vault1.deployed();
@@ -779,6 +797,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       strategyDataStore.address,
       token2.address,
       ethers.constants.AddressZero,
+      yopRewards.address,
     ];
     vault2 = (await upgrades.deployProxy(SingleAssetVault, params2, { kind: "uups" })) as SingleAssetVault;
     await vault2.deployed();

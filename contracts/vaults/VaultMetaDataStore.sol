@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./roles/Governable.sol";
 import "./roles/Gatekeeperable.sol";
 import "./VaultDataStorage.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, VaultDataStorage {
-  using SafeMath for uint256;
-
   event EmergencyShutdown(bool _active);
   event HealthCheckUpdated(address indexed _healthCheck);
   event RewardsUpdated(address indexed _rewards);
@@ -18,6 +15,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   event DepositLimitUpdated(uint256 _limit);
   event LockedProfitDegradationUpdated(uint256 _degradation);
   event AccessManagerUpdated(address indexed _accessManager);
+  event VaultRewardsContractUpdated(address indexed _vaultRewards);
 
   /// @notice The maximum basis points. 1 basis point is 0.01% and 100% is 10000 basis points
   uint256 internal constant MAX_BASIS_POINTS = 10_000;
@@ -31,45 +29,44 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     address _gatekeeper,
     address _rewards,
     address _strategyDataStore,
-    address _accessManager
+    address _accessManager,
+    address _vaultRewards
   ) internal {
     __Governable_init(_governance);
     __Gatekeeperable_init(_gatekeeper);
     __VaultDataStorage_init();
-    __VaultMetaDataStore_init_unchained(_rewards, _strategyDataStore, _accessManager);
+    __VaultMetaDataStore_init_unchained(_rewards, _strategyDataStore, _accessManager, _vaultRewards);
   }
 
   // solhint-disable-next-line func-name-mixedcase
   function __VaultMetaDataStore_init_unchained(
     address _rewards,
     address _strategyDataStore,
-    address _accessManager
+    address _accessManager,
+    address _vaultRewards
   ) internal {
     _updateRewards(_rewards);
     _updateStrategyDataStore(_strategyDataStore);
     _updateAccessManager(_accessManager);
+    _updateVaultRewardsContract(_vaultRewards);
   }
 
   /// @notice set the wallet address to send the collected fees to. Only can be called by the governance.
   /// @param _rewards the new wallet address to send the fees to.
-  function setRewards(address _rewards) external onlyGovernance {
-    require(_rewards != address(0), "rewards address is not valid");
+  function setRewards(address _rewards) external {
+    _onlyGovernance();
     _updateRewards(_rewards);
   }
 
   /// @notice set the management fee in basis points. 1 basis point is 0.01% and 100% is 10000 basis points.
-  function setManagementFee(uint256 _managementFee) external onlyGovernance {
-    require(_managementFee < MAX_BASIS_POINTS, "invalid management fee");
+  function setManagementFee(uint256 _managementFee) external {
+    _onlyGovernance();
     _updateManagementFee(_managementFee);
   }
 
-  function setGatekeeper(address _gatekeeper) external onlyGovernance {
+  function setGatekeeper(address _gatekeeper) external {
+    _onlyGovernance();
     _updateGatekeeper(_gatekeeper);
-  }
-
-  function setStrategyDataStore(address _strategyDataStoreContract) external onlyGovernance {
-    require(_strategyDataStoreContract != address(0), "invalid strategy manager");
-    _updateStrategyDataStore(_strategyDataStoreContract);
   }
 
   function setHealthCheck(address _healthCheck) external {
@@ -121,11 +118,17 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     _updateAccessManager(_accessManager);
   }
 
+  function setVaultRewardsContract(address _rewardsContract) external {
+    _onlyGovernance();
+    _updateVaultRewardsContract(_rewardsContract);
+  }
+
   function _onlyGovernanceOrGatekeeper() internal view {
     require((_msgSender() == governance) || (gatekeeper != address(0) && gatekeeper == _msgSender()), "not authorised");
   }
 
   function _updateRewards(address _rewards) internal {
+    require(_rewards != address(0), "invalid address");
     if (rewards != _rewards) {
       rewards = _rewards;
       emit RewardsUpdated(_rewards);
@@ -133,6 +136,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   }
 
   function _updateManagementFee(uint256 _managementFee) internal {
+    require(_managementFee < MAX_BASIS_POINTS, "invalid input");
     if (managementFee != _managementFee) {
       managementFee = _managementFee;
       emit ManagementFeeUpdated(_managementFee);
@@ -147,7 +151,8 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   }
 
   function _updateStrategyDataStore(address _strategyDataStore) internal {
-    if (_strategyDataStore != address(0) && strategyDataStore != _strategyDataStore) {
+    require(_strategyDataStore != address(0), "invalid input");
+    if (strategyDataStore != _strategyDataStore) {
       strategyDataStore = _strategyDataStore;
       emit StrategyDataStoreUpdated(_strategyDataStore);
     }
@@ -164,6 +169,13 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     if (accessManager != _accessManager) {
       accessManager = _accessManager;
       emit AccessManagerUpdated(_accessManager);
+    }
+  }
+
+  function _updateVaultRewardsContract(address _vaultRewards) internal {
+    if (vaultRewards != _vaultRewards) {
+      vaultRewards = _vaultRewards;
+      emit VaultRewardsContractUpdated(_vaultRewards);
     }
   }
 }

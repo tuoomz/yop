@@ -7,17 +7,16 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IHealthCheck.sol";
 import "../interfaces/IStrategy.sol";
+import "../interfaces/IYOPVaultRewards.sol";
 import "../access/IAccessControl.sol";
 import "./SingleAssetVaultBase.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
-  using SafeMath for uint256;
 
   event StrategyReported(
     address indexed _strategyAddress,
@@ -45,7 +44,8 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     address _rewards,
     address _strategyDataStoreAddress,
     address _token,
-    address _accessManager
+    address _accessManager,
+    address _vaultRewards
   ) external initializer {
     __SingleAssetVault_init(
       _name,
@@ -55,7 +55,8 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       _rewards,
       _strategyDataStoreAddress,
       _token,
-      _accessManager
+      _accessManager,
+      _vaultRewards
     );
   }
 
@@ -68,7 +69,8 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     address _rewards,
     address _strategyDataStoreAddress,
     address _token,
-    address _accessManager
+    address _accessManager,
+    address _vaultRewards
   ) internal {
     __SingleAssetVaultBase_init(
       _name,
@@ -78,7 +80,8 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       _rewards,
       _strategyDataStoreAddress,
       _token,
-      _accessManager
+      _accessManager,
+      _vaultRewards
     );
     _pause();
   }
@@ -193,13 +196,13 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
   ) external returns (uint256) {
     address callerStrategy = _msgSender();
     _validateStrategy(callerStrategy);
-    require(token.balanceOf(callerStrategy) >= _gain.add(_debtPayment), "not enough balance");
+    require(token.balanceOf(callerStrategy) >= (_gain + _debtPayment), "not enough balance");
 
     _checkStrategyHealth(callerStrategy, _gain, _loss, _debtPayment);
 
     _reportLoss(callerStrategy, _loss);
     // Returns are always "realized gains"
-    strategies[callerStrategy].totalGain = strategies[callerStrategy].totalGain.add(_gain);
+    strategies[callerStrategy].totalGain = strategies[callerStrategy].totalGain + _gain;
 
     // Assess both management fee and performance fee, and issue both as shares of the vault
     uint256 totalFees = _assessFees(callerStrategy, _gain);
@@ -212,7 +215,7 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
 
     if (debtPayment > 0) {
       _decreaseDebt(callerStrategy, debtPayment);
-      debt = debt.sub(debtPayment);
+      debt = debt - debtPayment;
     }
 
     // Update the actual debt based on the full credit we are extending to the Strategy
@@ -231,10 +234,10 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     uint256 totalAvailable = _gain + debtPayment;
     if (totalAvailable < credit) {
       // credit surplus, give to Strategy
-      token.safeTransfer(callerStrategy, credit.sub(totalAvailable));
+      token.safeTransfer(callerStrategy, credit - totalAvailable);
     } else if (totalAvailable > credit) {
       // credit deficit, take from Strategy
-      token.safeTransferFrom(callerStrategy, address(this), totalAvailable.sub(credit));
+      token.safeTransferFrom(callerStrategy, address(this), totalAvailable - credit);
     }
     // else, don't do anything because it is balanced
 
@@ -275,21 +278,18 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     }
     //TODO: do we also want to cap the `_amount` too?
     uint256 amount = _ensureValidDepositAmount(_msgSender(), _amount);
+    // update the rewards the user is entitled to claim, this needs to be called before the balance is updated
+    if (vaultRewards != address(0)) {
+      IYOPVaultRewards(vaultRewards).calculateRewards(address(this), _msgSender());
+    }
     uint256 shares = _issueSharesForAmount(_recipient, amount);
     token.safeTransferFrom(_msgSender(), address(this), amount);
     return shares;
   }
 
   function _issueSharesForAmount(address _recipient, uint256 _amount) internal returns (uint256) {
-    uint256 shares = 0;
     uint256 supply = totalSupply();
-    if (supply > 0) {
-      // Mint amount of shares based on what the Vault is managing overall
-      shares = _amount.mul(supply).div(_freeFunds());
-    } else {
-      // no existing shares, mint 1:1
-      shares = _amount;
-    }
+    uint256 shares = supply > 0 ? (_amount * supply) / _freeFunds() : _amount;
 
     require(shares > 0, "invalid share amount");
     _mint(_recipient, shares);
@@ -307,7 +307,7 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       // TODO: should we just transfer the token values to the rewards & strategist instead?
       uint256 rewards_ = _issueSharesForAmount(address(this), totalFee_);
       if (performanceFee_ > 0) {
-        uint256 strategistReward_ = rewards_.mul(performanceFee_).div(totalFee_);
+        uint256 strategistReward_ = (rewards_ * performanceFee_) / totalFee_;
         //TODO: this transfer the rewards to the strategy, not the strategist. How does the strategist get the rewards?
         _transfer(address(this), _strategy, strategistReward_);
       }
@@ -341,7 +341,7 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       // happen in certain edge cases where Strategies realize a loss)
       totalLoss = _withdrawFromStrategies(value);
       if (totalLoss > 0) {
-        value = value.sub(totalLoss);
+        value = value - totalLoss;
       }
       vaultBalance = token.balanceOf(address(this));
     }
@@ -352,11 +352,15 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       value = vaultBalance;
       // NOTE: Burn # of shares that corresponds to what Vault has on-hand,
       // including the losses that were incurred above during withdrawals
-      shares = _sharesForAmount(value.add(totalLoss));
+      shares = _sharesForAmount(value + totalLoss);
     }
     // NOTE: This loss protection is put in place to revert if losses from
     // withdrawing are more than what is considered acceptable.
-    require(totalLoss <= _maxLoss.mul(value.add(totalLoss)).div(MAX_BASIS_POINTS), "loss is over limit");
+    require(totalLoss <= (_maxLoss * (value + totalLoss)) / MAX_BASIS_POINTS, "loss is over limit");
+    // update the rewards the user is entitled to claim, this needs to be called before the balance is updated
+    if (vaultRewards != address(0)) {
+      IYOPVaultRewards(vaultRewards).calculateRewards(address(this), _msgSender());
+    }
     // burn shares
     _burn(_msgSender(), shares);
 
@@ -381,16 +385,16 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       // continue to work based on the profits it has
       // NOTE: This means that user will lose out on any profits that each
       // Strategy in the queue would return on next harvest, benefiting others
-      uint256 amountNeeded = Math.min(value.sub(vaultBalance), strategies[strategyAddress].totalDebt);
+      uint256 amountNeeded = Math.min(value - vaultBalance, strategies[strategyAddress].totalDebt);
       if (amountNeeded == 0) {
         // nothing to withdraw from the strategy, try the next one
         continue;
       }
       uint256 loss = strategyToWithdraw.withdraw(amountNeeded);
-      uint256 withdrawAmount = token.balanceOf(address(this)).sub(vaultBalance);
+      uint256 withdrawAmount = token.balanceOf(address(this)) - vaultBalance;
       if (loss > 0) {
-        value = value.sub(loss);
-        totalLoss = totalLoss.add(loss);
+        value = value - loss;
+        totalLoss = totalLoss + loss;
         _reportLoss(strategyAddress, loss);
       }
 
@@ -408,17 +412,17 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       uint256 strategyDebtRatio_ = _strategyDataStore().strategyDebtRatio(address(this), _strategy);
       // make sure we reduce our trust with the strategy by the amount of loss
       if (totalDebtRatio_ != 0) {
-        uint256 ratioChange_ = Math.min(_loss.mul(totalDebtRatio_).div(totalDebt), strategyDebtRatio_);
+        uint256 ratioChange_ = Math.min((_loss * totalDebtRatio_) / totalDebt, strategyDebtRatio_);
         _strategyDataStore().updateStrategyDebtRatio(address(this), _strategy, strategyDebtRatio_ - ratioChange_);
       }
-      strategies[_strategy].totalLoss = strategies[_strategy].totalLoss.add(_loss);
-      strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.sub(_loss);
-      totalDebt = totalDebt.sub(_loss);
+      strategies[_strategy].totalLoss = strategies[_strategy].totalLoss + _loss;
+      strategies[_strategy].totalDebt = strategies[_strategy].totalDebt - _loss;
+      totalDebt = totalDebt - _loss;
     }
   }
 
   function _assessStrategyPerformanceFee(address _strategy, uint256 _gain) internal view returns (uint256) {
-    return _gain.mul(_strategyDataStore().strategyPerformanceFee(address(this), _strategy)).div(MAX_BASIS_POINTS);
+    return (_gain * (_strategyDataStore().strategyPerformanceFee(address(this), _strategy))) / MAX_BASIS_POINTS;
   }
 
   // calculate the management fee based on TVL.
@@ -428,30 +432,26 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     require(duration > 0, "same block"); // should not be called twice within the same block
     // the managementFee is per year, so only charge the management fee for the period since last time it is charged.
     if (managementFee > 0) {
-      uint256 strategyTVL = strategies[_strategy].totalDebt.sub(IStrategy(_strategy).delegatedAssets());
-      return strategyTVL.mul(managementFee).div(MAX_BASIS_POINTS).mul(duration).div(SECONDS_PER_YEAR);
+      uint256 strategyTVL = strategies[_strategy].totalDebt - IStrategy(_strategy).delegatedAssets();
+      return (strategyTVL * managementFee * duration) / SECONDS_PER_YEAR / MAX_BASIS_POINTS;
     }
     return 0;
   }
 
   function _ensureValidShares(address _account, uint256 _shares) internal view returns (uint256) {
-    uint256 shares = _shares;
-    uint256 balance = balanceOf(_account);
-    if (shares > balance) {
-      shares = balance;
-    }
+    uint256 shares = Math.min(_shares, balanceOf(_account));
     require(shares > 0, "no shares");
     return shares;
   }
 
   function _increaseDebt(address _strategy, uint256 _amount) internal {
-    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.add(_amount);
-    totalDebt = totalDebt.add(_amount);
+    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt + _amount;
+    totalDebt = totalDebt + _amount;
   }
 
   function _decreaseDebt(address _strategy, uint256 _amount) internal {
-    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt.sub(_amount);
-    totalDebt = totalDebt.sub(_amount);
+    strategies[_strategy].totalDebt = strategies[_strategy].totalDebt - _amount;
+    totalDebt = totalDebt - _amount;
   }
 
   function _checkStrategyHealth(
@@ -498,23 +498,13 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     }
     uint256 managementFee_ = _assessManagementFee(_strategy);
     uint256 strategyPerformanceFee_ = _assessStrategyPerformanceFee(_strategy, _gain);
-    uint256 totalFee_ = managementFee_ + strategyPerformanceFee_;
-    if (totalFee_ > _gain) {
-      totalFee_ = _gain;
-    }
+    uint256 totalFee_ = Math.min(_gain, managementFee_ + strategyPerformanceFee_);
     return (totalFee_, strategyPerformanceFee_);
   }
 
   function _ensureValidDepositAmount(address _account, uint256 _amount) internal view returns (uint256) {
-    uint256 amount = _amount;
-    uint256 balance = token.balanceOf(_account);
-    if (amount > balance) {
-      amount = balance;
-    }
-    uint256 availableLimit = _availableDepositLimit();
-    if (amount > availableLimit) {
-      amount = availableLimit;
-    }
+    uint256 amount = Math.min(_amount, token.balanceOf(_account));
+    amount = Math.min(amount, _availableDepositLimit());
     require(amount > 0, "invalid amount");
     return amount;
   }
@@ -528,7 +518,7 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     // NOTE: compute current locked profit and replace with sum of current and new
     uint256 locakedProfileBeforeLoss = _calculateLockedProfit() + _gain - _totalFees;
     if (locakedProfileBeforeLoss > _loss) {
-      lockedProfit = locakedProfileBeforeLoss.sub(_loss);
+      lockedProfit = locakedProfileBeforeLoss - _loss;
     } else {
       lockedProfit = 0;
     }

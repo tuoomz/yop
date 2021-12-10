@@ -4,6 +4,7 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
 import "./VaultMetaDataStore.sol";
@@ -43,11 +44,19 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
     address _gatekeeper,
     address _rewards,
     address _strategyDataStoreAddress,
-    address _accessManager
+    address _accessManager,
+    address _vaultRewards
   ) internal {
     __ERC20_init(_name, _symbol);
     __ERC20Permit_init(_name);
-    __VaultMetaDataStore_init(_governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _accessManager);
+    __VaultMetaDataStore_init(
+      _governance,
+      _gatekeeper,
+      _rewards,
+      _strategyDataStoreAddress,
+      _accessManager,
+      _vaultRewards
+    );
     __BaseVault__init_unchained();
   }
 
@@ -145,9 +154,7 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
     address _to
   ) internal {
     IERC20Upgradeable token_ = IERC20Upgradeable(_token);
-    if (_amount == type(uint256).max) {
-      _amount = token_.balanceOf(address(this));
-    }
+    _amount = Math.min(_amount, token_.balanceOf(address(this)));
     token_.safeTransfer(_to, _amount);
   }
 }

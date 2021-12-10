@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -10,7 +9,6 @@ import "./BaseVault.sol";
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 abstract contract SingleAssetVaultBase is BaseVault {
   using SafeERC20Upgradeable for IERC20Upgradeable;
-  using SafeMath for uint256;
 
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
@@ -18,10 +16,9 @@ abstract contract SingleAssetVaultBase is BaseVault {
   // solhint-disable-next-line func-name-mixedcase
   function __SingleAssetVaultBase_init_unchained(address _token) internal {
     require(_token != address(0), "invalid token address");
-    tokenAddress = _token;
     token = IERC20Upgradeable(_token);
     // the vault decimals need to match the tokens to avoid any conversion
-    vaultDecimals = ERC20Upgradeable(tokenAddress).decimals();
+    vaultDecimals = ERC20Upgradeable(address(token)).decimals();
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -33,9 +30,19 @@ abstract contract SingleAssetVaultBase is BaseVault {
     address _rewards,
     address _strategyDataStoreAddress,
     address _token,
-    address _accessManager
+    address _accessManager,
+    address _vaultRewards
   ) internal {
-    __BaseVault__init(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress, _accessManager);
+    __BaseVault__init(
+      _name,
+      _symbol,
+      _governance,
+      _gatekeeper,
+      _rewards,
+      _strategyDataStoreAddress,
+      _accessManager,
+      _vaultRewards
+    );
     __SingleAssetVaultBase_init_unchained(_token);
   }
 
@@ -106,57 +113,47 @@ abstract contract SingleAssetVaultBase is BaseVault {
   /// @param _amount the amount of tokens to send
   function sweep(address _token, uint256 _amount) external {
     _onlyGovernance();
-    require(tokenAddress != _token, "invalid token");
+    require(address(token) != _token, "invalid token");
     _sweep(_token, _amount, governance);
   }
 
   function _totalAsset() internal view returns (uint256) {
-    return token.balanceOf(address(this)).add(totalDebt);
+    return token.balanceOf(address(this)) + totalDebt;
   }
 
   function _availableDepositLimit() internal view returns (uint256) {
-    if (depositLimit > _totalAsset()) {
-      return depositLimit.sub(_totalAsset());
-    }
-    return 0;
+    return depositLimit > _totalAsset() ? depositLimit - _totalAsset() : 0;
   }
 
   function _shareValue(uint256 _sharesAmount) internal view returns (uint256) {
     uint256 supply = totalSupply();
     // if the value is empty then the price is 1:1
-    if (supply == 0) {
-      return _sharesAmount;
-    }
-    return _sharesAmount.mul(_freeFunds()).div(supply);
+    return supply == 0 ? _sharesAmount : (_sharesAmount * _freeFunds()) / supply;
   }
 
   function _calculateLockedProfit() internal view returns (uint256) {
     // solhint-disable-next-line not-rely-on-time
-    uint256 lockedFundRatio = block.timestamp.sub(lastReport).mul(lockedProfitDegradation);
-    if (lockedFundRatio < DEGRADATION_COEFFICIENT) {
-      return lockedProfit.sub(lockedFundRatio.mul(lockedProfit).div(DEGRADATION_COEFFICIENT));
-    } else {
-      return 0;
-    }
+    uint256 lockedFundRatio = (block.timestamp - lastReport) * lockedProfitDegradation;
+    return
+      lockedFundRatio < DEGRADATION_COEFFICIENT
+        ? lockedProfit - (lockedFundRatio * lockedProfit) / DEGRADATION_COEFFICIENT
+        : 0;
   }
 
   function _freeFunds() internal view returns (uint256) {
-    return _totalAsset().sub(_calculateLockedProfit());
+    return _totalAsset() - _calculateLockedProfit();
   }
 
   function _sharesForAmount(uint256 _amount) internal view returns (uint256) {
     uint256 freeFunds_ = _freeFunds();
-    if (freeFunds_ > 0) {
-      return _amount.mul(totalSupply()).div(freeFunds_);
-    }
-    return 0;
+    return freeFunds_ > 0 ? (_amount * totalSupply()) / freeFunds_ : 0;
   }
 
   function _maxAvailableShares() internal view returns (uint256) {
     uint256 shares_ = _sharesForAmount(token.balanceOf(address(this)));
     address[] memory withdrawQueue = _strategyDataStore().withdrawQueue(address(this));
     for (uint256 i = 0; i < withdrawQueue.length; i++) {
-      shares_ = shares_.add(_sharesForAmount(strategies[withdrawQueue[i]].totalDebt));
+      shares_ = shares_ + _sharesForAmount(strategies[withdrawQueue[i]].totalDebt);
     }
     return shares_;
   }
@@ -167,9 +164,8 @@ abstract contract SingleAssetVaultBase is BaseVault {
       return strategies[_strategy].totalDebt;
     }
     uint256 availableAssets_ = _totalAsset();
-    uint256 strategyLimit_ = availableAssets_.mul(_strategyDataStore().strategyDebtRatio(address(this), _strategy)).div(
-      MAX_BASIS_POINTS
-    );
+    uint256 strategyLimit_ = (availableAssets_ * _strategyDataStore().strategyDebtRatio(address(this), _strategy)) /
+      MAX_BASIS_POINTS;
     uint256 strategyTotalDebt_ = strategies[_strategy].totalDebt;
 
     if (emergencyShutdown) {
@@ -177,7 +173,7 @@ abstract contract SingleAssetVaultBase is BaseVault {
     } else if (strategyTotalDebt_ <= strategyLimit_) {
       return 0;
     } else {
-      return strategyTotalDebt_.sub(strategyLimit_);
+      return strategyTotalDebt_ - strategyLimit_;
     }
   }
 
@@ -187,14 +183,12 @@ abstract contract SingleAssetVaultBase is BaseVault {
     }
     _validateStrategy(_strategy);
     uint256 vaultTotalAsset_ = _totalAsset();
-    uint256 vaultTotalDebtLimit_ = vaultTotalAsset_.mul(_strategyDataStore().vaultTotalDebtRatio(address(this))).div(
-      MAX_BASIS_POINTS
-    );
+    uint256 vaultTotalDebtLimit_ = (vaultTotalAsset_ * _strategyDataStore().vaultTotalDebtRatio(address(this))) /
+      MAX_BASIS_POINTS;
     uint256 vaultTotalDebt_ = totalDebt;
 
-    uint256 strategyDebtLimit_ = vaultTotalAsset_
-      .mul(_strategyDataStore().strategyDebtRatio(address(this), _strategy))
-      .div(MAX_BASIS_POINTS);
+    uint256 strategyDebtLimit_ = (vaultTotalAsset_ * _strategyDataStore().strategyDebtRatio(address(this), _strategy)) /
+      MAX_BASIS_POINTS;
     uint256 strategyTotalDebt_ = strategies[_strategy].totalDebt;
     uint256 strategyMinDebtPerHarvest_ = _strategyDataStore().strategyMinDebtPerHarvest(address(this), _strategy);
     uint256 strategyMaxDebtPerHarvest_ = _strategyDataStore().strategyMaxDebtPerHarvest(address(this), _strategy);
@@ -203,29 +197,25 @@ abstract contract SingleAssetVaultBase is BaseVault {
       return 0;
     }
 
-    uint256 available_ = strategyDebtLimit_.sub(strategyTotalDebt_);
-    available_ = Math.min(available_, vaultTotalDebtLimit_.sub(vaultTotalDebt_));
+    uint256 available_ = strategyDebtLimit_ - strategyTotalDebt_;
+    available_ = Math.min(available_, vaultTotalDebtLimit_ - vaultTotalDebt_);
     available_ = Math.min(available_, token.balanceOf(address(this)));
 
-    if (available_ < strategyMinDebtPerHarvest_) {
-      return 0;
-    } else {
-      return Math.min(available_, strategyMaxDebtPerHarvest_);
-    }
+    return available_ < strategyMinDebtPerHarvest_ ? 0 : Math.min(available_, strategyMaxDebtPerHarvest_);
   }
 
   function _expectedReturn(address _strategy) internal view returns (uint256) {
     _validateStrategy(_strategy);
     uint256 strategyLastReport_ = strategies[_strategy].lastReport;
     // solhint-disable-next-line not-rely-on-time
-    uint256 sinceLastHarvest_ = block.timestamp.sub(strategyLastReport_);
-    uint256 totalHarvestTime_ = strategyLastReport_.sub(strategies[_strategy].activation);
+    uint256 sinceLastHarvest_ = block.timestamp - strategyLastReport_;
+    uint256 totalHarvestTime_ = strategyLastReport_ - strategies[_strategy].activation;
 
     // NOTE: If either `sinceLastHarvest_` or `totalHarvestTime_` is 0, we can short-circuit to `0`
     if ((sinceLastHarvest_ > 0) && (totalHarvestTime_ > 0) && (IStrategy(_strategy).isActive())) {
       // # NOTE: Unlikely to throw unless strategy accumalates >1e68 returns
       // # NOTE: Calculate average over period of time where harvests have occured in the past
-      return strategies[_strategy].totalGain.mul(sinceLastHarvest_).div(totalHarvestTime_);
+      return (strategies[_strategy].totalGain * sinceLastHarvest_) / totalHarvestTime_;
     } else {
       return 0;
     }

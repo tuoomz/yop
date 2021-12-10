@@ -2,7 +2,6 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
 import "./roles/Governable.sol";
@@ -13,8 +12,6 @@ import "./BaseVault.sol";
 ///  To configure strategies for a vault, the governance should call `function setVaultManager(address _vault, address _manager)`
 ///  first to configure the manager for the vault. Once a manager is configured,
 contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable {
-  using SafeMath for uint256;
-
   /// @notice parameters associated with a strategy
   struct StrategyParams {
     uint256 performanceFee;
@@ -202,7 +199,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
       configs[_vault].totalDebtRatio + _debtRatio <= configs[_vault].maxTotalDebtRatio,
       "total debtRatio over limit"
     );
-    require(_performanceFee <= MAX_BASIS_POINTS.div(2), "invalid performance fee");
+    require(_performanceFee <= MAX_BASIS_POINTS / 2, "invalid performance fee");
 
     /* solhint-disable not-rely-on-time */
     strategies[_vault][_strategy] = StrategyParams({
@@ -236,7 +233,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
   ) external onlyGovernance {
     _validateVaultExists(_vault); //the strategy should be added already means the vault should exist
     _validateStrategy(_vault, _strategy);
-    require(_performanceFee <= MAX_BASIS_POINTS.div(2), "invalid performance fee");
+    require(_performanceFee <= MAX_BASIS_POINTS / 2, "invalid performance fee");
     strategies[_vault][_strategy].performanceFee = _performanceFee;
     emit StrategyPerformanceFeeUpdated(_vault, _strategy, _performanceFee);
   }

@@ -20,13 +20,20 @@ describe("BaseVault", function () {
   let rewards: SignerWithAddress;
   let user1: SignerWithAddress;
   let user2: SignerWithAddress;
+  let vaultStrategyDataStore: VaultStrategyDataStore;
+  let vaultStrategyDataStoreSigner: SignerWithAddress;
 
   beforeEach(async () => {
     [deployer, governance, gatekeeper, rewards, user1, user2] = await ethers.getSigners();
+    const VaultStrategyDataStoreContract = await ethers.getContractFactory("VaultStrategyDataStore");
+    vaultStrategyDataStore = (await VaultStrategyDataStoreContract.deploy(governance.address)) as VaultStrategyDataStore;
+    await vaultStrategyDataStore.deployed();
+    vaultStrategyDataStoreSigner = await impersonate(vaultStrategyDataStore.address);
+
     BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
     baseVault = (await BaseVaultMock.deploy()) as BaseVaultMock;
     await baseVault.deployed();
-    await baseVault.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero);
+    await baseVault.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, vaultStrategyDataStore.address);
   });
 
   describe("initialize", async () => {
@@ -62,12 +69,11 @@ describe("BaseVault", function () {
     expect(await baseVault.governance()).to.equal(governance.address);
     expect(await baseVault.gatekeeper()).to.equal(gatekeeper.address);
     expect(await baseVault.rewards()).to.equal(rewards.address);
-    expect(await baseVault.strategyDataStore()).to.equal(ethers.constants.AddressZero);
+    expect(await baseVault.strategyDataStore()).to.equal(vaultStrategyDataStore.address);
     expect(await baseVault.managementFee()).to.equal(0);
     expect(await baseVault.depositLimit()).to.equal(ethers.constants.MaxUint256);
     expect(await baseVault.healthCheck()).to.equal(ethers.constants.AddressZero);
     expect(await baseVault.emergencyShutdown()).to.equal(false);
-    expect(await baseVault.lockedProfitDegradation()).to.equal(BigNumber.from("46000000000000"));
   });
 
   it("test setRewards", async () => {
@@ -83,7 +89,7 @@ describe("BaseVault", function () {
     const newFee = 500;
     expect(baseVault.connect(user1).setManagementFee(500)).to.be.revertedWith("governance only");
     expect(baseVault.connect(gatekeeper).setManagementFee(500)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(governance).setManagementFee(11000)).to.be.revertedWith("invalid management fee");
+    expect(baseVault.connect(governance).setManagementFee(11000)).to.be.revertedWith("invalid input");
     expect(await baseVault.connect(governance).setManagementFee(newFee))
       .to.emit(baseVault, "ManagementFeeUpdated")
       .withArgs(newFee);
@@ -108,16 +114,6 @@ describe("BaseVault", function () {
       await baseVault.connect(governance).setGatekeeper(user2.address);
       expect(baseVault.connect(governance).setGatekeeper(user2.address)).to.be.revertedWith("already the gatekeeper");
     });
-  });
-
-  it("test setStrategyDataStore", async () => {
-    expect(baseVault.connect(user1).setStrategyDataStore(user2.address)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(gatekeeper).setStrategyDataStore(user2.address)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(governance).setStrategyDataStore(ethers.constants.AddressZero)).to.be.revertedWith("invalid strategy manager");
-    expect(await baseVault.connect(governance).setStrategyDataStore(user2.address))
-      .to.emit(baseVault, "StrategyDataStoreUpdated")
-      .withArgs(user2.address);
-    expect(await baseVault.strategyDataStore()).to.equal(user2.address);
   });
 
   it("test setHealthCheck", async () => {
@@ -186,23 +182,14 @@ describe("BaseVault", function () {
   });
 
   describe("BaseVault strategies", async () => {
-    let vaultStrategyDataStore: VaultStrategyDataStore;
-    let vaultStrategyDataStoreSigner: SignerWithAddress;
     let mockStrategy: StrategyMock;
     let mockStrategySigner: SignerWithAddress;
 
     beforeEach(async () => {
-      const VaultStrategyDataStoreContract = await ethers.getContractFactory("VaultStrategyDataStore");
-      vaultStrategyDataStore = (await VaultStrategyDataStoreContract.deploy(governance.address)) as VaultStrategyDataStore;
-      await vaultStrategyDataStore.deployed();
-      vaultStrategyDataStoreSigner = await impersonate(vaultStrategyDataStore.address);
-
       const MockStrategy = await ethers.getContractFactory("StrategyMock");
       mockStrategy = (await MockStrategy.deploy(ethers.constants.AddressZero)) as StrategyMock;
       await mockStrategy.deployed();
       mockStrategySigner = await impersonate(mockStrategy.address);
-      // add the datastore to the vault
-      await baseVault.connect(governance).setStrategyDataStore(vaultStrategyDataStore.address);
     });
 
     it("test addStrategy", async () => {
@@ -256,11 +243,15 @@ describe("BaseVault Proxy [ @skip-on-coverage ]", async () => {
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
   let user1: SignerWithAddress;
+  let vaultStrategyDataStore: VaultStrategyDataStore;
 
   beforeEach(async () => {
     [, governance, gatekeeper, rewards, user1] = await ethers.getSigners();
+    const VaultStrategyDataStoreContract = await ethers.getContractFactory("VaultStrategyDataStore");
+    vaultStrategyDataStore = (await VaultStrategyDataStoreContract.deploy(governance.address)) as VaultStrategyDataStore;
+    await vaultStrategyDataStore.deployed();
     const BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
-    const params = [vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero];
+    const params = [vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, vaultStrategyDataStore.address];
     baseVault = (await upgrades.deployProxy(BaseVaultMock, params, { kind: "uups" })) as BaseVaultMock;
     await baseVault.deployed();
   });
@@ -274,11 +265,10 @@ describe("BaseVault Proxy [ @skip-on-coverage ]", async () => {
     expect(await baseVault.governance()).to.equal(governance.address);
     expect(await baseVault.gatekeeper()).to.equal(gatekeeper.address);
     expect(await baseVault.rewards()).to.equal(rewards.address);
-    expect(await baseVault.strategyDataStore()).to.equal(ethers.constants.AddressZero);
+    expect(await baseVault.strategyDataStore()).to.equal(vaultStrategyDataStore.address);
     expect(await baseVault.managementFee()).to.equal(0);
     expect(await baseVault.depositLimit()).to.equal(ethers.constants.MaxUint256);
     expect(await baseVault.healthCheck()).to.equal(ethers.constants.AddressZero);
     expect(await baseVault.emergencyShutdown()).to.equal(false);
-    expect(await baseVault.lockedProfitDegradation()).to.equal(BigNumber.from("46000000000000"));
   });
 });

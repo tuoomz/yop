@@ -39,7 +39,7 @@ describe("BaseVault", function () {
   describe("initialize", async () => {
     it("can't initialize the contract again", async () => {
       await expect(
-        baseVault.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero)
+        baseVault.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, vaultStrategyDataStore.address)
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
 
@@ -47,7 +47,7 @@ describe("BaseVault", function () {
       const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
       await baseVault2.deployed();
       expect(
-        baseVault2.initialize(vaultName, vaultSymbol, deployer.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero)
+        baseVault2.initialize(vaultName, vaultSymbol, deployer.address, gatekeeper.address, rewards.address, vaultStrategyDataStore.address)
       ).to.be.revertedWith("invalid address");
     });
 
@@ -55,8 +55,16 @@ describe("BaseVault", function () {
       const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
       await baseVault2.deployed();
       expect(
-        baseVault2.initialize(vaultName, vaultSymbol, governance.address, deployer.address, rewards.address, ethers.constants.AddressZero)
+        baseVault2.initialize(vaultName, vaultSymbol, governance.address, deployer.address, rewards.address, vaultStrategyDataStore.address)
       ).to.be.revertedWith("invalid address");
+    });
+
+    it("strategyDataStore has to be set", async () => {
+      const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
+      await baseVault2.deployed();
+      expect(
+        baseVault2.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero)
+      ).to.be.revertedWith("invalid input");
     });
   });
 
@@ -74,13 +82,18 @@ describe("BaseVault", function () {
     expect(await baseVault.depositLimit()).to.equal(ethers.constants.MaxUint256);
     expect(await baseVault.healthCheck()).to.equal(ethers.constants.AddressZero);
     expect(await baseVault.emergencyShutdown()).to.equal(false);
+    expect(await baseVault.lockedProfitDegradation()).to.equal(BigNumber.from("46000000000000"));
   });
 
   it("test setRewards", async () => {
     expect(baseVault.connect(user1).setRewards(user2.address)).to.be.revertedWith("governance only");
     expect(baseVault.connect(gatekeeper).setRewards(user2.address)).to.be.revertedWith("governance only");
+    expect(baseVault.connect(governance).setRewards(ethers.constants.AddressZero)).to.be.revertedWith("invalid address");
     expect(await baseVault.connect(governance).setRewards(user2.address))
       .to.emit(baseVault, "RewardsUpdated")
+      .withArgs(user2.address);
+    expect(await baseVault.connect(governance).setRewards(user2.address))
+      .not.to.emit(baseVault, "RewardsUpdated")
       .withArgs(user2.address);
     expect(await baseVault.rewards()).to.equal(user2.address);
   });
@@ -92,6 +105,9 @@ describe("BaseVault", function () {
     expect(baseVault.connect(governance).setManagementFee(11000)).to.be.revertedWith("invalid input");
     expect(await baseVault.connect(governance).setManagementFee(newFee))
       .to.emit(baseVault, "ManagementFeeUpdated")
+      .withArgs(newFee);
+    expect(await baseVault.connect(governance).setManagementFee(newFee))
+      .not.to.emit(baseVault, "ManagementFeeUpdated")
       .withArgs(newFee);
     expect(await baseVault.managementFee()).to.equal(newFee);
   });
@@ -142,6 +158,9 @@ describe("BaseVault", function () {
       .to.emit(baseVault, "EmergencyShutdown")
       .withArgs(true);
     expect(await baseVault.emergencyShutdown()).to.equal(true);
+    expect(await baseVault.connect(gatekeeper).setVaultEmergencyShutdown(true))
+      .not.to.emit(baseVault, "EmergencyShutdown")
+      .withArgs(true);
     // gatekeeper can't turn off emergency mode
     expect(baseVault.connect(gatekeeper).setVaultEmergencyShutdown(false)).to.be.revertedWith("governance only");
 
@@ -161,6 +180,9 @@ describe("BaseVault", function () {
     expect(await baseVault.connect(governance).setLockedProfileDegradation(degradation))
       .to.emit(baseVault, "LockedProfitDegradationUpdated")
       .withArgs(degradation);
+    expect(await baseVault.connect(governance).setLockedProfileDegradation(degradation))
+      .not.to.emit(baseVault, "LockedProfitDegradationUpdated")
+      .withArgs(degradation);
   });
 
   it("test setDepositLimit", async () => {
@@ -179,6 +201,18 @@ describe("BaseVault", function () {
     expect(await baseVault.connect(governance).setDepositLimit(ethers.constants.MaxUint256))
       .to.emit(baseVault, "DepositLimitUpdated")
       .withArgs(ethers.constants.MaxUint256);
+  });
+
+  describe("setStrategyDataStore", async () => {
+    it("should emit event if strategyDataStore is changed", async () => {
+      await expect(await baseVault.setStrategyDataStore(user1.address))
+        .to.emit(baseVault, "StrategyDataStoreUpdated")
+        .withArgs(user1.address);
+    });
+
+    it("should not emit event if strategyDataStore is not changed", async () => {
+      await expect(await baseVault.setStrategyDataStore(vaultStrategyDataStore.address)).not.to.emit(baseVault, "StrategyDataStoreUpdated");
+    });
   });
 
   describe("BaseVault strategies", async () => {

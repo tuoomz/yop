@@ -118,11 +118,6 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     _updateAccessManager(_accessManager);
   }
 
-  function setVaultRewardsContract(address _rewardsContract) external {
-    _onlyGovernance();
-    _updateVaultRewardsContract(_rewardsContract);
-  }
-
   function _onlyGovernanceOrGatekeeper() internal view {
     require((_msgSender() == governance) || (gatekeeper != address(0) && gatekeeper == _msgSender()), "not authorised");
   }

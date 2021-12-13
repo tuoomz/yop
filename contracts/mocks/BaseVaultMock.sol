@@ -30,4 +30,8 @@ contract BaseVaultMock is Initializable, BaseVault, UUPSUpgradeable {
   function _authorizeUpgrade(address implementation) internal override {
     _onlyGovernance();
   }
+
+  function setStrategyDataStore(address _strategyDataStoreContract) external {
+    _updateStrategyDataStore(_strategyDataStoreContract);
+  }
 }

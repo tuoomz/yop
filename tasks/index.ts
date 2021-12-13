@@ -2,6 +2,7 @@ import { task } from "hardhat/config";
 export * as impersonateAccountsTask from "./fork/impersonateAccounts";
 export * as fundFromBinanceTask from "./fork/fundAccounts";
 export * as resetFork from "./fork/reset";
+export * as rewardsTask from "./rewards/approveRewardsContract";
 
 task("gas-price", "Prints gas price").setAction(async function ({ address }, { ethers }) {
   console.log("Gas price", (await ethers.provider.getGasPrice()).toString());

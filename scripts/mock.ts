@@ -2,7 +2,7 @@ import hre from "hardhat";
 
 import { readDeploymentFile, writeDeploymentFile } from "./util";
 
-import { YopERC1155Mock } from "../types";
+import { YopERC1155Mock, TokenMock } from "../types";
 
 export async function deployMockNFTContract() {
   const { ethers } = hre;
@@ -34,4 +34,29 @@ export async function deployMockNFTContract() {
   );
 
   return YopERC1155MockContract.address;
+}
+
+export async function deployMockYOPContract(wallet: string | undefined) {
+  const { ethers } = hre;
+  let deployRecord = await readDeploymentFile();
+
+  console.log("Deploying mock YOP token contract");
+  const TokenMockFactory = await ethers.getContractFactory("TokenMock");
+  const mockYopToken = (await TokenMockFactory.deploy("yop", "yop")) as TokenMock;
+  console.log(`Deploying mock YOP token contract - txHash: ${mockYopToken.deployTransaction.hash}`);
+  await mockYopToken.deployed();
+
+  deployRecord = {
+    ...deployRecord,
+    yopTokenMock: {
+      address: mockYopToken.address,
+    },
+  };
+  await writeDeploymentFile(deployRecord);
+  console.log(`YOP mock token deployed - txHash: ${mockYopToken.deployTransaction.hash} - address: ${mockYopToken.address} \n\n`);
+  if (wallet != null && wallet !== "") {
+    console.log(`Mint 88,888,888 tokens to wallet address ${wallet}`);
+    mockYopToken.mint(wallet, 88888888);
+  }
+  return mockYopToken.address;
 }

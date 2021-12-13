@@ -1,6 +1,6 @@
 import hre from "hardhat";
 
-import { deployMockNFTContract } from "./mock";
+import { deployMockNFTContract, deployMockYOPContract } from "./mock";
 import { readDeploymentFile, verifyEnvVar } from "./util";
 import { deployContract } from "./deploy-contract";
 
@@ -13,12 +13,15 @@ const requireEnvVar = [
   "VAULT_NAME",
   "VAULT_SYMBOL",
   "VAULT_TOKEN",
+  "YOP_WALLET_ADDRESS",
 ];
 verifyEnvVar(requireEnvVar);
 
 const CHAIN_ID = hre.network.config.chainId;
-
+const YOP_MAINNET_ADDRESS = "0xAE1eaAE3F627AAca434127644371b67B18444051";
+const EMISSION_START_TIME = 1640995200; // 2022-1-1-00:00:00 GMT
 let YOP_NFT_CONTRACT_ADDRESS = process.env.YOP_NFT_CONTRACT_ADDRESS;
+let YOP_ADDRESS = YOP_MAINNET_ADDRESS;
 
 // mainnet expects the real NFT contract
 // testnet will deploy a mock NFT contract
@@ -30,6 +33,7 @@ async function main(): Promise<void> {
   // Deploy any needed Mocks
   if (CHAIN_ID !== 1) {
     YOP_NFT_CONTRACT_ADDRESS = await deployMockNFTContract();
+    YOP_ADDRESS = await deployMockYOPContract(process.env.YOP_WALLET);
   }
 
   const deployRecord = await readDeploymentFile();
@@ -46,6 +50,16 @@ async function main(): Promise<void> {
   // Start VaultStrategyDataStore Contract Deploy
   await deployContract("VaultStrategyDataStore", false, process.env.GOVERNANCE_ADDRESS);
 
+  await deployContract("YOPVaultRewards", true, [
+    process.env.GOVERNANCE_ADDRESS,
+    process.env.YOP_WALLET_ADDRESS,
+    YOP_ADDRESS,
+    EMISSION_START_TIME,
+  ]);
+  console.log(
+    `Please run "npx hardhat rewards:set-yop-allowance --yop ${YOP_ADDRESS} --reward ${deployRecord.YOPVaultRewards.address} --allowance <ALLOWANCE_VALUE>" to set the allowance.`
+  );
+
   // Start SingleAssetVault Contract Deploy
   await deployContract("SingleAssetVault", true, [
     process.env.VAULT_NAME,
@@ -56,6 +70,7 @@ async function main(): Promise<void> {
     deployRecord.VaultStrategyDataStore.address,
     process.env.VAULT_TOKEN,
     deployRecord.AccessControlManager.address,
+    deployRecord.YOPVaultRewards.address,
   ]);
 }
 

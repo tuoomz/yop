@@ -525,7 +525,7 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
   }
 
   // solhint-disable-next-line no-unused-vars
-  function _authorizeUpgrade(address implementation) internal override {
+  function _authorizeUpgrade(address implementation) internal view override {
     _onlyGovernance();
   }
 }

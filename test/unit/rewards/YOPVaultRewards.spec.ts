@@ -2,14 +2,17 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ContractFactory } from "ethers";
-import { ethers, network } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { YOPVaultRewardsMock } from "../../../types/YOPVaultRewardsMock";
 import { daysInSeconds, monthsInSeconds, nowInSeconds, SECONDS_PER_MONTH } from "../utils/time";
 import { TokenMock } from "../../../types/TokenMock";
 import { impersonate } from "../utils/Impersonate";
+import { YOPVaultRewards } from "../../../types/YOPVaultRewards";
+
+const YOP_CONTRACT_ADDRESS = "0xAE1eaAE3F627AAca434127644371b67B18444051";
+const EPOCH_START_TIME = 1640995200; // 2022-1-1-00:00:00 GMT
 
 describe("YOPVaultsReward", () => {
-  let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let wallet: SignerWithAddress;
   let user1: SignerWithAddress;
@@ -24,13 +27,52 @@ describe("YOPVaultsReward", () => {
   beforeEach(async () => {
     [, governance, wallet, user1, user2, user3] = await ethers.getSigners();
     YOPVaultRewards = await ethers.getContractFactory("YOPVaultRewardsMock");
-    vaultRewardsContract = (await YOPVaultRewards.deploy(governance.address, wallet.address)) as YOPVaultRewardsMock;
+    vaultRewardsContract = (await YOPVaultRewards.deploy()) as YOPVaultRewardsMock;
+    await vaultRewardsContract.initialize(governance.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
     await vaultRewardsContract.deployed();
   });
 
-  describe("constructor", async () => {
-    it("should fail if wallet address is not valid", async () => {
-      expect(YOPVaultRewards.deploy(governance.address, ethers.constants.AddressZero)).to.be.revertedWith("invalid wallet address");
+  describe("initialize", async () => {
+    it("should fail if input data is not valid", async () => {
+      const mock = (await YOPVaultRewards.deploy()) as YOPVaultRewardsMock;
+      expect(mock.initialize(governance.address, ethers.constants.AddressZero, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME)).to.be.revertedWith(
+        "invalid wallet address"
+      );
+
+      expect(mock.initialize(governance.address, wallet.address, ethers.constants.AddressZero, EPOCH_START_TIME)).to.be.revertedWith(
+        "invalid yop contract address"
+      );
+
+      expect(mock.initialize(governance.address, wallet.address, YOP_CONTRACT_ADDRESS, 0)).to.be.revertedWith("invalid emission start time");
+    });
+
+    it("can't be called more than once", async () => {
+      const mock = (await YOPVaultRewards.deploy()) as YOPVaultRewardsMock;
+      await mock.initialize(governance.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+      expect(mock.initialize(governance.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME)).to.be.revertedWith(
+        "Initializable: contract is already initialized"
+      );
+    });
+  });
+
+  describe("pause/unpause", async () => {
+    it("only governance can pause", async () => {
+      const paused = await vaultRewardsContract.paused();
+      expect(paused).to.equal(false);
+      await expect(vaultRewardsContract.connect(user1).pause()).to.be.revertedWith("governance only");
+      await expect(await vaultRewardsContract.connect(governance).pause())
+        .to.emit(vaultRewardsContract, "Paused")
+        .withArgs(governance.address);
+    });
+
+    it("only governance can unpause", async () => {
+      await vaultRewardsContract.connect(governance).pause();
+      const paused = await vaultRewardsContract.paused();
+      expect(paused).to.equal(true);
+      await expect(vaultRewardsContract.connect(user1).unpause()).to.be.revertedWith("governance only");
+      await expect(await vaultRewardsContract.connect(governance).unpause())
+        .to.emit(vaultRewardsContract, "Unpaused")
+        .withArgs(governance.address);
     });
   });
 
@@ -517,6 +559,10 @@ describe("YOPVaultsReward", () => {
     });
 
     describe("claim", async () => {
+      it("should revert when the contract is paused", async () => {
+        await vaultRewardsContract.connect(governance).pause();
+        expect(vaultRewardsContract.connect(user1).claim([vault1.address], user1.address)).to.be.revertedWith("Pausable: paused");
+      });
       it("should revert when nothing to claim", async () => {
         await expect(vaultRewardsContract.claim([vault2.address], user1.address)).to.be.revertedWith("nothing to claim");
       });
@@ -570,6 +616,10 @@ describe("YOPVaultsReward", () => {
     });
 
     describe("claim all", async () => {
+      it("should revert when the contract is paused", async () => {
+        await vaultRewardsContract.connect(governance).pause();
+        expect(vaultRewardsContract.connect(user2).claimAll(user2.address)).to.be.revertedWith("Pausable: paused");
+      });
       it("allow users to claim all their rewards in all vaults", async () => {
         let balance = await rewards.balanceOf(user2.address);
         await expect(balance).to.equal(0);
@@ -595,5 +645,34 @@ describe("YOPVaultsReward", () => {
         expect(unclaimed).to.be.closeTo(user1Rewards, ONE_UNIT);
       });
     });
+  });
+});
+
+describe("YOPVaultRewards proxy [ @skip-on-coverage ]", async () => {
+  let governance: SignerWithAddress;
+  let wallet: SignerWithAddress;
+  let YOPVaultRewards: ContractFactory;
+  let vaultRewardsContract: YOPVaultRewards;
+
+  beforeEach(async () => {
+    [, governance, wallet] = await ethers.getSigners();
+    YOPVaultRewards = await ethers.getContractFactory("YOPVaultRewards");
+    const params = [governance.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME];
+    vaultRewardsContract = (await upgrades.deployProxy(YOPVaultRewards, params)) as YOPVaultRewards;
+    await vaultRewardsContract.deployed();
+  });
+
+  it("contract is deployed", async () => {
+    expect(await vaultRewardsContract.rewardsWallet()).to.equal(wallet.address);
+    expect(await vaultRewardsContract.yopContractAddress()).to.equal(YOP_CONTRACT_ADDRESS);
+    expect(await vaultRewardsContract.emissionStartTime()).to.equal(EPOCH_START_TIME);
+  });
+
+  it("only governance can upgrade", async () => {
+    let YOPVaultRewardsMock = await ethers.getContractFactory("YOPVaultRewardsMock");
+    await expect(upgrades.upgradeProxy(vaultRewardsContract, YOPVaultRewardsMock)).to.be.revertedWith("governance only");
+    YOPVaultRewardsMock = await ethers.getContractFactory("YOPVaultRewardsMock", governance);
+    const mockv2 = await upgrades.upgradeProxy(vaultRewardsContract, YOPVaultRewardsMock);
+    expect(await mockv2.version()).to.equal("2.0.0");
   });
 });

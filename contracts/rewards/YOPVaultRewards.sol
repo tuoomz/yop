@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "prb-math/contracts/PRBMathUD60x18Typed.sol";
 import "hardhat/console.sol";
 import "../interfaces/IYOPVaultRewards.sol";
@@ -17,9 +19,9 @@ import "../vaults/roles/Governable.sol";
 ///      and add them up over time.
 ///      The above equation can also be written as (T2 - T1) * R / V * U. So when U is not changed, we can calculate the sum of `(T2 - T1) * R / V` part and store it. And then multiply the U when U is about to change.
 ///      And this is how we do it in this contract.
-contract YOPVaultRewards is IYOPVaultRewards, Governable {
-  using SafeERC20 for IERC20;
-  using EnumerableSet for EnumerableSet.AddressSet;
+contract YOPVaultRewards is IYOPVaultRewards, GovernableUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using PRBMathUD60x18Typed for PRBMath.UD60x18;
 
   /// @notice Emitted when the ratio of rewards for all vaults is changed
@@ -48,18 +50,21 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
   uint256 public constant FIRST_EPOCH_EMISSION = 342554; // no decimals here. Will apply the appropriate decimals during calculation to improve precision.
   uint256 public constant DEFLATION_RATE = 100; // 1% in BPS
   uint256 public constant MAX_BPS = 10000;
-  uint256 public constant EPOCH_START_TIME = 1640995200; // 2022-1-1-00:00:00 GMT
-  uint256 public constant EPOCH_END_TIME = 1956528000; // 2032-1-1-00:00:00 GMT
   uint256 public constant SECONDS_PER_EPOCH = 2629743; // 1 month/30.44 days
   uint256 public constant MAX_EPOCH_COUNT = 120; // 120 months
   uint256 public constant WEIGHT_AMP = 1000000;
-  address public constant YOP_ADDRESS = 0xAE1eaAE3F627AAca434127644371b67B18444051;
   uint256 public constant YOP_DECIMAL = 8;
 
   /// @notice The percentage of new YOP emissions that will be allocated to vault users, in BPS.
-  uint256 public vaultsRewardsRatio = MAX_BPS; // 100% by default
+  uint256 public vaultsRewardsRatio; // 100% by default
   /// @notice The total weight points of all the vaults combined together
   uint256 public totalWeight;
+  /// @notice The start time of the emission
+  uint256 public emissionStartTime;
+  /// @notice The end time of the emission
+  uint256 public emissionEndTime;
+  /// @notice The address of the YOP contract
+  address public yopContractAddress;
   /// @notice The address of the wallet where reward tokens will be drawn from
   address public rewardsWallet;
   /// @notice The weight of new YOP emissions that each vault will get. Will be set by governance.
@@ -67,7 +72,7 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
   ///      If any one of the vault weight is changed, the percentage value is then changed for every other vault.
   mapping(address => uint256) public perVaultRewardsWeight;
   /// @dev Used to store all the vault addresses internally.
-  EnumerableSet.AddressSet internal vaultAddresses;
+  EnumerableSetUpgradeable.AddressSet internal vaultAddresses;
 
   /// @notice The reward state for each vault
   mapping(address => VaultRewardsState) public vaultRewardsState;
@@ -76,11 +81,46 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
   /// @notice The claimed records of reward tokens for each user
   mapping(address => ClaimRecord) public claimRecords;
 
+  // solhint-disable-next-line no-empty-blocks
+  constructor() {}
+
   /// @param _governance The address of the governance
   /// @param _wallet The address of the reward wallet where this contract can draw reward tokens.
-  constructor(address _governance, address _wallet) Governable(_governance) {
+  function initialize(
+    address _governance,
+    address _wallet,
+    address _yopContract,
+    uint256 _emissionStartTime
+  ) external initializer {
+    __YOPVaultRewards_init(_governance, _wallet, _yopContract, _emissionStartTime);
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __YOPVaultRewards_init(
+    address _governance,
+    address _wallet,
+    address _yopContract,
+    uint256 _emissionStartTime
+  ) internal {
+    __Governable_init(_governance);
+    __Pausable_init_unchained();
+    __YOPVaultRewards_init_unchained(_wallet, _yopContract, _emissionStartTime);
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __YOPVaultRewards_init_unchained(
+    address _wallet,
+    address _yopContract,
+    uint256 _emissionStartTime
+  ) internal {
     require(_wallet != address(0), "invalid wallet address");
+    require(_yopContract != address(0), "invalid yop contract address");
+    require(_emissionStartTime > 0, "invalid emission start time");
     rewardsWallet = _wallet;
+    yopContractAddress = _yopContract;
+    emissionStartTime = _emissionStartTime;
+    emissionEndTime = emissionStartTime + SECONDS_PER_EPOCH * MAX_EPOCH_COUNT;
+    vaultsRewardsRatio = MAX_BPS;
   }
 
   /// @notice Returns the current emission rate of the rewards token (per epoch/month) and the epoch count. The epoch count will start from 1.
@@ -149,7 +189,7 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
 
   /// @notice Claim reward tokens for the caller across all the repos and send the rewards to the given address.
   /// @param _to The address to send the rewards to
-  function claimAll(address _to) external {
+  function claimAll(address _to) external whenNotPaused {
     for (uint256 i = 0; i < vaultAddresses.length(); i++) {
       _updateVaultState(vaultAddresses.at(i));
       _updateUserState(vaultAddresses.at(i), msg.sender);
@@ -160,7 +200,7 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
   /// @notice Claim reward tokens for the caller in the given vaults and send the rewards to the given address.
   /// @param _vaults The addresses of the vaults to claim rewards for
   /// @param _to The address to send the reward tokens
-  function claim(address[] calldata _vaults, address _to) external {
+  function claim(address[] calldata _vaults, address _to) external whenNotPaused {
     require(_vaults.length > 0, "no vaults");
     for (uint256 i = 0; i < _vaults.length; i++) {
       _updateVaultState(_vaults[i]);
@@ -187,6 +227,18 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
     rewardsWallet = _wallet;
   }
 
+  /// @notice Pause the contract. All claim functions will be paused.
+  function pause() external {
+    _onlyGovernance();
+    _pause();
+  }
+
+  // @notice Unpause the contract.
+  function unpause() external {
+    _onlyGovernance();
+    _unpause();
+  }
+
   function _updateVaultState(address _vault) internal {
     vaultRewardsState[_vault] = _calculateVaultState(_vault);
   }
@@ -205,13 +257,13 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
       vaultState.timestamp = _getEpochStartTime();
       // Use the vault decimal here to improve the calculation precision as this value will be devided by the totalSupply of the vault.
       // If there is a big different between the YOP decimals and the vault decimals then the calculation won't be very accurate.
-      vaultState.epochRate = FIRST_EPOCH_EMISSION * (10**IERC20Metadata(_vault).decimals());
+      vaultState.epochRate = FIRST_EPOCH_EMISSION * (10**IERC20MetadataUpgradeable(_vault).decimals());
     }
     uint256 start = vaultState.timestamp;
     uint256 end = _getBlockTimestamp();
     if (end > start) {
       uint256 r = vaultState.epochRate;
-      uint256 totalSupply = IERC20(_vault).totalSupply();
+      uint256 totalSupply = IERC20Upgradeable(_vault).totalSupply();
       if (totalSupply > 0) {
         uint256 totalAccurated;
         // Start from where last time the snapshot was taken, and loop through the epochs.
@@ -265,10 +317,10 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
     address _user,
     VaultRewardsState memory _vaultState
   ) internal view returns (uint256) {
-    uint256 vaultDecimal = IERC20Metadata(_vault).decimals();
+    uint256 vaultDecimal = IERC20MetadataUpgradeable(_vault).decimals();
     PRBMath.UD60x18 memory currentVaultIndex = _vaultState.index; // = T2 * R / V
     PRBMath.UD60x18 memory previousUserIndex = userRewardsState[_vault][_user]; // = T1 * R /V
-    uint256 userBalance = IERC20(_vault).balanceOf(_user);
+    uint256 userBalance = IERC20Upgradeable(_vault).balanceOf(_user);
     // = U * (T2 * R / V  - T1 * R /V) = U * R / V * (T2 - T1)
     uint256 tokenDelta = PRBMathUD60x18Typed.toUint(
       PRBMathUD60x18Typed
@@ -293,7 +345,7 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
     require(claimable > 0, "nothing to claim");
     claimRecords[_user].totalClaimed = record.totalAvailable;
     // this requires the reward contract is approved as a spender for the wallet
-    IERC20(_getYOPAddress()).safeTransferFrom(rewardsWallet, _to, claimable);
+    IERC20Upgradeable(_getYOPAddress()).safeTransferFrom(rewardsWallet, _to, claimable);
   }
 
   function _unclaimedRewards(address[] memory _vaults, address _user) internal view returns (uint256) {
@@ -308,22 +360,27 @@ contract YOPVaultRewards is IYOPVaultRewards, Governable {
 
   /// @dev use a function and allow override to make testing easier
   function _getEpochStartTime() internal view virtual returns (uint256) {
-    return EPOCH_START_TIME;
+    return emissionStartTime;
   }
 
   /// @dev use a function and allow override to make testing easier
   function _getEpochEndTime() internal view virtual returns (uint256) {
-    return EPOCH_END_TIME;
+    return emissionEndTime;
   }
 
   /// @dev use a function and allow override to make testing easier
   function _getYOPAddress() internal view virtual returns (address) {
-    return YOP_ADDRESS;
+    return yopContractAddress;
   }
 
   /// @dev use a function and allow override to make testing easier
   function _getBlockTimestamp() internal view virtual returns (uint256) {
     /* solhint-disable not-rely-on-time */
     return block.timestamp;
+  }
+
+  // solhint-disable-next-line no-unused-vars
+  function _authorizeUpgrade(address implementation) internal view override {
+    _onlyGovernance();
   }
 }

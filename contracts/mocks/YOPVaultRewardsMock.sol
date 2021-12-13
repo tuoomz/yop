@@ -4,21 +4,18 @@ pragma solidity =0.8.9;
 import "../rewards/YOPVaultRewards.sol";
 
 contract YOPVaultRewardsMock is YOPVaultRewards {
-  using EnumerableSet for EnumerableSet.AddressSet;
-  uint256 internal epochStartTime;
-  uint256 internal epochEndTime;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   uint256 internal blockTimestamp;
-  address internal rewardAddress;
 
   // solhint-disable-next-line no-empty-blocks
-  constructor(address _governance, address _wallet) YOPVaultRewards(_governance, _wallet) {}
+  constructor() {}
 
   function setEpochStartTime(uint256 _startTime) external {
-    epochStartTime = _startTime;
+    emissionStartTime = _startTime;
   }
 
   function setEpochEndTime(uint256 _endTime) external {
-    epochEndTime = _endTime;
+    emissionEndTime = _endTime;
   }
 
   function setBlocktimestamp(uint256 _blockTimestamp) external {
@@ -39,22 +36,14 @@ contract YOPVaultRewardsMock is YOPVaultRewards {
   }
 
   function setRewardAddress(address _reward) external {
-    rewardAddress = _reward;
-  }
-
-  function _getYOPAddress() internal view override returns (address) {
-    return rewardAddress;
-  }
-
-  function _getEpochStartTime() internal view override returns (uint256) {
-    return epochStartTime;
-  }
-
-  function _getEpochEndTime() internal view override returns (uint256) {
-    return epochEndTime;
+    yopContractAddress = _reward;
   }
 
   function _getBlockTimestamp() internal view override returns (uint256) {
     return blockTimestamp;
+  }
+
+  function version() external pure returns (string memory) {
+    return "2.0.0";
   }
 }

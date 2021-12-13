@@ -6,6 +6,9 @@ import { AllowlistAccessControl, TokenMock, SingleAssetVault, VaultStrategyDataS
 import { AccessControlManager } from "../../../types/AccessControlManager";
 import { YOPVaultRewards } from "../../../types/YOPVaultRewards";
 
+const YOP_CONTRACT_ADDRESS = "0xAE1eaAE3F627AAca434127644371b67B18444051";
+const EPOCH_START_TIME = 1640995200; // 2022-1-1-00:00:00 GMT
+
 describe("SingleAssetVault", async () => {
   const name = "test vault";
   const symbol = "tVault";
@@ -32,7 +35,8 @@ describe("SingleAssetVault", async () => {
     await strategyDataStore.deployed();
 
     const YOPVaultsRewards = await ethers.getContractFactory("YOPVaultRewards");
-    yopRewards = (await YOPVaultsRewards.deploy(governance.address, wallet.address)) as YOPVaultRewards;
+    yopRewards = (await YOPVaultsRewards.deploy()) as YOPVaultRewards;
+    await yopRewards.initialize(governance.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
     await yopRewards.deployed();
 
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
@@ -771,7 +775,8 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
     await strategyDataStore.deployed();
 
     const YOPVaultsRewards = await ethers.getContractFactory("YOPVaultRewards");
-    yopRewards = (await YOPVaultsRewards.deploy(governance.address, wallet.address)) as YOPVaultRewards;
+    yopRewards = (await YOPVaultsRewards.deploy()) as YOPVaultRewards;
+    await yopRewards.initialize(governance.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
     await yopRewards.deployed();
 
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");

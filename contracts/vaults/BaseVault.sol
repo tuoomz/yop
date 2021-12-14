@@ -68,7 +68,7 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
   /// @notice Init a new strategy. This should only be called by the {VaultStrategyDataStore} and should not be invoked manually.
   ///   Use {VaultStrategyDataStore.addStrategy} to manually add a strategy to a Vault.
   /// @dev This will be called by the {VaultStrategyDataStore} when a strategy is added to a given Vault.
-  function addStrategy(address _strategy) external returns (bool) {
+  function addStrategy(address _strategy) external virtual returns (bool) {
     _onlyNotEmergencyShutdown();
     _onlyStrategyDataStore();
     return _addStrategy(_strategy);
@@ -78,7 +78,7 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
   ///   Use {VaultStrategyDataStore.migrateStrategy} to manually migrate a strategy for a Vault.
   /// @dev This will called be the {VaultStrategyDataStore} when a strategy is migrated.
   ///  This will then call the strategy to migrate (as the strategy only allows the vault to call the migrate function).
-  function migrateStrategy(address _oldVersion, address _newVersion) external returns (bool) {
+  function migrateStrategy(address _oldVersion, address _newVersion) external virtual returns (bool) {
     _onlyStrategyDataStore();
     return _migrateStrategy(_oldVersion, _newVersion);
   }

@@ -27,9 +27,10 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     // it can also be used to validate if msg.sender if the vault itself
     address vault;
     address manager;
-    address[] withdrawQueue;
     uint256 totalDebtRatio;
     uint256 maxTotalDebtRatio;
+    address[] withdrawQueue;
+    address[] strategies;
   }
 
   event VaultManagerUpdated(address indexed _vault, address indexed _manager);
@@ -151,6 +152,15 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  function vaultStrategies(address _vault) external view returns (address[] memory) {
+    require(_vault != address(0), "invalid vault");
+    if (_vaultExists(_vault)) {
+      return configs[_vault].strategies;
+    } else {
+      return new address[](0);
+    }
+  }
+
   function setVaultManager(address _vault, address _manager) external onlyGovernance {
     require(_vault != address(0), "invalid vault");
     _initConfigsIfNeeded(_vault);
@@ -220,6 +230,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     emit StrategyAdded(_vault, _strategy, _debtRatio, _minDebtPerHarvest, _maxDebtPerHarvest, _performanceFee);
     configs[_vault].totalDebtRatio += _debtRatio;
     configs[_vault].withdrawQueue.push(_strategy);
+    configs[_vault].strategies.push(_strategy);
   }
 
   /// @notice update the performance fee of the given strategy
@@ -350,15 +361,14 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     _onlyGovernanceOrVaultManager(_vault);
     _validateStrategy(_vault, _strategy);
     VaultStrategyConfig storage config_ = configs[_vault];
-    uint256 idx = 0;
-    for (uint256 i = 0; i < config_.withdrawQueue.length; i++) {
+    uint256 i = 0;
+    for (i = 0; i < config_.withdrawQueue.length; i++) {
       if (config_.withdrawQueue[i] == _strategy) {
-        idx = i;
         break;
       }
     }
-    require(idx < config_.withdrawQueue.length, "strategy does not exist");
-    for (uint256 j = idx; j < config_.withdrawQueue.length - 1; j++) {
+    require(i < config_.withdrawQueue.length, "strategy does not exist");
+    for (uint256 j = i; j < config_.withdrawQueue.length - 1; j++) {
       config_.withdrawQueue[j] = config_.withdrawQueue[j + 1];
     }
     config_.withdrawQueue.pop();
@@ -404,6 +414,11 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
         configs[_vault].withdrawQueue[i] = _newStrategy;
       }
     }
+    for (uint256 j = 0; j < configs[_vault].strategies.length; j++) {
+      if (configs[_vault].strategies[j] == _oldStrategy) {
+        configs[_vault].strategies[j] = _newStrategy;
+      }
+    }
   }
 
   /// @notice Revoke a Strategy, setting its debt limit to 0 and preventing any future deposits.
@@ -422,7 +437,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
   function revokeStrategy(address _vault, address _strategy) external {
     _onlyGovernanceOrVaultManager(_vault);
     if (strategies[_vault][_strategy].debtRatio != 0) {
-      _revokeStrategy(_msgSender(), _strategy);
+      _revokeStrategy(_vault, _strategy);
     }
   }
 
@@ -461,7 +476,8 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
         manager: address(0),
         maxTotalDebtRatio: DEFAULT_MAX_TOTAL_DEBT_RATIO,
         totalDebtRatio: 0,
-        withdrawQueue: new address[](0)
+        withdrawQueue: new address[](0),
+        strategies: new address[](0)
       });
     }
   }
@@ -473,7 +489,6 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
 
   function _validateStrategy(address _vault, address _strategy) internal view {
     require(strategies[_vault][_strategy].activation > 0, "invalid strategy");
-    require(strategies[_vault][_strategy].vault == _vault, "invalid strategy");
   }
 
   /// @dev make sure the valut exists and msg.send is either the governance or the manager of the vault

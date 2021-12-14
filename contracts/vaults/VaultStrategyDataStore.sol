@@ -9,8 +9,7 @@ import "./BaseVault.sol";
 
 /// @notice This contract will allow governance and managers to configure strategies and withdraw queues for a vault.
 ///  This contract should be deployed first, and then the address of this contract should be used to deploy a vault.
-///  To configure strategies for a vault, the governance should call `function setVaultManager(address _vault, address _manager)`
-///  first to configure the manager for the vault. Once a manager is configured,
+///  Once the vaults & strategies are deployed, call `addStrategy` function to assign a strategy to a vault.
 contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable {
   /// @notice parameters associated with a strategy
   struct StrategyParams {
@@ -71,6 +70,10 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
   // solhint-disable-next-line
   constructor(address _governance) Governable(_governance) {}
 
+  /// @notice returns the performance fee for a strategy in basis points.
+  /// @param _vault the address of the vault
+  /// @param _strategy the address of the strategy
+  /// @return performance fee in basis points (100 = 1%)
   function strategyPerformanceFee(address _vault, address _strategy) external view returns (uint256) {
     require(_vault != address(0) && _strategy != address(0), "invalid address");
     if (_strategyExists(_vault, _strategy)) {
@@ -80,6 +83,10 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the time when a strategy is added to a vault
+  /// @param _vault the address of the vault
+  /// @param _strategy the address of the strategy
+  /// @return the time when the strategy is added to the vault. 0 means the strategy is not added to the vault.
   function strategyActivation(address _vault, address _strategy) external view returns (uint256) {
     require(_vault != address(0) && _strategy != address(0), "invalid address");
     if (_strategyExists(_vault, _strategy)) {
@@ -89,6 +96,10 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the debt ratio for a strategy in basis points.
+  /// @param _vault the address of the vault
+  /// @param _strategy the address of the strategy
+  /// @return debt ratio in basis points (100 = 1%). Total debt ratio of all strategies for a vault can not exceed the MaxTotalDebtRatio of the vault.
   function strategyDebtRatio(address _vault, address _strategy) external view returns (uint256) {
     require(_vault != address(0) && _strategy != address(0), "invalid address");
     if (_strategyExists(_vault, _strategy)) {
@@ -98,6 +109,10 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the minimum value that the strategy can borrow from the vault per harvest.
+  /// @param _vault the address of the vault
+  /// @param _strategy the address of the strategy
+  /// @return minimum value the strategy should borrow from the vault per harvest
   function strategyMinDebtPerHarvest(address _vault, address _strategy) external view returns (uint256) {
     require(_vault != address(0) && _strategy != address(0), "invalid address");
     if (_strategyExists(_vault, _strategy)) {
@@ -107,6 +122,10 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the maximum value that the strategy can borrow from the vault per harvest.
+  /// @param _vault the address of the vault
+  /// @param _strategy the address of the strategy
+  /// @return maximum value the strategy should borrow from the vault per harvest
   function strategyMaxDebtPerHarvest(address _vault, address _strategy) external view returns (uint256) {
     require(_vault != address(0) && _strategy != address(0), "invalid address");
     if (_strategyExists(_vault, _strategy)) {
@@ -116,6 +135,9 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the total debt ratio of all the strategies for the vault in basis points
+  /// @param _vault the address of the vault
+  /// @return the total debt ratio of all the strategies. Should never exceed the value of MaxTotalDebtRatio
   function vaultTotalDebtRatio(address _vault) external view returns (uint256) {
     require(_vault != address(0), "invalid vault");
     if (_vaultExists(_vault)) {
@@ -125,6 +147,9 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the address of strategies that will be withdrawn from if the vault needs to withdraw
+  /// @param _vault the address of the vault
+  /// @return the address of strategies for withdraw. First strategies in the queue will be withdrawn first.
   function withdrawQueue(address _vault) external view returns (address[] memory) {
     require(_vault != address(0), "invalid vault");
     if (_vaultExists(_vault)) {
@@ -134,6 +159,9 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the manager address of the vault. Could be address(0) if it's not set
+  /// @param _vault the address of the vault
+  /// @return the manager address of the vault
   function vaultManager(address _vault) external view returns (address) {
     require(_vault != address(0), "invalid vault");
     if (_vaultExists(_vault)) {
@@ -143,6 +171,9 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the maxTotalDebtRatio of the vault in basis points. It limits the maximum amount of funds that all strategies of the value can borrow.
+  /// @param _vault the address of the vault
+  /// @return the maxTotalDebtRatio config of the vault
   function vaultMaxTotalDebtRatio(address _vault) external view returns (uint256) {
     require(_vault != address(0), "invalid vault");
     if (_vaultExists(_vault)) {
@@ -152,6 +183,9 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice returns the list of strategies used by the vault. Use `strategyDebtRatio` to query fund allocation for a strategy.
+  /// @param _vault the address of the vault
+  /// @return the strategies of the vault
   function vaultStrategies(address _vault) external view returns (address[] memory) {
     require(_vault != address(0), "invalid vault");
     if (_vaultExists(_vault)) {
@@ -161,6 +195,9 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice set the manager of the vault. Can only be called by the governance.
+  /// @param _vault the address of the vault
+  /// @param _manager the address of the manager for the vault
   function setVaultManager(address _vault, address _manager) external onlyGovernance {
     require(_vault != address(0), "invalid vault");
     _initConfigsIfNeeded(_vault);
@@ -170,6 +207,9 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     }
   }
 
+  /// @notice set the maxTotalDebtRatio of the value.
+  /// @param _vault the address of the vault
+  /// @param _maxTotalDebtRatio the maximum total debt ratio value in basis points. Can not exceed 10000 (100%).
   function setMaxTotalDebtRatio(address _vault, uint256 _maxTotalDebtRatio) external {
     require(_vault != address(0), "invalid vault");
     _onlyGovernanceOrVaultManager(_vault);

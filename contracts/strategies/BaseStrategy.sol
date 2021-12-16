@@ -139,8 +139,13 @@ abstract contract BaseStrategy is IStrategy {
     _;
   }
 
-  constructor(address _vault) {
-    _initialize(_vault, msg.sender, msg.sender, msg.sender);
+  constructor(
+    address _vault,
+    address _strategist,
+    address _rewards,
+    address _keeper
+  ) {
+    _initialize(_vault, _strategist, _rewards, _keeper);
   }
 
   /**
@@ -160,6 +165,7 @@ abstract contract BaseStrategy is IStrategy {
 
     vault = _vault;
     want = IERC20(IVault(vault).token());
+    checkWantToken();
     want.safeApprove(_vault, type(uint256).max); // Give Vault unlimited access (might save gas)
     strategist = _strategist;
     rewards = _rewards;
@@ -354,6 +360,11 @@ abstract contract BaseStrategy is IStrategy {
     return IVault(vault).strategyDebtRatio(address(this)) > 0 || estimatedTotalAssets() > 0;
   }
 
+  /// @notice check the want token to make sure it is the token that the strategy is expecting
+  function checkWantToken() internal view virtual {
+    // by default this will do nothing. But child strategies can override this and validate the want token
+  }
+
   /**
    * Perform any Strategy unwinding or other calls necessary to capture the
    * "free return" this Strategy has generated since the last time its core
@@ -516,6 +527,11 @@ abstract contract BaseStrategy is IStrategy {
   }
 
   /**
+   * @notice All the strategy to do something when harvest is called.
+   */
+  function onHarvest() internal virtual {}
+
+  /**
    * @notice
    *  Harvests the Strategy, recognizing any profits or losses and adjusting
    *  the Strategy's position.
@@ -537,6 +553,7 @@ abstract contract BaseStrategy is IStrategy {
     uint256 loss = 0;
     uint256 debtOutstanding = IVault(vault).debtOutstanding(address(this));
     uint256 debtPayment = 0;
+    onHarvest();
     if (emergencyExit) {
       // Free up as much capital as possible
       uint256 totalAssets = estimatedTotalAssets();

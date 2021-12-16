@@ -4,6 +4,7 @@ import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-solhint";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-abi-exporter";
+
 import "@tenderly/hardhat-tenderly";
 import "@typechain/hardhat";
 import "hardhat-deploy-ethers";
@@ -55,12 +56,14 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        // eslint-disable-next-line eqeqeq
+        // eslint-disable-next-line
         enabled: process.env.ENABLE_FORKING == "true",
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
         blockNumber: 13612911,
+        // blockNumber: 11146209,
       },
-      chainId: 31337,
+      chainId: chainIds.hardhat,
+      allowUnlimitedContractSize: true,
     },
     goerli: createTestnetConfig("goerli"),
     kovan: createTestnetConfig("kovan"),
@@ -123,6 +126,9 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: false,
+  },
+  mocha: {
+    timeout: 200000,
   },
 };
 

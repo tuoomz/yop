@@ -13,7 +13,6 @@ import "../interfaces/IStrategy.sol";
 import "../interfaces/IYOPVaultRewards.sol";
 import "../access/IAccessControl.sol";
 import "./SingleAssetVaultBase.sol";
-import "hardhat/console.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
@@ -504,15 +503,8 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
   }
 
   function _ensureValidDepositAmount(address _account, uint256 _amount) internal view returns (uint256) {
-    uint256 amount = _amount;
-    uint256 balance = token.balanceOf(_account);
-    if (amount > balance) {
-      amount = balance;
-    }
-    uint256 availableLimit = _availableDepositLimit();
-    if (amount > availableLimit) {
-      amount = availableLimit;
-    }
+    uint256 amount = Math.min(_amount, token.balanceOf(_account));
+    amount = Math.min(amount, _availableDepositLimit());
 
     require(amount > 0, "invalid amount");
     return amount;

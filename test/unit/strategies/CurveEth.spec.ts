@@ -12,6 +12,7 @@ import curveMinterABI from "../abis/curveMinter.json";
 import curvePoolABI from "../abis/curvePlainPool.json";
 import dexABI from "../abis/sushiSwapRouter.json";
 import { CurveEthStrategyMock } from "../../../types/CurveEthStrategyMock";
+import { YOPVaultRewardsMock } from "../../../types/YOPVaultRewardsMock";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { waffle } = require("hardhat");
@@ -53,6 +54,10 @@ describe("CurveEth strategy", async () => {
     vaultStrategyDataStore = (await VaultStrategyDataStoreFactory.deploy(governance.address)) as VaultStrategyDataStore;
     await vaultStrategyDataStore.deployed();
 
+    const YOPRewardsFactory = await ethers.getContractFactory("YOPVaultRewardsMock");
+    const yopRewards = (await YOPRewardsFactory.deploy()) as YOPVaultRewardsMock;
+    await yopRewards.deployed();
+
     const TokenMockFactory = await ethers.getContractFactory("TokenMock");
     vaultToken = (await TokenMockFactory.deploy("vaultToken", "vt")) as TokenMock;
     await vaultToken.deployed();
@@ -69,7 +74,8 @@ describe("CurveEth strategy", async () => {
       rewards.address,
       vaultStrategyDataStore.address,
       vaultToken.address,
-      ethers.constants.AddressZero
+      ethers.constants.AddressZero,
+      yopRewards.address
     );
     await vaultStrategyDataStore.connect(governance).setVaultManager(vault.address, manager.address);
 

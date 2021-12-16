@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IStrategy.sol";
+import "hardhat/console.sol";
 
 /**
  *
@@ -499,10 +500,10 @@ abstract contract BaseStrategy is IStrategy {
     if (params.activation == 0) return false;
 
     // Should not trigger if we haven't waited long enough since previous harvest
-    if (block.timestamp.sub(params.lastReport) < minReportDelay) return false;
+    if (timestamp().sub(params.lastReport) < minReportDelay) return false;
 
     // Should trigger if hasn't been called in a while
-    if (block.timestamp.sub(params.lastReport) >= maxReportDelay) return true;
+    if (timestamp().sub(params.lastReport) >= maxReportDelay) return true;
 
     // If some amount is owed, pay it back
     // NOTE: Since debt is based on deposits, it makes sense to guard against large
@@ -679,8 +680,14 @@ abstract contract BaseStrategy is IStrategy {
     require(_token != address(vault), "!shares");
 
     address[] memory _protectedTokens = protectedTokens();
-    for (uint256 i; i < _protectedTokens.length; i++) require(_token != _protectedTokens[i], "!protected");
+    for (uint256 i; i < _protectedTokens.length; i++) {
+      require(_token != _protectedTokens[i], "!protected");
+    }
 
     IERC20(_token).safeTransfer(governance(), IERC20(_token).balanceOf(address(this)));
+  }
+
+  function timestamp() internal view virtual returns (uint256) {
+    return block.timestamp;
   }
 }

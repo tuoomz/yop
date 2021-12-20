@@ -87,6 +87,7 @@ contract BaseStrategyMock is BaseStrategy {
   }
 
   function timestamp() internal view override returns (uint256) {
+    super.timestamp(); // improve code coverage
     return blockTimestamp;
   }
 }

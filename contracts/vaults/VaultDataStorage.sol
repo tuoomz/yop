@@ -14,12 +14,12 @@ contract VaultDataStorage {
   uint8 internal vaultDecimals;
   bool public emergencyShutdown;
   /// @notice timestamp for when the vault is deployed
-  uint256 internal activation;
+  uint256 public activation;
   uint256 public managementFee;
   /// @notice degradation for locked profit per second
   /// @dev the value is based on 6-hour degradation period (1/(60*60*6) = 0.000046)
   ///   NOTE: This is being deprecated by Yearn. See https://github.com/yearn/yearn-vaults/pull/471
-  uint256 public lockedProfitDegradation;
+  uint256 internal lockedProfitDegradation;
   uint256 public depositLimit;
   /// @notice the timestamp of the last report received from a strategy
   uint256 internal lastReport;

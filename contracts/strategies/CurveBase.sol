@@ -61,13 +61,15 @@ abstract contract CurveBase is BaseStrategy {
   function prepareMigration(address _newStrategy) internal override {
     // mint all the CRV tokens
     curveMinter.mint(address(curveGauge));
-    // withdraw the LP tokens from the gauge, otherwise they will be lost
-    curveGauge.withdraw(curveGauge.balanceOf(address(this)));
     _migrateRewards(_newStrategy);
-    _migratePoolLPTokens(_newStrategy);
+    _removeAllLiquidity();
   }
 
+  // solhint-disable-next-line no-unused-vars
   function adjustPosition(uint256 _debtOutstanding) internal virtual override {
+    if (emergencyExit) {
+      return;
+    }
     _addLiquidityToCurvePool();
     _depositLPTokensToCurveGauge();
   }
@@ -82,34 +84,25 @@ abstract contract CurveBase is BaseStrategy {
       uint256 _debtPayment
     )
   {
-    console.log("  prepareReturn()");
     uint256 wantBefore = _balanceOfWant();
     curveMinter.mint(address(curveGauge));
     uint256 crvBalance = IERC20(_getCurveTokenAddress()).balanceOf(address(this));
-    console.log("    wantBefore %s", wantBefore);
-    console.log("    crvBalance %s", crvBalance);
     _swapCRVToWant(crvBalance);
     uint256 wantNow = _balanceOfWant();
     _profit = wantNow - wantBefore;
 
     uint256 _total = estimatedTotalAssets();
     uint256 _debt = IVault(vault).strategy(address(this)).totalDebt;
-    console.log("  total %s", _total);
-    console.log("  debt %s", _debt);
 
     if (_total < _debt) {
       _loss = _debt - _total;
       _profit = 0;
     }
 
-    console.log("  _debtOutstanding %s", _debt);
     if (_debtOutstanding > 0) {
       _withdrawSome(_debtOutstanding);
       _debtPayment = Math.min(_debtOutstanding, _balanceOfWant() - _profit);
     }
-    console.log("  _profit %s", _profit);
-    console.log("  _loss %s", _loss);
-    console.log("  _debtPayment %s", _debtPayment);
   }
 
   function liquidatePosition(uint256 _amountNeeded)
@@ -169,11 +162,6 @@ abstract contract CurveBase is BaseStrategy {
     );
   }
 
-  function _migratePoolLPTokens(address _newStrategy) internal virtual {
-    IERC20 lpToken = IERC20(curveGauge.lp_token());
-    lpToken.safeTransfer(_newStrategy, lpToken.balanceOf(address(this)));
-  }
-
   function _balanceOfCRV() internal view virtual returns (uint256) {
     uint256 totalClaimableCRV = curveGauge.integrate_fraction(address(this));
     uint256 mintedCRV = curveMinter.minted(address(this), address(curveGauge));
@@ -197,6 +185,7 @@ abstract contract CurveBase is BaseStrategy {
         path[1] = address(_getWETHTokenAddress());
         path[2] = address(want);
       }
+      /* solhint-disable  not-rely-on-time */
       uint256[] memory amountOut = IUniswapV2Router(dex).swapExactTokensForTokens(
         _crvAmount,
         uint256(0),
@@ -204,6 +193,7 @@ abstract contract CurveBase is BaseStrategy {
         address(this),
         block.timestamp
       );
+      /* solhint-enable */
       return amountOut[path.length - 1];
     }
     return 0;
@@ -270,4 +260,6 @@ abstract contract CurveBase is BaseStrategy {
   function _balanceOfPool() internal view virtual returns (uint256);
 
   function _withdrawSome(uint256 _amount) internal virtual returns (uint256);
+
+  function _removeAllLiquidity() internal virtual;
 }

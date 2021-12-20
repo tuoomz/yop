@@ -7,6 +7,9 @@ contract CurveEthStrategyMock is CurveEth {
   address public curveTokenAddress;
   address public wethTokenAddress;
 
+  event ReturnsReported(uint256 profit, uint256 loss, uint256 debtPayment);
+  event LiquidationReported(uint256 liquidatedAmount, uint256 loss);
+
   constructor(
     address _vault,
     address _strategist,
@@ -44,6 +47,7 @@ contract CurveEthStrategyMock is CurveEth {
 
   function setWETHTokenAddress(address _address) external {
     wethTokenAddress = _address;
+    super.checkWantToken();
   }
 
   function setCurveTokenAddress(address _address) external {
@@ -53,10 +57,30 @@ contract CurveEthStrategyMock is CurveEth {
   function checkWantToken() internal view override {}
 
   function _getWETHTokenAddress() internal view override returns (address) {
+    super._getWETHTokenAddress();
     return wethTokenAddress;
   }
 
   function _getCurveTokenAddress() internal view override returns (address) {
+    super._getCurveTokenAddress();
     return curveTokenAddress;
+  }
+
+  function testPrepareReturn(uint256 _debtOutstanding) external {
+    (uint256 _profit, uint256 _loss, uint256 _debtPayment) = super.prepareReturn(_debtOutstanding);
+    emit ReturnsReported(_profit, _loss, _debtPayment);
+  }
+
+  function testPrepareMigration(address _newStrategy) external {
+    super.prepareMigration(_newStrategy);
+  }
+
+  function testLiquidatePosition(uint256 _amount) external {
+    (uint256 amount, uint256 loss) = super.liquidatePosition(_amount);
+    emit LiquidationReported(amount, loss);
+  }
+
+  function testProtectedTokens() external view returns (address[] memory) {
+    return super.protectedTokens();
   }
 }

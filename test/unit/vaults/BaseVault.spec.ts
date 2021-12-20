@@ -82,7 +82,8 @@ describe("BaseVault", function () {
     expect(await baseVault.depositLimit()).to.equal(ethers.constants.MaxUint256);
     expect(await baseVault.healthCheck()).to.equal(ethers.constants.AddressZero);
     expect(await baseVault.emergencyShutdown()).to.equal(false);
-    expect(await baseVault.lockedProfitDegradation()).to.equal(BigNumber.from("46000000000000"));
+    expect(await baseVault.activation()).to.gt(ethers.constants.Zero);
+    // expect(await baseVault.lockedProfitDegradation()).to.equal(BigNumber.from("46000000000000"));
   });
 
   it("test setRewards", async () => {

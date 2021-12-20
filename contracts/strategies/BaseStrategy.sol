@@ -362,6 +362,7 @@ abstract contract BaseStrategy is IStrategy {
   }
 
   /// @notice check the want token to make sure it is the token that the strategy is expecting
+  // solhint-disable-next-line no-empty-blocks
   function checkWantToken() internal view virtual {
     // by default this will do nothing. But child strategies can override this and validate the want token
   }
@@ -442,6 +443,7 @@ abstract contract BaseStrategy is IStrategy {
    * @param callCost The keeper's estimated cast cost to call `tend()`.
    * @return `true` if `tend()` should be called, `false` otherwise.
    */
+  // solhint-disable-next-line no-unused-vars
   function tendTrigger(uint256 callCost) public view virtual returns (bool) {
     // We usually don't need tend, but if there are positions that need
     // active maintainence, overriding this function is how you would
@@ -530,6 +532,7 @@ abstract contract BaseStrategy is IStrategy {
   /**
    * @notice All the strategy to do something when harvest is called.
    */
+  // solhint-disable-next-line no-empty-blocks
   function onHarvest() internal virtual {}
 
   /**
@@ -688,6 +691,7 @@ abstract contract BaseStrategy is IStrategy {
   }
 
   function timestamp() internal view virtual returns (uint256) {
+    // solhint-disable-next-line not-rely-on-time
     return block.timestamp;
   }
 }

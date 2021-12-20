@@ -5,7 +5,7 @@ interface ICurveDeposit {
   // 3 coin
   function add_liquidity(uint256[1] memory amounts, uint256 min_mint_amount) external;
 
-  function add_liquidity(uint256[2] memory amounts, uint256 min_mint_amount) external;
+  function add_liquidity(uint256[2] memory amounts, uint256 min_mint_amount) external payable returns (uint256);
 
   function add_liquidity(uint256[3] memory amounts, uint256 min_mint_amount) external;
 

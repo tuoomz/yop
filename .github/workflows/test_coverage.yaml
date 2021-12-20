@@ -31,13 +31,20 @@ jobs:
       - name: Generate Types
         run: npx hardhat typechain
 
-      - name: Run test
-        run: npx hardhat test
+      - name: Run unit test
+        run: npx hardhat test ./test/unit/**/*.ts
+
+      - name: Run integration test
+        run: npx hardhat test ./test/integration/**/*.ts
+        env:
+          ENABLE_FORKING: true
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
 
       - name: Run coverage
         run: npx hardhat coverage
 
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.github_token }}
+      # may enable this again when the repo becomes open
+      # - name: Coveralls
+      #   uses: coverallsapp/github-action@master
+      #   with:
+      #     github-token: ${{ secrets.github_token }}

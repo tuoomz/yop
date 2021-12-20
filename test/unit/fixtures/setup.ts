@@ -3,12 +3,12 @@ import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { TokenMock } from "../../../types/TokenMock";
 import { YOPVaultRewardsMock } from "../../../types/YOPVaultRewardsMock";
-import curveAddressProviderABI from "../abis/curveAddressProvider.json";
-import curveGaugeABI from "../abis/curveGauge.json";
-import curveRegistryABI from "../abis/curveRegistry.json";
-import curveMinterABI from "../abis/curveMinter.json";
-import curvePoolABI from "../abis/curvePlainPool.json";
-import dexABI from "../abis/sushiSwapRouter.json";
+import curveAddressProviderABI from "../../abis/curveAddressProvider.json";
+import curveGaugeABI from "../../abis/curveGauge.json";
+import curveRegistryABI from "../../abis/curveRegistry.json";
+import curveMinterABI from "../../abis/curveMinter.json";
+import curvePoolABI from "../../abis/curvePlainPool.json";
+import dexABI from "../../abis/sushiSwapRouter.json";
 import vaultABI from "../../../abi/SingleAssetVault.json";
 import ERC20ABI from "../../../abi/ERC20.json";
 import vaultStrategyDataStoreABI from "../../../abi/VaultStrategyDataStore.json";
@@ -58,12 +58,8 @@ export async function setupMockVault() {
 
 export async function setupCurve() {
   const [deployer] = await ethers.getSigners();
-  const TokenMockFactory = await ethers.getContractFactory("TokenMock");
-  const poolLpToken = (await TokenMockFactory.deploy("poolToken", "pt")) as TokenMock;
-  await poolLpToken.deployed();
-  const curveToken = (await TokenMockFactory.deploy("mockCurve", "mc")) as TokenMock;
-  await curveToken.deployed();
-
+  const poolLpToken = await deployMockContract(deployer, ERC20ABI);
+  const curveToken = await deployMockContract(deployer, ERC20ABI);
   const mockCurvePool = await deployMockContract(deployer, curvePoolABI);
   const mockCurveGauge = await deployMockContract(deployer, curveGaugeABI);
   const mockCurveRegistry = await deployMockContract(deployer, curveRegistryABI);

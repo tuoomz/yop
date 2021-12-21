@@ -36,6 +36,14 @@ contract CurveEth is CurveBase {
     require(address(want) == _getWETHTokenAddress(), "wrong vault token");
   }
 
+  function _getWantTokenIndex() internal view override returns (uint256) {
+    return 0;
+  }
+
+  function _getCoinsCount() internal view override returns (uint256) {
+    return 2;
+  }
+
   function _addLiquidityToCurvePool() internal virtual override {
     uint256 wethBalance = _balanceOfWant();
     if (wethBalance > 0) {
@@ -47,35 +55,10 @@ contract CurveEth is CurveBase {
     }
   }
 
-  function _balanceOfPool() internal view virtual override returns (uint256) {
-    uint256 lpTokenAmount = curveGauge.balanceOf(address(this));
-    // we will get the eth amount, which is the same as weth
-    if (lpTokenAmount > 0) {
-      uint256 outputAmount = curvePool.calc_withdraw_one_coin(lpTokenAmount, int128(0));
-      return outputAmount;
-    }
-    return 0;
-  }
-
-  function _withdrawSome(uint256 _amount) internal virtual override returns (uint256) {
-    // check how many LP tokens we will need for the given want _amount
-    uint256 requiredLPTokenAmount = (curvePool.calc_token_amount([_amount, 0], true) * 10200) / 10000; // adding 2% for fees
-    // decide how many LP tokens we can actually withdraw
-    uint256 withdrawLPTokenAmount = Math.min(requiredLPTokenAmount, curveGauge.balanceOf(address(this)));
-    return _removeLiquidity(withdrawLPTokenAmount);
-  }
-
-  function _removeAllLiquidity() internal override {
-    _removeLiquidity(curveGauge.balanceOf(address(this)));
-  }
-
   /// @dev Remove the liquidity by the LP token amount
   /// @param _amount The amount of LP token (not want token)
-  function _removeLiquidity(uint256 _amount) internal returns (uint256) {
-    // withdraw this amount of token from the gauge first
-    curveGauge.withdraw(_amount);
-    // then remove the liqudity from the pool, will get eth back
-    uint256 amount = curvePool.remove_liquidity_one_coin(_amount, 0, 0);
+  function _removeLiquidity(uint256 _amount) internal override returns (uint256) {
+    uint256 amount = super._removeLiquidity(_amount);
     // wrapp the eth to weth
     IWETH(_getWETHTokenAddress()).deposit{value: amount}(amount);
     return amount;

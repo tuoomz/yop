@@ -59,6 +59,14 @@ contract CurveStable is CurveBase {
     return USDN_3CRV;
   }
 
+  function _getWantTokenIndex() internal view override returns (uint256) {
+    return uint128(wantThreepoolIndex);
+  }
+
+  function _getCoinsCount() internal view override returns (uint256) {
+    return nPoolCoins;
+  }
+
   function _getWantIndexInCurvePool(address _pool) internal view returns (int128) {
     address _candidate;
     for (uint256 i = 0; i < nPoolCoins; i++) {
@@ -114,13 +122,9 @@ contract CurveStable is CurveBase {
     return _balanceOfWant() - _before;
   }
 
-  function _removeAllLiquidity() internal override {
-    _removeLiquidity(curveGauge.balanceOf(address(this)));
-  }
-
   /// @dev Remove the liquidity by the LP token amount
   /// @param _amount The amount of LP token (not want token)
-  function _removeLiquidity(uint256 _amount) internal returns (uint256) {
+  function _removeLiquidity(uint256 _amount) internal override returns (uint256) {
     uint256 _before = _balanceOfWant();
     // withdraw this amount of token from the gauge first
     curveGauge.withdraw(_amount);

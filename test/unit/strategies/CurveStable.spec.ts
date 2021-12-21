@@ -1,18 +1,13 @@
 import chai, { expect } from "chai";
-import { ethers, network, waffle } from "hardhat";
+import { ethers, waffle } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-
-import { BigNumber, utils } from "ethers";
-import { impersonate } from "../utils/Impersonate";
-
-import { SingleAssetVault, CurveStable, VaultStrategyDataStore, ERC20 } from "../../../types";
+import { SingleAssetVault, VaultStrategyDataStore } from "../../../types";
 // import { curveStableUsdcStrategyMock } from "../../../types/curveStableUsdcStrategyMock";
 import { CurveStableStrategyMock } from "../../../types/CurveStableStrategyMock";
-import { YOPVaultRewardsMock } from "../../../types/YOPVaultRewardsMock";
 import { TokenMock } from "../../../types/TokenMock";
 import { MockContract, solidity } from "ethereum-waffle";
 
-import { setupVault, setupCurveTrio, setupVaultAndCurveTrio } from "../fixtures/setup";
+import { setupVaultAndCurveTrio } from "../fixtures/setup";
 
 import { near } from "../utils/near";
 const { loadFixture } = waffle;

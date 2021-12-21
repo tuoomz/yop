@@ -154,6 +154,15 @@ abstract contract CurveBase is BaseStrategy {
     return want.balanceOf(address(this));
   }
 
+  function _balanceOfPool() internal view virtual returns (uint256) {
+    uint256 lpTokenAmount = curveGauge.balanceOf(address(this));
+    if (lpTokenAmount > 0) {
+      uint256 outputAmount = curvePool.calc_withdraw_one_coin(lpTokenAmount, _int128(_getWantTokenIndex()));
+      return outputAmount;
+    }
+    return 0;
+  }
+
   function _migrateRewards(address _newStrategy) internal virtual {
     IERC20(_getCurveTokenAddress()).safeTransfer(
       _newStrategy,
@@ -207,6 +216,42 @@ abstract contract CurveBase is BaseStrategy {
     }
   }
 
+  function _withdrawSome(uint256 _amount) internal virtual returns (uint256) {
+    uint256 requiredLPTokenAmount;
+    // check how many LP tokens we will need for the given want _amount
+    // not great, but can't find a better way to define the params dynamically based on the coins count
+    if (_getCoinsCount() == 2) {
+      uint256[2] memory params;
+      params[_getWantTokenIndex()] = _amount;
+      requiredLPTokenAmount = (curvePool.calc_token_amount(params, true) * 10200) / 10000; // adding 2% padding
+    } else if (_getCoinsCount() == 3) {
+      uint256[3] memory params;
+      params[_getWantTokenIndex()] = _amount;
+      requiredLPTokenAmount = (curvePool.calc_token_amount(params, true) * 10200) / 10000; // adding 2% padding
+    } else if (_getCoinsCount() == 4) {
+      uint256[4] memory params;
+      params[_getWantTokenIndex()] = _amount;
+      requiredLPTokenAmount = (curvePool.calc_token_amount(params, true) * 10200) / 10000; // adding 2% padding
+    }
+    // decide how many LP tokens we can actually withdraw
+    uint256 withdrawLPTokenAmount = Math.min(requiredLPTokenAmount, curveGauge.balanceOf(address(this)));
+    return _removeLiquidity(withdrawLPTokenAmount);
+  }
+
+  function _removeAllLiquidity() internal {
+    _removeLiquidity(curveGauge.balanceOf(address(this)));
+  }
+
+  /// @dev Remove the liquidity by the LP token amount
+  /// @param _amount The amount of LP token (not want token)
+  function _removeLiquidity(uint256 _amount) internal virtual returns (uint256) {
+    // withdraw this amount of token from the gauge first
+    curveGauge.withdraw(_amount);
+    // then remove the liqudity from the pool, will get eth back
+    uint256 amount = curvePool.remove_liquidity_one_coin(_amount, _int128(_getWantTokenIndex()), 0);
+    return amount;
+  }
+
   function _getPoolLPTokenAddress(address _pool) internal virtual returns (address) {
     require(_pool != address(0), "invalid pool address");
     address registry = curveAddressProvider.get_registry();
@@ -256,11 +301,14 @@ abstract contract CurveBase is BaseStrategy {
     IERC20(_getCurveTokenAddress()).safeApprove(dex, type(uint256).max);
   }
 
+  // does not deal with over/under flow
+  function _int128(uint256 _val) internal pure returns (int128) {
+    return int128(uint128(_val));
+  }
+
   function _addLiquidityToCurvePool() internal virtual;
 
-  function _balanceOfPool() internal view virtual returns (uint256);
+  function _getWantTokenIndex() internal view virtual returns (uint256);
 
-  function _withdrawSome(uint256 _amount) internal virtual returns (uint256);
-
-  function _removeAllLiquidity() internal virtual;
+  function _getCoinsCount() internal view virtual returns (uint256);
 }

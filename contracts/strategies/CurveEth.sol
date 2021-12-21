@@ -59,7 +59,7 @@ contract CurveEth is CurveBase {
 
   function _withdrawSome(uint256 _amount) internal virtual override returns (uint256) {
     // check how many LP tokens we will need for the given want _amount
-    uint256 requiredLPTokenAmount = (curvePool.calc_token_amount([_amount, 0], true) * 10200) / 10000; // adding 2% for slippage cost
+    uint256 requiredLPTokenAmount = (curvePool.calc_token_amount([_amount, 0], true) * 10200) / 10000; // adding 2% for fees
     // decide how many LP tokens we can actually withdraw
     uint256 withdrawLPTokenAmount = Math.min(requiredLPTokenAmount, curveGauge.balanceOf(address(this)));
     return _removeLiquidity(withdrawLPTokenAmount);

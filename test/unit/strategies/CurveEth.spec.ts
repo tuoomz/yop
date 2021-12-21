@@ -75,16 +75,16 @@ describe("CurveEth strategy", async () => {
     it("should return the correct asset value", async () => {
       const tokenAmount = ethers.utils.parseEther("100");
       const crvAmount = ethers.utils.parseEther("20");
-      const exchangeAmoutOut = ethers.utils.parseEther("10");
+      const exchangeAmountOut = ethers.utils.parseEther("10");
       const gaugeBalance = ethers.utils.parseEther("5");
-      const withdrawAmoutOut = ethers.utils.parseEther("5");
+      const withdrawAmountOut = ethers.utils.parseEther("5");
       await mockVaultToken.mock.balanceOf.returns(tokenAmount);
       await mockCurveGauge.mock.integrate_fraction.returns(crvAmount);
       await mockCurveMinter.mock.minted.returns(ethers.constants.Zero);
-      await mockDex.mock.getAmountsOut.returns([0, exchangeAmoutOut]);
+      await mockDex.mock.getAmountsOut.returns([0, exchangeAmountOut]);
       await mockCurveGauge.mock.balanceOf.returns(gaugeBalance);
-      await mockCurvePool.mock.calc_withdraw_one_coin.returns(withdrawAmoutOut);
-      const expectedTotal = tokenAmount.add(exchangeAmoutOut).add(withdrawAmoutOut);
+      await mockCurvePool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
+      const expectedTotal = tokenAmount.add(exchangeAmountOut).add(withdrawAmountOut);
       const got = await curveEthStrategy.estimatedTotalAssets();
       expect(expectedTotal).to.equal(got);
     });

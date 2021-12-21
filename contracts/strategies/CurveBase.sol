@@ -138,6 +138,7 @@ abstract contract CurveBase is BaseStrategy {
   }
 
   function _initCurvePool(address _pool) internal virtual {
+    console.log("_initCurvePool:%s", _pool);
     curveAddressProvider = ICurveAddressProvider(CURVE_ADDRESS_PROVIDER_ADDRESS);
     curveMinter = ICurveMinter(CURVE_MINTER_ADDRESS);
     curvePool = ICurveDeposit(_pool);
@@ -150,9 +151,7 @@ abstract contract CurveBase is BaseStrategy {
   }
 
   function _balanceOfWant() internal view returns (uint256) {
-    uint256 _want = want.balanceOf(address(this));
-    console.log("balanceOfWant() _want %s", _want);
-    return _want;
+    return want.balanceOf(address(this));
   }
 
   function _migrateRewards(address _newStrategy) internal virtual {
@@ -166,6 +165,7 @@ abstract contract CurveBase is BaseStrategy {
     uint256 totalClaimableCRV = curveGauge.integrate_fraction(address(this));
     uint256 mintedCRV = curveMinter.minted(address(this), address(curveGauge));
     uint256 remainingCRV = totalClaimableCRV - mintedCRV;
+
     if (remainingCRV > 0) {
       return _getQuoteForCRVToWant(remainingCRV);
     }
@@ -217,6 +217,7 @@ abstract contract CurveBase is BaseStrategy {
     address registry = curveAddressProvider.get_registry();
     (address[10] memory gauges, ) = ICurveRegistry(registry).get_gauges(address(curvePool));
     // This only usese the first gauge of the pool. Should be enough for most cases, however, if this is not the case, then this method should be overriden
+
     return gauges[0];
   }
 

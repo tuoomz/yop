@@ -9,8 +9,13 @@ import curveRegistryABI from "../../abis/curveRegistry.json";
 import curveMinterABI from "../../abis/curveMinter.json";
 import curvePoolABI from "../../abis/curvePlainPool.json";
 import dexABI from "../../abis/sushiSwapRouter.json";
+import curvePooTrioABI from "../../abis/curvePlainPoolTrio.json";
+import curveMetaPoolABI from "../../abis/curveMetaPool.json";
 import vaultABI from "../../../abi/SingleAssetVault.json";
 import ERC20ABI from "../../../abi/ERC20.json";
+import daiABI from "../../abis/coins/dai.json";
+import usdtABI from "../../abis/coins/usdt.json";
+import usdcABI from "../../abis/coins/usdc.json";
 import vaultStrategyDataStoreABI from "../../../abi/VaultStrategyDataStore.json";
 
 const { deployMockContract } = waffle;
@@ -95,4 +100,67 @@ export async function setupCurve() {
     poolLpToken,
     curveToken,
   };
+}
+
+export async function setupCurveTrio() {
+  const [deployer] = await ethers.getSigners();
+  const TokenMockFactory = await ethers.getContractFactory("TokenMock");
+  const poolLpToken = (await TokenMockFactory.deploy("poolToken", "pt")) as TokenMock; // 3crv
+  await poolLpToken.deployed();
+  const mockMetaPoolLpToken = (await TokenMockFactory.deploy("metaPoolToken", "mpt")) as TokenMock; // usdn3crv
+  await mockMetaPoolLpToken.deployed();
+  const curveToken = (await TokenMockFactory.deploy("mockCurve", "mc")) as TokenMock;
+  await curveToken.deployed();
+
+  const mockDai = await deployMockContract(deployer, daiABI);
+  const mockUsdc = await deployMockContract(deployer, usdtABI);
+  const mockUsdt = await deployMockContract(deployer, usdcABI);
+
+  const mockCurvePool = await deployMockContract(deployer, curvePooTrioABI);
+  const mockCurveMetaPool = await deployMockContract(deployer, curveMetaPoolABI);
+  const mockCurveGauge = await deployMockContract(deployer, curveGaugeABI);
+  const mockCurveRegistry = await deployMockContract(deployer, curveRegistryABI);
+  const mockCurveMinter = await deployMockContract(deployer, curveMinterABI);
+  const mockCurveAddressProvider = await deployMockContract(deployer, curveAddressProviderABI);
+
+  // the length of the array has to be 10 as that's defined in the ABI
+  const gauges = [
+    mockCurveGauge.address,
+    ethers.constants.AddressZero,
+    ethers.constants.AddressZero,
+    ethers.constants.AddressZero,
+    ethers.constants.AddressZero,
+    ethers.constants.AddressZero,
+    ethers.constants.AddressZero,
+    ethers.constants.AddressZero,
+    ethers.constants.AddressZero,
+    ethers.constants.AddressZero,
+  ];
+  const gaugeTypes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await mockCurveRegistry.mock.get_lp_token.returns(poolLpToken.address);
+  await mockCurveRegistry.mock.get_gauges.returns(gauges, gaugeTypes);
+  await mockCurveAddressProvider.mock.get_registry.returns(mockCurveRegistry.address);
+  await mockCurveGauge.mock.lp_token.returns(poolLpToken.address);
+  const mockDex = await deployMockContract(deployer, dexABI);
+  return {
+    mockCurveAddressProvider,
+    mockCurveRegistry,
+    mockCurveMinter,
+    mockCurvePool,
+    mockCurveMetaPool,
+    mockCurveGauge,
+    mockDex,
+    poolLpToken,
+    mockMetaPoolLpToken,
+    curveToken,
+    mockDai,
+    mockUsdc,
+    mockUsdt,
+  };
+}
+
+export async function setupVaultAndCurveTrio() {
+  const vault = await setupVault();
+  const strat = await setupCurveTrio();
+  return { ...vault, ...strat };
 }

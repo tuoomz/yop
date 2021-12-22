@@ -6,6 +6,10 @@ import { YopERC1155Mock, TokenMock } from "../types";
 
 export async function deployMockNFTContract() {
   const { ethers } = hre;
+  const [deployer] = await ethers.getSigners();
+  const deployerAddress = await deployer.getAddress();
+
+  console.log(`Deploying contracts as ${deployerAddress}`);
   let deployRecord = await readDeploymentFile();
 
   /*
@@ -26,6 +30,8 @@ export async function deployMockNFTContract() {
     ...deployRecord,
     YopERC1155Mock: {
       address: YopERC1155MockContract.address,
+      contractParams: [1000],
+      proxy: false,
     },
   };
   await writeDeploymentFile(deployRecord);
@@ -50,6 +56,8 @@ export async function deployMockYOPContract(wallet: string | undefined) {
     ...deployRecord,
     yopTokenMock: {
       address: mockYopToken.address,
+      contractParams: ["yop", "yop"],
+      proxy: false,
     },
   };
   await writeDeploymentFile(deployRecord);

@@ -3,9 +3,9 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./CurveBase.sol";
+import "./CurveConvexBase.sol";
 
-contract CurveBtc is CurveBase {
+contract CurveBtc is CurveConvexBase {
   using SafeERC20 for IERC20;
   using Address for address;
 
@@ -27,7 +27,7 @@ contract CurveBtc is CurveBase {
     address _rewards,
     address _keeper,
     address _pool
-  ) CurveBase(_vault, _strategist, _rewards, _keeper, _pool) {}
+  ) CurveConvexBase(_vault, _strategist, _rewards, _keeper, _pool) {}
 
   /* solhint-enable */
 

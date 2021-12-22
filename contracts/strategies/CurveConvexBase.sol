@@ -11,7 +11,7 @@ import "../interfaces/curve/ICurveAddressProvider.sol";
 import "../interfaces/sushiswap/IUniswapV2Router.sol";
 import "hardhat/console.sol";
 
-abstract contract CurveBase is BaseStrategy {
+abstract contract CurveConvexBase is BaseStrategy {
   using SafeERC20 for IERC20;
   using Address for address;
 
@@ -24,6 +24,7 @@ abstract contract CurveBase is BaseStrategy {
   address private constant SUSHISWAP_ADDRESS = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
   address private constant UNISWAP_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
   address private constant WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+  address private constant CONVEX_TOKEN_ADDRESS = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
 
   ICurveMinter public curveMinter;
   ICurveAddressProvider public curveAddressProvider;
@@ -65,14 +66,13 @@ abstract contract CurveBase is BaseStrategy {
   /// @notice returns the total value of assets in want tokens
   /// @dev it should include the current balance of want tokens, the assets that are deployed and value of rewards so far
   function estimatedTotalAssets() public view virtual override returns (uint256) {
-    return _balanceOfWant() + _balanceOfPool() + _balanceOfCRV();
+    return _balanceOfWant() + _balanceOfPool() + _balanceOfRewards();
   }
 
   function prepareMigration(address _newStrategy) internal override {
     // mint all the CRV tokens
-    curveMinter.mint(address(curveGauge));
-    _migrateRewards(_newStrategy);
-    _removeAllLiquidity();
+    _claimRewards();
+    _removeLiquidity(curveGauge.balanceOf(address(this)));
   }
 
   // solhint-disable-next-line no-unused-vars
@@ -81,7 +81,7 @@ abstract contract CurveBase is BaseStrategy {
       return;
     }
     _addLiquidityToCurvePool();
-    _depositLPTokensToCurveGauge();
+    _depositLPTokens();
   }
 
   function prepareReturn(uint256 _debtOutstanding)
@@ -95,9 +95,7 @@ abstract contract CurveBase is BaseStrategy {
     )
   {
     uint256 wantBefore = _balanceOfWant();
-    curveMinter.mint(address(curveGauge));
-    uint256 crvBalance = IERC20(_getCurveTokenAddress()).balanceOf(address(this));
-    _swapCRVToWant(crvBalance);
+    _claimRewards();
     uint256 wantNow = _balanceOfWant();
     _profit = wantNow - wantBefore;
 
@@ -122,9 +120,7 @@ abstract contract CurveBase is BaseStrategy {
     returns (uint256 _liquidatedAmount, uint256 _loss)
   {
     // cash out all the rewards first
-    curveMinter.mint(address(curveGauge));
-    uint256 crvBalance = IERC20(_getCurveTokenAddress()).balanceOf(address(this));
-    _swapCRVToWant(crvBalance);
+    _claimRewards();
     uint256 _balance = _balanceOfWant();
     if (_balance < _amountNeeded) {
       _liquidatedAmount = _withdrawSome(_amountNeeded - _balance);
@@ -173,40 +169,33 @@ abstract contract CurveBase is BaseStrategy {
     return 0;
   }
 
-  function _migrateRewards(address _newStrategy) internal virtual {
-    IERC20(_getCurveTokenAddress()).safeTransfer(
-      _newStrategy,
-      IERC20(_getCurveTokenAddress()).balanceOf(address(this))
-    );
-  }
-
-  function _balanceOfCRV() internal view virtual returns (uint256) {
+  function _balanceOfRewards() internal view virtual returns (uint256) {
     uint256 totalClaimableCRV = curveGauge.integrate_fraction(address(this));
     uint256 mintedCRV = curveMinter.minted(address(this), address(curveGauge));
     uint256 remainingCRV = totalClaimableCRV - mintedCRV;
 
     if (remainingCRV > 0) {
-      return _getQuoteForCRVToWant(remainingCRV);
+      return _getQuoteForTokenToWant(_getCurveTokenAddress(), remainingCRV);
     }
     return 0;
   }
 
-  function _swapCRVToWant(uint256 _crvAmount) internal virtual returns (uint256) {
-    if (_crvAmount > 0) {
+  function _swapToWant(address _from, uint256 _fromAmount) internal virtual returns (uint256) {
+    if (_fromAmount > 0) {
       address[] memory path;
       if (address(want) == _getWETHTokenAddress()) {
         path = new address[](2);
-        path[0] = _getCurveTokenAddress();
+        path[0] = _from;
         path[1] = address(want);
       } else {
         path = new address[](3);
-        path[0] = _getCurveTokenAddress();
+        path[0] = _from;
         path[1] = address(_getWETHTokenAddress());
         path[2] = address(want);
       }
       /* solhint-disable  not-rely-on-time */
       uint256[] memory amountOut = IUniswapV2Router(dex).swapExactTokensForTokens(
-        _crvAmount,
+        _fromAmount,
         uint256(0),
         path,
         address(this),
@@ -218,7 +207,7 @@ abstract contract CurveBase is BaseStrategy {
     return 0;
   }
 
-  function _depositLPTokensToCurveGauge() internal virtual {
+  function _depositLPTokens() internal virtual {
     address poolLPToken = curveGauge.lp_token();
     uint256 balance = IERC20(poolLPToken).balanceOf(address(this));
     if (balance > 0) {
@@ -244,22 +233,33 @@ abstract contract CurveBase is BaseStrategy {
       requiredLPTokenAmount = (curvePool.calc_token_amount(params, true) * 10200) / 10000; // adding 2% padding
     }
     // decide how many LP tokens we can actually withdraw
-    uint256 withdrawLPTokenAmount = Math.min(requiredLPTokenAmount, curveGauge.balanceOf(address(this)));
-    return _removeLiquidity(withdrawLPTokenAmount);
-  }
-
-  function _removeAllLiquidity() internal {
-    _removeLiquidity(curveGauge.balanceOf(address(this)));
+    return _removeLiquidity(requiredLPTokenAmount);
   }
 
   /// @dev Remove the liquidity by the LP token amount
   /// @param _amount The amount of LP token (not want token)
   function _removeLiquidity(uint256 _amount) internal virtual returns (uint256) {
+    uint256 balance = _getLpTokenBalance();
+    uint256 withdrawAmount = Math.min(_amount, balance);
     // withdraw this amount of token from the gauge first
-    curveGauge.withdraw(_amount);
+    _removeLpToken(withdrawAmount);
     // then remove the liqudity from the pool, will get eth back
-    uint256 amount = curvePool.remove_liquidity_one_coin(_amount, _int128(_getWantTokenIndex()), 0);
+    uint256 amount = curvePool.remove_liquidity_one_coin(withdrawAmount, _int128(_getWantTokenIndex()), 0);
     return amount;
+  }
+
+  function _getLpTokenBalance() internal virtual returns (uint256) {
+    return curveGauge.balanceOf(address(this));
+  }
+
+  function _removeLpToken(uint256 _amount) internal virtual {
+    curveGauge.withdraw(_amount);
+  }
+
+  function _claimRewards() internal virtual {
+    curveMinter.mint(address(curveGauge));
+    uint256 crvBalance = IERC20(_getCurveTokenAddress()).balanceOf(address(this));
+    _swapToWant(_getCurveTokenAddress(), crvBalance);
   }
 
   function _getPoolLPTokenAddress(address _pool) internal virtual returns (address) {
@@ -284,20 +284,24 @@ abstract contract CurveBase is BaseStrategy {
     return WETH_ADDRESS;
   }
 
-  function _getQuoteForCRVToWant(uint256 _crvAmount) internal view virtual returns (uint256) {
-    if (_crvAmount > 0) {
+  function _getConvexTokenAddress() internal view virtual returns (address) {
+    return CONVEX_TOKEN_ADDRESS;
+  }
+
+  function _getQuoteForTokenToWant(address _from, uint256 _fromAmount) internal view virtual returns (uint256) {
+    if (_fromAmount > 0) {
       address[] memory path;
       if (address(want) == _getWETHTokenAddress()) {
         path = new address[](2);
-        path[0] = _getCurveTokenAddress();
+        path[0] = _from;
         path[1] = address(want);
       } else {
         path = new address[](3);
-        path[0] = _getCurveTokenAddress();
+        path[0] = _from;
         path[1] = address(_getWETHTokenAddress());
         path[2] = address(want);
       }
-      uint256[] memory amountOut = IUniswapV2Router(dex).getAmountsOut(_crvAmount, path);
+      uint256[] memory amountOut = IUniswapV2Router(dex).getAmountsOut(_fromAmount, path);
       return amountOut[path.length - 1];
     }
     return 0;
@@ -309,6 +313,43 @@ abstract contract CurveBase is BaseStrategy {
 
   function _approveDex() internal virtual {
     IERC20(_getCurveTokenAddress()).safeApprove(dex, type(uint256).max);
+  }
+
+  /// @dev calculate the value of the convex rewards in want token.
+  ///  It will calculate how many CVX tokens can be claimed based on the _crv amount and then swap them to want
+  function _convexRewardsValue(uint256 _crv) internal view returns (uint256) {
+    if (_crv > 0) {
+      // calculations pulled directly from CVX's contract for minting CVX per CRV claimed
+      uint256 totalCliffs = 1000;
+      uint256 maxSupply = 1e8 * 1e18; // 100m
+      uint256 reductionPerCliff = 1e5 * 1e18; // 100k
+      uint256 supply = IERC20(_getConvexTokenAddress()).totalSupply();
+      uint256 _cvx;
+
+      uint256 cliff = supply / reductionPerCliff;
+      // mint if below total cliffs
+      if (cliff < totalCliffs) {
+        // for reduction% take inverse of current cliff
+        uint256 reduction = totalCliffs - cliff;
+        // reduce
+        _cvx = (_crv * reduction) / totalCliffs;
+
+        // supply cap check
+        uint256 amtTillMax = maxSupply - supply;
+        if (_cvx > amtTillMax) {
+          _cvx = amtTillMax;
+        }
+      }
+      uint256 rewardsValue;
+      if (_crv > 0) {
+        rewardsValue += _getQuoteForTokenToWant(_getCurveTokenAddress(), _crv);
+      }
+      if (_cvx > 0) {
+        rewardsValue += _getQuoteForTokenToWant(_getConvexTokenAddress(), _cvx);
+      }
+      return rewardsValue;
+    }
+    return 0;
   }
 
   // does not deal with over/under flow

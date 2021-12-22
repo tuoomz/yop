@@ -7,11 +7,11 @@ import "../interfaces/curve/ICurveGauge.sol";
 import "../interfaces/curve/ICurveMinter.sol";
 import "../interfaces/sushiswap/IUniswapV2Router.sol";
 
-import "./CurveBase.sol";
+import "./CurveConvexBase.sol";
 
 import "hardhat/console.sol";
 
-contract CurveStable is CurveBase {
+contract CurveStable is CurveConvexBase {
   using SafeERC20 for IERC20;
   using Address for address;
 
@@ -31,7 +31,7 @@ contract CurveStable is CurveBase {
     address _keeper,
     address _pool,
     uint256 _nPoolCoins
-  ) CurveBase(_vault, _strategist, _rewards, _keeper, _pool) {
+  ) CurveConvexBase(_vault, _strategist, _rewards, _keeper, _pool) {
     // threePool = 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7;
     // usdnMetaPool = 0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1;
     // curveGauge = address(0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4);
@@ -43,7 +43,7 @@ contract CurveStable is CurveBase {
     wantThreepoolIndex = _getWantIndexInCurvePool(_pool);
   }
 
-  function name() external view override returns (string memory) {
+  function name() external view virtual override returns (string memory) {
     return string(abi.encodePacked("CurveStable_", IERC20Metadata(address(want)).symbol()));
   }
 
@@ -110,24 +110,21 @@ contract CurveStable is CurveBase {
   }
 
   function _withdrawSome(uint256 _amount) internal override returns (uint256) {
-    uint256 _before = _balanceOfWant();
-    uint256 curveBalance = curveGauge.balanceOf(address(this));
-
     uint256 requiredTriPoollLpTokens = curvePool.calc_token_amount(_buildDepositArray(_amount), true);
     uint256 requiredMetaPoollLpTokens = (usdnMetaPool.calc_token_amount([0, requiredTriPoollLpTokens], true) * 10200) /
       10000; // adding 2% for fees
-
-    uint256 _amountToWithdraw = Math.min(curveBalance, requiredMetaPoollLpTokens);
-    _removeLiquidity(_amountToWithdraw);
-    return _balanceOfWant() - _before;
+    uint256 liquidated = _removeLiquidity(requiredMetaPoollLpTokens);
+    return liquidated;
   }
 
   /// @dev Remove the liquidity by the LP token amount
   /// @param _amount The amount of LP token (not want token)
   function _removeLiquidity(uint256 _amount) internal override returns (uint256) {
     uint256 _before = _balanceOfWant();
+    uint256 lpBalance = _getLpTokenBalance();
+    uint256 withdrawAmount = Math.min(lpBalance, _amount);
     // withdraw this amount of token from the gauge first
-    curveGauge.withdraw(_amount);
+    _removeLpToken(withdrawAmount);
     // then remove the liqudity from the pool, will get eth back
     uint256 usdn3crv = _getMetaPoolLpToken().balanceOf(address(this));
     usdnMetaPool.remove_liquidity_one_coin(usdn3crv, 1, uint256(0));

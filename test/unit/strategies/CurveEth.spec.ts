@@ -207,6 +207,7 @@ describe("CurveEth strategy", async () => {
       await mockCurveMinter.mock.mint.returns();
       await curveToken.mock.transfer.returns(true);
       await curveToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockDex.mock.swapExactTokensForTokens.returns([0, ethers.utils.parseEther("1")]);
       await mockCurveGauge.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       await mockCurveGauge.mock.withdraw.returns();
       await mockCurvePool.mock.remove_liquidity_one_coin.returns(ethers.utils.parseEther("1"));

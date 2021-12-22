@@ -3,7 +3,7 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./CurveBase.sol";
+import "./CurveConvexBase.sol";
 
 interface IWETH is IERC20 {
   function withdraw(uint256 wad) external;
@@ -11,7 +11,7 @@ interface IWETH is IERC20 {
   function deposit(uint256) external payable;
 }
 
-contract CurveEth is CurveBase {
+contract CurveEth is CurveConvexBase {
   using SafeERC20 for IERC20;
   using Address for address;
 
@@ -26,7 +26,7 @@ contract CurveEth is CurveBase {
     address _rewards,
     address _keeper,
     address _pool
-  ) CurveBase(_vault, _strategist, _rewards, _keeper, _pool) {}
+  ) CurveConvexBase(_vault, _strategist, _rewards, _keeper, _pool) {}
 
   /* solhint-enable */
 

@@ -78,7 +78,7 @@ describe("CurveBtc strategy", async () => {
     });
   });
 
-  describe.only("switchDex", async () => {
+  describe("switchDex", async () => {
     it("should fail if user is not authorised", async () => {
       await expect(curveStrategy.connect(user).switchDex(true)).to.be.revertedWith("!authorized");
     });

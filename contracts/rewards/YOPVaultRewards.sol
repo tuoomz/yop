@@ -40,6 +40,8 @@ contract YOPVaultRewards is IYOPVaultRewards, GovernableUpgradeable, PausableUpg
     uint256 epochCount;
     /// The rate of the last epoch when the state is updated
     uint256 epochRate;
+    // Overall total rewards have been allocated to this vault
+    uint256 totalRewards;
   }
 
   struct ClaimRecord {
@@ -299,6 +301,11 @@ contract YOPVaultRewards is IYOPVaultRewards, GovernableUpgradeable, PausableUpg
                 PRBMathUD60x18Typed.fromUint(totalSupply)
               )
             );
+            // the rate is per month and use the decimal of the vault
+            vaultState.totalRewards +=
+              (totalAccurated * (10**YOP_DECIMAL)) /
+              SECONDS_PER_EPOCH /
+              (10**IERC20MetadataUpgradeable(_vault).decimals());
             vaultState.timestamp = end;
             vaultState.epochCount = i;
             vaultState.epochRate = r;

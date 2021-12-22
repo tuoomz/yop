@@ -255,19 +255,17 @@ describe("YOPVaultsReward", () => {
       await vaultRewardsContract.setEpochStartTime(start);
       await vaultRewardsContract.setEpochEndTime(end);
       await vaultRewardsContract.setBlocktimestamp(now); // within the first month
-      const expectedUser1Rewards = BigNumber.from(now)
-        .sub(BigNumber.from(start))
-        .mul(INITIAL_RATE)
-        .mul(100)
-        .div(SECONDS_PER_MONTH)
-        .div(150)
-        .div(3);
+      const expectedVaultRewards = BigNumber.from(now).sub(BigNumber.from(start)).mul(INITIAL_RATE).mul(100).div(SECONDS_PER_MONTH).div(150);
+      const expectedUser1Rewards = expectedVaultRewards.div(3);
       await expect(
         await vaultRewardsContract.connect(await impersonate(vault1.address)).calculateRewards(vault1.address, user1.address)
       ).to.emit(vaultRewardsContract, "RewardsDistributed");
       const user1Rewards = await (await vaultRewardsContract.claimRecords(user1.address)).totalAvailable;
       console.log("diff = %s", user1Rewards.sub(expectedUser1Rewards));
       expect(user1Rewards).to.closeTo(BigNumber.from(expectedUser1Rewards), ONE_UNIT); // within 0.1 token
+      // check vault total rewards
+      const vaultRewards = (await vaultRewardsContract.vaultRewardsState(vault1.address)).totalRewards;
+      expect(vaultRewards).to.closeTo(BigNumber.from(expectedVaultRewards), ONE_UNIT);
     });
 
     it("start and end inside two consecutive epochs", async () => {
@@ -281,15 +279,17 @@ describe("YOPVaultsReward", () => {
       await vaultRewardsContract.setBlocktimestamp(blockTimestamp);
 
       const secondRate = INITIAL_RATE * 0.99;
-      const expectedUser1Rewards = Math.round(
-        (((epochEnd - start) * INITIAL_RATE + (blockTimestamp - epochEnd) * secondRate) / SECONDS_PER_MONTH) * (100 / 150) * (1 / 3)
-      );
+      const expectedVaultRewards =
+        (((epochEnd - start) * INITIAL_RATE + (blockTimestamp - epochEnd) * secondRate) / SECONDS_PER_MONTH) * (100 / 150);
+      const expectedUser1Rewards = Math.round(expectedVaultRewards * (1 / 3));
       await expect(
         await vaultRewardsContract.connect(await impersonate(vault1.address)).calculateRewards(vault1.address, user1.address)
       ).to.emit(vaultRewardsContract, "RewardsDistributed");
       const user1Rewards = await (await vaultRewardsContract.claimRecords(user1.address)).totalAvailable;
       console.log("diff = %s", user1Rewards.sub(expectedUser1Rewards));
       expect(user1Rewards).to.closeTo(BigNumber.from(expectedUser1Rewards), ONE_UNIT);
+      const actualVaultRewards = (await vaultRewardsContract.vaultRewardsState(vault1.address)).totalRewards;
+      expect(actualVaultRewards).to.closeTo(BigNumber.from(Math.round(expectedVaultRewards)), ONE_UNIT);
     });
 
     it("start and end in non-consecutive epochs", async () => {
@@ -308,21 +308,23 @@ describe("YOPVaultsReward", () => {
       const thirdRate = secondRate * 0.99;
       const fourthRate = thirdRate * 0.99;
 
-      const expectedUser1Rewards = Math.round(
+      const expectedVaultRewards =
         (((epoch1End - start) * INITIAL_RATE +
           SECONDS_PER_MONTH * secondRate +
           SECONDS_PER_MONTH * thirdRate +
           (blockTimestamp - epoch3End) * fourthRate) /
           SECONDS_PER_MONTH) *
-          (100 / 150) *
-          (1 / 3)
-      );
+        (100 / 150);
+
+      const expectedUser1Rewards = Math.round(expectedVaultRewards * (1 / 3));
       await expect(
         await vaultRewardsContract.connect(await impersonate(vault1.address)).calculateRewards(vault1.address, user1.address)
       ).to.emit(vaultRewardsContract, "RewardsDistributed");
       const user1Rewards = await (await vaultRewardsContract.claimRecords(user1.address)).totalAvailable;
       console.log("diff = %s", user1Rewards.sub(expectedUser1Rewards));
       expect(user1Rewards).to.closeTo(BigNumber.from(expectedUser1Rewards), ONE_UNIT);
+      const actualVaultRewards = (await vaultRewardsContract.vaultRewardsState(vault1.address)).totalRewards;
+      expect(actualVaultRewards).to.closeTo(BigNumber.from(Math.round(expectedVaultRewards)), ONE_UNIT);
     });
 
     it("vault weight is updated", async () => {
@@ -343,21 +345,23 @@ describe("YOPVaultsReward", () => {
       const thirdRate = secondRate * 0.99;
       const fourthRate = thirdRate * 0.99;
 
-      const expectedUser1Rewards = Math.round(
-        (((epoch1End - start) * INITIAL_RATE * (100 / 150) +
+      const expectedVaultRewards =
+        ((epoch1End - start) * INITIAL_RATE * (100 / 150) +
           SECONDS_PER_MONTH * secondRate * (100 / 150) +
           (blockTimestamp1 - epoch2End) * thirdRate * (100 / 150) +
           (epoch3End - blockTimestamp1) * thirdRate * (100 / 200) +
           (blockTimestamp2 - epoch3End) * fourthRate * (100 / 200)) /
-          SECONDS_PER_MONTH) *
-          (1 / 3)
-      );
+        SECONDS_PER_MONTH;
+
+      const expectedUser1Rewards = Math.round(expectedVaultRewards * (1 / 3));
       await expect(
         await vaultRewardsContract.connect(await impersonate(vault1.address)).calculateRewards(vault1.address, user1.address)
       ).to.emit(vaultRewardsContract, "RewardsDistributed");
       const user1Rewards = await (await vaultRewardsContract.claimRecords(user1.address)).totalAvailable;
       console.log("diff = %s", user1Rewards.sub(expectedUser1Rewards));
       expect(user1Rewards).to.closeTo(BigNumber.from(expectedUser1Rewards), ONE_UNIT);
+      const actualVaultRewards = (await vaultRewardsContract.vaultRewardsState(vault1.address)).totalRewards;
+      expect(actualVaultRewards).to.closeTo(BigNumber.from(Math.round(expectedVaultRewards)), ONE_UNIT);
     });
 
     it("vaults rewards ratio is updated", async () => {
@@ -379,22 +383,24 @@ describe("YOPVaultsReward", () => {
       const thirdRate = secondRate * 0.99;
       const fourthRate = thirdRate * 0.99;
 
-      const expectedUser1Rewards = Math.round(
+      const expectedVaultRewards =
         (((epoch1End - start) * INITIAL_RATE * (100 / 100) +
           SECONDS_PER_MONTH * secondRate * (100 / 100) +
           (blockTimestamp1 - epoch2End) * thirdRate * (100 / 100) +
           (epoch3End - blockTimestamp1) * thirdRate * (50 / 100) +
           (blockTimestamp2 - epoch3End) * fourthRate * (50 / 100)) /
           SECONDS_PER_MONTH) *
-          (100 / 150) *
-          (1 / 3)
-      );
+        (100 / 150);
+
+      const expectedUser1Rewards = Math.round(expectedVaultRewards * (1 / 3));
       await expect(
         await vaultRewardsContract.connect(await impersonate(vault1.address)).calculateRewards(vault1.address, user1.address)
       ).to.emit(vaultRewardsContract, "RewardsDistributed");
       const user1Rewards = await (await vaultRewardsContract.claimRecords(user1.address)).totalAvailable;
       console.log("diff = %s", user1Rewards.sub(expectedUser1Rewards));
       expect(user1Rewards).to.closeTo(BigNumber.from(expectedUser1Rewards), ONE_UNIT);
+      const actualVaultRewards = (await vaultRewardsContract.vaultRewardsState(vault1.address)).totalRewards;
+      expect(actualVaultRewards).to.closeTo(BigNumber.from(Math.round(expectedVaultRewards)), ONE_UNIT);
     });
 
     it("user add more deposit after the initial deposit", async () => {

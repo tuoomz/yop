@@ -444,7 +444,7 @@ describe("SingleAssetVault", async () => {
         // management fee = 0.9 * 0.02 * (3600/SECONDS_PER_YEAR) ~= 0.000002053430255
         const managementFee = BigNumber.from("2053430255241");
         expect(await vault.balanceOf(rewards.address)).to.be.closeTo(managementFee, Math.pow(10, 10)); // this is to fix intermittent test failures in coverage tests
-        expect(await vault.lockedProfit()).to.eq(profit.sub(performanceFee).sub(managementFee));
+        expect(await vault.lockedProfit()).to.be.closeTo(profit.sub(performanceFee).sub(managementFee), Math.pow(10, 10));
       });
 
       it("report loss", async () => {

@@ -15,6 +15,7 @@ contract CurveBtc is CurveBase {
   address private constant CRV_REN_WS_BTC_TOKEN_ADDRESS = 0x075b1bb99792c9E1041bA13afEf80C91a1e70fB3;
   // 0 - oBTC, 1 - renBTC, 2 - WBTC, 3 - sBTC
   uint256 private constant WBTC_TOKEN_INDEX = 2;
+  uint256 private constant NUMBER_OF_COINS = 4;
 
   // address internal constant CURVE_OBTC_POOL_ADDRESS = 0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D;
 
@@ -39,7 +40,6 @@ contract CurveBtc is CurveBase {
   }
 
   function _approveBasic() internal override {
-    console.log("approve basics");
     super._approveBasic();
     // the zap depositor pool needs this to add liquidity to the base pool
     IERC20(_getWTBCTokenAddress()).safeApprove(address(curvePool), type(uint256).max);
@@ -56,7 +56,7 @@ contract CurveBtc is CurveBase {
   }
 
   function _getCoinsCount() internal view override returns (uint256) {
-    return 4;
+    return NUMBER_OF_COINS;
   }
 
   function _addLiquidityToCurvePool() internal virtual override {

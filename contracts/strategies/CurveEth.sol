@@ -16,6 +16,8 @@ contract CurveEth is CurveBase {
   using Address for address;
 
   // address internal constant CURVE_STETH_POOL_ADDRESS = 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022;
+  uint256 private constant NUMBER_OF_COINS = 2;
+  uint256 private constant ETH_TOKEN_INDEX = 0;
 
   /* solhint-disable  no-empty-blocks */
   constructor(
@@ -37,11 +39,11 @@ contract CurveEth is CurveBase {
   }
 
   function _getWantTokenIndex() internal view override returns (uint256) {
-    return 0;
+    return ETH_TOKEN_INDEX;
   }
 
   function _getCoinsCount() internal view override returns (uint256) {
-    return 2;
+    return NUMBER_OF_COINS;
   }
 
   function _addLiquidityToCurvePool() internal virtual override {

@@ -9,6 +9,8 @@ import CurveZapDepositorABI from "../../abis/curvePoolZapDepositor.json";
 const { loadFixture, deployMockContract } = waffle;
 
 const TOKEN_DECIMALS = 8;
+const SUSHISWAP_DEX_ADDRESS = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F";
+const UNISWAP_DEX_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 
 describe("CurveBtc strategy", async () => {
   let mockVault: MockContract;
@@ -18,6 +20,7 @@ describe("CurveBtc strategy", async () => {
   let strategist: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
+  let user: SignerWithAddress;
   let newStrategy: SignerWithAddress;
   let poolLpToken: MockContract;
   let curveToken: MockContract;
@@ -34,6 +37,7 @@ describe("CurveBtc strategy", async () => {
   beforeEach(async () => {
     [deployer, governance, gatekeeper, rewards, strategist, newStrategy] = await ethers.getSigners();
     ({ mockVault } = await loadFixture(setupMockVault));
+    user = (await ethers.getSigners()).reverse()[0];
     // don't run another `loadFixture` as it will cause some wired issues with hardhat.
     ({ mockCurveAddressProvider, mockCurveMinter, mockCurveGauge, mockCurveRegistry, mockDex, poolLpToken, curveToken } = await setupCurve());
     mockCurvePool = await deployMockContract(deployer, CurveZapDepositorABI);
@@ -71,6 +75,21 @@ describe("CurveBtc strategy", async () => {
   describe("checkWantToken", async () => {
     it("should fail if token address is not the want one", async () => {
       await expect(curveStrategy.setBTCTokenAddress(newStrategy.address)).to.be.revertedWith("wrong vault token");
+    });
+  });
+
+  describe.only("switchDex", async () => {
+    it("should fail if user is not authorised", async () => {
+      await expect(curveStrategy.connect(user).switchDex(true)).to.be.revertedWith("!authorized");
+    });
+    it("should change dex", async () => {
+      await curveToken.mock.allowance.returns(0);
+      await curveToken.mock.approve.returns(true);
+      expect(await curveStrategy.dex()).to.equal(mockDex.address);
+      await curveStrategy.connect(governance).switchDex(true);
+      expect(await curveStrategy.dex()).to.equal(UNISWAP_DEX_ADDRESS);
+      await curveStrategy.connect(governance).switchDex(false);
+      expect(await curveStrategy.dex()).to.equal(SUSHISWAP_DEX_ADDRESS);
     });
   });
 

@@ -39,6 +39,7 @@ contract CurveBtc is CurveBase {
   }
 
   function _approveBasic() internal override {
+    console.log("approve basics");
     super._approveBasic();
     // the zap depositor pool needs this to add liquidity to the base pool
     IERC20(_getWTBCTokenAddress()).safeApprove(address(curvePool), type(uint256).max);

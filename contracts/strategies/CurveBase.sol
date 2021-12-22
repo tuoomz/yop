@@ -22,6 +22,7 @@ abstract contract CurveBase is BaseStrategy {
   address private constant CURVE_MINTER_ADDRESS = 0xd061D61a4d941c39E5453435B6345Dc261C2fcE0;
   address private constant CRV_TOKEN_ADDRESS = 0xD533a949740bb3306d119CC777fa900bA034cd52;
   address private constant SUSHISWAP_ADDRESS = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
+  address private constant UNISWAP_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
   address private constant WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   ICurveMinter public curveMinter;
@@ -49,6 +50,15 @@ abstract contract CurveBase is BaseStrategy {
 
   function approveAll() external onlyAuthorized {
     _approveBasic();
+    _approveDex();
+  }
+
+  function switchDex(bool isUniswap) external onlyAuthorized {
+    if (isUniswap) {
+      dex = UNISWAP_ADDRESS;
+    } else {
+      dex = SUSHISWAP_ADDRESS;
+    }
     _approveDex();
   }
 

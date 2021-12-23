@@ -2,11 +2,13 @@
 pragma solidity =0.8.9;
 
 import "../strategies/CurveStable.sol";
+import "hardhat/console.sol";
 
 contract CurveStableStrategyMock is CurveStable {
   address public curveTokenAddress;
   address public metapoolLpToken;
   IERC20 public _triPoolLpToken;
+  address public mockCurveGauge;
 
   // address public wethTokenAddress;
 
@@ -15,15 +17,54 @@ contract CurveStableStrategyMock is CurveStable {
     address _strategist,
     address _rewards,
     address _keeper,
-    address _pool,
-    uint256 _nPoolCoins
-  ) CurveStable(_vault, _strategist, _rewards, _keeper, _pool, _nPoolCoins) {}
+    address _pool
+  ) CurveStable(_vault, _strategist, _rewards, _keeper, _pool) {}
 
   // do nothing here in the mock as it doesn't have the addresses of mocked contract yet
   function _initCurvePool(address _pool) internal override {}
 
   function mockWithdrawSome(uint256 amount) external returns (uint256) {
     return _withdrawSome(amount);
+  }
+
+  function mockRemoveAllLiquidity() external {
+    _removeLiquidity(super.estimatedTotalAssets());
+  }
+
+  function _approveCurveExtra() internal override {}
+
+  function _approveBasic() internal override {}
+
+  function setMockCurveGauge(address _mockCurveGauge) public {
+    mockCurveGauge = _mockCurveGauge;
+  }
+
+  function _getCurvePoolGaugeAddress() internal view virtual override returns (address) {
+    return mockCurveGauge;
+  }
+
+  function mockGetMetaPool() external view returns (address) {
+    return super._getMetaPool();
+  }
+
+  function mockGetTriPoolLpToken() external view returns (IERC20) {
+    return super._getTriPoolLpToken();
+  }
+
+  function mockGetMetaPoolLpToken() external view returns (IERC20) {
+    return super._getMetaPoolLpToken();
+  }
+
+  function mockBalanceOfPool() external view returns (uint256) {
+    return _balanceOfPool();
+  }
+
+  function mockGetWantIndexInCurvePool(address _pool) external view returns (int128) {
+    return _getWantIndexInCurvePool(_pool);
+  }
+
+  function mockAddLiquidityToCurvePool() external {
+    _addLiquidityToCurvePool();
   }
 
   // do nothing here in the mock as the addresses are not set up correctly yet

@@ -79,8 +79,7 @@ describe("CurveStable strategy", async () => {
       strategist.address,
       rewards.address,
       gatekeeper.address,
-      mockCurvePool.address,
-      3
+      mockCurvePool.address
     )) as CurveStableStrategyMock;
     await curveStableUsdcStrategy.deployed();
     await curveStableUsdcStrategy.setTriPoolLpToken(poolLpToken.address);
@@ -89,10 +88,46 @@ describe("CurveStable strategy", async () => {
     await curveStableUsdcStrategy.setCurveMinter(mockCurveMinter.address);
     await curveStableUsdcStrategy.setCurvePool(mockCurvePool.address);
     await curveStableUsdcStrategy.setMetaPool(mockCurveMetaPool.address);
+    await curveStableUsdcStrategy.setMockCurveGauge(mockCurveGauge.address);
     await curveStableUsdcStrategy.initCurveGauge();
     await curveStableUsdcStrategy.setDex(mockDex.address);
     await curveStableUsdcStrategy.setCurveTokenAddress(curveToken.address);
     await curveStableUsdcStrategy.connect(governance).approveAll();
+  });
+
+  describe("basics", async () => {
+    it("should return the correct name", async () => {
+      await expect(await curveStableUsdcStrategy.name()).to.be.equal(`CurveStable_${await vaultToken.symbol()}`);
+    });
+
+    it("should return the correct metaPool address", async () => {
+      const metaPoolAddress = "0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1";
+      await expect(await curveStableUsdcStrategy.mockGetMetaPool()).to.be.equal(metaPoolAddress);
+    });
+
+    it("should return the correct curve pool LP token address", async () => {
+      const _3crv = "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490";
+      await expect(await curveStableUsdcStrategy.mockGetTriPoolLpToken()).to.be.equal(_3crv);
+    });
+
+    it("should return the correct metaPool LP token address", async () => {
+      const usdn3crv = "0x4f3E8F405CF5aFC05D68142F3783bDfE13811522";
+      await expect(await curveStableUsdcStrategy.mockGetMetaPoolLpToken()).to.be.equal(usdn3crv);
+    });
+
+    it("should return the 0 for pool balance", async () => {
+      await mockCurveGauge.mock.balanceOf.returns(0);
+      await expect(await curveStableUsdcStrategy.mockBalanceOfPool()).to.be.equal(0);
+    });
+
+    it("should revert when want token doesn't match any tokens in threepool", async () => {
+      await mockCurvePool.mock.coins.withArgs(0).returns(mockDai.address);
+      await mockCurvePool.mock.coins.withArgs(1).returns(mockUsdc.address);
+      await mockCurvePool.mock.coins.withArgs(2).returns(mockUsdt.address);
+      await expect(curveStableUsdcStrategy.mockGetWantIndexInCurvePool(mockCurvePool.address)).to.be.revertedWith(
+        "Want token doesnt match any tokens in the curve pool"
+      );
+    });
   });
 
   describe("estimatedTotalAssets", async () => {
@@ -105,9 +140,11 @@ describe("CurveStable strategy", async () => {
     beforeEach(async () => {
       vaultToken.mint(curveStableUsdcStrategy.address, tokenAmount);
       await mockCurveMinter.mock.minted.returns(ethers.constants.Zero);
+
       await mockDex.mock.getAmountsOut.returns([0, 0, exchangeAmountOut]);
       await mockCurveGauge.mock.integrate_fraction.returns(crvAmount);
       await mockCurveGauge.mock.balanceOf.returns(gaugeBalance);
+
       await mockCurvePool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
       await mockCurveMetaPool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
     });
@@ -166,6 +203,44 @@ describe("CurveStable strategy", async () => {
 
       await mockCurveMinter.mock.minted.returns(ethers.constants.Zero);
       await mockDex.mock.getAmountsOut.returns([0, 0, exchangeAmountOut]);
+
+      await mockCurveGauge.mock.balanceOf.returns(gaugeBalance);
+      await mockCurveGauge.mock.integrate_fraction.returns(crvAmount);
+      await mockCurveGauge.mock.withdraw.returns();
+      await mockCurveGauge.mock["deposit(uint256)"].withArgs(metaLpBalance.toString()).returns();
+
+      await mockCurvePool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
+      await mockCurvePool.mock.remove_liquidity_one_coin.returns();
+      await mockCurvePool.mock.calc_token_amount.returns(0);
+      await mockCurvePool.mock.add_liquidity.returns();
+
+      await mockCurveMetaPool.mock.remove_liquidity_one_coin.returns(0);
+      await mockCurveMetaPool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
+      await mockCurveMetaPool.mock.calc_token_amount.returns(0);
+      await mockCurveMetaPool.mock.add_liquidity.returns(0);
+    });
+
+    it("should not revert", async () => {
+      // await expect(curveStableUsdcStrategy.mockWithdrawSome(ethers.utils.parseEther("2"))).to.not.be.reverted;
+      await curveStableUsdcStrategy.mockAddLiquidityToCurvePool();
+    });
+  });
+
+  describe("_removeAllLiquidity", async () => {
+    const tokenAmount = ethers.utils.parseEther("10");
+    const crvAmount = ethers.utils.parseEther("20");
+    const exchangeAmountOut = ethers.utils.parseEther("10");
+    const gaugeBalance = ethers.utils.parseEther("5");
+    const withdrawAmountOut = ethers.utils.parseEther("5");
+    const metaLpBalance = ethers.utils.parseEther("2");
+
+    beforeEach(async () => {
+      vaultToken.mint(curveStableUsdcStrategy.address, tokenAmount);
+      mockMetaPoolLpToken.mint(curveStableUsdcStrategy.address, metaLpBalance);
+      poolLpToken.mint(curveStableUsdcStrategy.address, metaLpBalance);
+
+      await mockCurveMinter.mock.minted.returns(ethers.constants.Zero);
+      await mockDex.mock.getAmountsOut.returns([0, 0, exchangeAmountOut]);
       await mockCurveGauge.mock.balanceOf.returns(gaugeBalance);
       await mockCurveGauge.mock.integrate_fraction.returns(crvAmount);
       await mockCurveGauge.mock.withdraw.returns();
@@ -178,8 +253,7 @@ describe("CurveStable strategy", async () => {
     });
 
     it("should not revert", async () => {
-      // await expect(curveStableUsdcStrategy.mockWithdrawSome(ethers.utils.parseEther("2"))).to.not.be.reverted;
-      await curveStableUsdcStrategy.mockWithdrawSome(ethers.utils.parseEther("2"));
+      await curveStableUsdcStrategy.mockRemoveAllLiquidity();
     });
   });
 });

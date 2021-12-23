@@ -20,10 +20,10 @@ contract ConvexBase {
     poolId = _pooId;
     convexBooster = _booster;
     (lpToken, , , cvxRewards, , ) = IConvexDeposit(convexBooster).poolInfo(poolId);
-    _approveExtra();
+    _approveConvexExtra();
   }
 
-  function _approveExtra() internal {
+  function _approveConvexExtra() internal {
     IERC20(lpToken).safeApprove(convexBooster, type(uint256).max);
   }
 

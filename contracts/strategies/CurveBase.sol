@@ -143,7 +143,6 @@ abstract contract CurveBase is BaseStrategy {
   }
 
   function _initCurvePool(address _pool) internal virtual {
-    console.log("_initCurvePool:%s", _pool);
     curveAddressProvider = ICurveAddressProvider(CURVE_ADDRESS_PROVIDER_ADDRESS);
     curveMinter = ICurveMinter(CURVE_MINTER_ADDRESS);
     curvePool = ICurveDeposit(_pool);

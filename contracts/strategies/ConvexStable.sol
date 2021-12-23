@@ -17,7 +17,7 @@ contract ConvexStable is CurveStable, ConvexBase {
     address _keeper,
     address _pool,
     address _booster
-  ) CurveStable(_vault, _strategist, _rewards, _keeper, _pool, 3) ConvexBase(POOL_ID, _booster) {}
+  ) CurveStable(_vault, _strategist, _rewards, _keeper, _pool) ConvexBase(POOL_ID, _booster) {}
 
   function name() external pure override returns (string memory) {
     return "ConvexUSDC";

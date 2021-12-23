@@ -16,21 +16,21 @@ contract CurveStable is CurveBase {
   using Address for address;
 
   address internal constant USDN_METAPOOL = address(0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1);
-  IERC20 internal constant USDN_3CRV = IERC20(0x4f3E8F405CF5aFC05D68142F3783bDfE13811522);
+  address internal constant CURVE_GAUGE = address(0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4);
   IERC20 internal constant THREE_CRV = IERC20(0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490);
+  IERC20 internal constant USDN_3CRV = IERC20(0x4f3E8F405CF5aFC05D68142F3783bDfE13811522);
 
   ICurveDeposit internal usdnMetaPool;
   IERC20 internal triPoolLpToken;
   int128 internal wantThreepoolIndex;
-  uint256 internal nPoolCoins;
+  uint256 internal N_POOL_COINS = 3;
 
   constructor(
     address _vault,
     address _strategist,
     address _rewards,
     address _keeper,
-    address _pool,
-    uint256 _nPoolCoins
+    address _pool
   ) CurveBase(_vault, _strategist, _rewards, _keeper, _pool) {
     // threePool = 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7;
     // usdnMetaPool = 0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1;
@@ -39,8 +39,8 @@ contract CurveStable is CurveBase {
 
     usdnMetaPool = ICurveDeposit(_getMetaPool());
     triPoolLpToken = _getTriPoolLpToken();
-    nPoolCoins = _nPoolCoins;
     wantThreepoolIndex = _getWantIndexInCurvePool(_pool);
+    _approveCurveExtra();
   }
 
   function name() external view virtual override returns (string memory) {
@@ -64,12 +64,12 @@ contract CurveStable is CurveBase {
   }
 
   function _getCoinsCount() internal view override returns (uint256) {
-    return nPoolCoins;
+    return N_POOL_COINS;
   }
 
   function _getWantIndexInCurvePool(address _pool) internal view returns (int128) {
     address _candidate;
-    for (uint256 i = 0; i < nPoolCoins; i++) {
+    for (uint256 i = 0; i < N_POOL_COINS; i++) {
       _candidate = ICurveDeposit(_pool).coins(uint256(i));
       if (address(want) == _candidate) {
         return int128(uint128(i));
@@ -94,12 +94,30 @@ contract CurveStable is CurveBase {
     return _wantIn3crv;
   }
 
+  function _approveCurveExtra() internal virtual {
+    want.safeApprove(address(curvePool), type(uint256).max);
+    _getTriPoolLpToken().safeApprove(address(usdnMetaPool), type(uint256).max);
+  }
+
   function _addLiquidityToCurvePool() internal virtual override {
     uint256 _wantBalance = _balanceOfWant();
     if (_wantBalance > 0) {
       uint256[3] memory _tokens = _buildDepositArray(_wantBalance);
-      console.log("  threePool.add_liquidity() %s %s %s", _tokens[0], _tokens[1], _tokens[2]);
-      curvePool.add_liquidity(_tokens, 1);
+      curvePool.add_liquidity(_tokens, 0);
+    }
+
+    // stake 3crv and recevice usdnMetaPool LP tokens - _getMetaPoolLpToken()
+    uint256 _3crv = _getTriPoolLpToken().balanceOf(address(this));
+    if (_3crv > 0) {
+      // uint256 _usdn3crvLPs2 = usdnMetaPool.add_liquidity([uint256(0), _3crv], uint256(0));
+      usdnMetaPool.add_liquidity([uint256(0), _3crv], uint256(0));
+    }
+
+    uint256 _usdn3crvLPs = _getMetaPoolLpToken().balanceOf(address(this));
+    if (_usdn3crvLPs > 0) {
+      // add usdn3crvLp tokens to curvegauge, this allow to call mint to receive CRV tokens
+      curveGauge.deposit(_usdn3crvLPs);
+      uint256 balance = curveGauge.balanceOf(address(this));
     }
   }
 
@@ -115,6 +133,10 @@ contract CurveStable is CurveBase {
       10000; // adding 2% for fees
     uint256 liquidated = _removeLiquidity(requiredMetaPoollLpTokens);
     return liquidated;
+  }
+
+  function _getCurvePoolGaugeAddress() internal view virtual override returns (address) {
+    return CURVE_GAUGE;
   }
 
   /// @dev Remove the liquidity by the LP token amount

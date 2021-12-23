@@ -3,6 +3,7 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/convex/IConvexDeposit.sol";
 import "../interfaces/convex/IConvexRewards.sol";
+import "hardhat/console.sol";
 
 contract ConvexBase {
   using SafeERC20 for IERC20;
@@ -39,7 +40,9 @@ contract ConvexBase {
   }
 
   function _depositToConvex() internal {
+    console.log("deposit to convex");
     uint256 balance = IERC20(lpToken).balanceOf(address(this));
+    console.log("deposit amount = %s, lp token = %s", balance, lpToken);
     if (balance > 0) {
       IConvexDeposit(convexBooster).depositAll(poolId, true);
     }

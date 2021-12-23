@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./CurveBtc.sol";
 import "./ConvexBase.sol";
 
-contract ConvexEth is CurveBtc, ConvexBase {
+contract ConvexBtc is CurveBtc, ConvexBase {
   using SafeERC20 for IERC20;
 
   uint256 private constant POOL_ID = 20;

@@ -40,9 +40,7 @@ contract ConvexBase {
   }
 
   function _depositToConvex() internal {
-    console.log("deposit to convex");
     uint256 balance = IERC20(lpToken).balanceOf(address(this));
-    console.log("deposit amount = %s, lp token = %s", balance, lpToken);
     if (balance > 0) {
       IConvexDeposit(convexBooster).depositAll(poolId, true);
     }

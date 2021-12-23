@@ -69,7 +69,7 @@ describe("ConvexStEthStrategy [@skip-on-coverage]", async () => {
     convexBooster = (await ethers.getContractAt(ConvexBoosterABI, CONVEX_BOOSTER_ADDRESS)) as IConvexDeposit;
   });
 
-  describe.only("happy path", async () => {
+  describe("happy path", async () => {
     it("normal operation", async () => {
       // deposit the funds and verify that the funds are transferred
       expect(await wethContract.balanceOf(user.address)).to.equal(depositAmount);

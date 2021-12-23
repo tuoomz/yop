@@ -2,13 +2,13 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./CurveStable.sol";
+import "./CurveBtc.sol";
 import "./ConvexBase.sol";
 
-contract ConvexStable is CurveStable, ConvexBase {
+contract ConvexEth is CurveBtc, ConvexBase {
   using SafeERC20 for IERC20;
 
-  uint256 private constant POOL_ID = 13;
+  uint256 private constant POOL_ID = 20;
 
   constructor(
     address _vault,
@@ -17,10 +17,10 @@ contract ConvexStable is CurveStable, ConvexBase {
     address _keeper,
     address _pool,
     address _booster
-  ) CurveStable(_vault, _strategist, _rewards, _keeper, _pool, 3) ConvexBase(POOL_ID, _booster) {}
+  ) CurveBtc(_vault, _strategist, _rewards, _keeper, _pool) ConvexBase(POOL_ID, _booster) {}
 
   function name() external pure override returns (string memory) {
-    return "ConvexUSDC";
+    return "ConvexBTC";
   }
 
   function protectedTokens() internal view virtual override returns (address[] memory) {
@@ -30,18 +30,6 @@ contract ConvexStable is CurveStable, ConvexBase {
   function _approveDex() internal virtual override {
     super._approveDex();
     _approveDexExtra(dex);
-  }
-
-  function _balanceOfPool() internal view virtual override returns (uint256) {
-    // get staked cvxusdn3crv
-    uint256 convexBalance = _getLpTokenBalance();
-    // staked covex converts 1 to 1 to usdn3crv so no need to calc
-    // convert usdn3crv to want
-    if (convexBalance > 0) {
-      return _quoteWantInMetapoolLp(convexBalance);
-    } else {
-      return 0;
-    }
   }
 
   function _balanceOfRewards() internal view virtual override returns (uint256) {

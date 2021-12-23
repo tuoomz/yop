@@ -7,11 +7,11 @@ import "../interfaces/curve/ICurveGauge.sol";
 import "../interfaces/curve/ICurveMinter.sol";
 import "../interfaces/sushiswap/IUniswapV2Router.sol";
 
-import "./CurveConvexBase.sol";
+import "./CurveBase.sol";
 
 import "hardhat/console.sol";
 
-contract CurveStable is CurveConvexBase {
+contract CurveStable is CurveBase {
   using SafeERC20 for IERC20;
   using Address for address;
 
@@ -31,7 +31,7 @@ contract CurveStable is CurveConvexBase {
     address _keeper,
     address _pool,
     uint256 _nPoolCoins
-  ) CurveConvexBase(_vault, _strategist, _rewards, _keeper, _pool) {
+  ) CurveBase(_vault, _strategist, _rewards, _keeper, _pool) {
     // threePool = 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7;
     // usdnMetaPool = 0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1;
     // curveGauge = address(0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4);

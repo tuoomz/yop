@@ -11,7 +11,7 @@ import "../interfaces/curve/ICurveAddressProvider.sol";
 import "../interfaces/sushiswap/IUniswapV2Router.sol";
 import "hardhat/console.sol";
 
-abstract contract CurveConvexBase is BaseStrategy {
+abstract contract CurveBase is BaseStrategy {
   using SafeERC20 for IERC20;
   using Address for address;
 
@@ -24,7 +24,6 @@ abstract contract CurveConvexBase is BaseStrategy {
   address private constant SUSHISWAP_ADDRESS = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
   address private constant UNISWAP_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
   address private constant WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-  address private constant CONVEX_TOKEN_ADDRESS = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
 
   ICurveMinter public curveMinter;
   ICurveAddressProvider public curveAddressProvider;
@@ -72,7 +71,7 @@ abstract contract CurveConvexBase is BaseStrategy {
   function prepareMigration(address _newStrategy) internal override {
     // mint all the CRV tokens
     _claimRewards();
-    _removeLiquidity(curveGauge.balanceOf(address(this)));
+    _removeLiquidity(_getLpTokenBalance());
   }
 
   // solhint-disable-next-line no-unused-vars
@@ -161,7 +160,7 @@ abstract contract CurveConvexBase is BaseStrategy {
   }
 
   function _balanceOfPool() internal view virtual returns (uint256) {
-    uint256 lpTokenAmount = curveGauge.balanceOf(address(this));
+    uint256 lpTokenAmount = _getLpTokenBalance();
     if (lpTokenAmount > 0) {
       uint256 outputAmount = curvePool.calc_withdraw_one_coin(lpTokenAmount, _int128(_getWantTokenIndex()));
       return outputAmount;
@@ -248,7 +247,7 @@ abstract contract CurveConvexBase is BaseStrategy {
     return amount;
   }
 
-  function _getLpTokenBalance() internal virtual returns (uint256) {
+  function _getLpTokenBalance() internal view virtual returns (uint256) {
     return curveGauge.balanceOf(address(this));
   }
 
@@ -284,10 +283,6 @@ abstract contract CurveConvexBase is BaseStrategy {
     return WETH_ADDRESS;
   }
 
-  function _getConvexTokenAddress() internal view virtual returns (address) {
-    return CONVEX_TOKEN_ADDRESS;
-  }
-
   function _getQuoteForTokenToWant(address _from, uint256 _fromAmount) internal view virtual returns (uint256) {
     if (_fromAmount > 0) {
       address[] memory path;
@@ -313,43 +308,6 @@ abstract contract CurveConvexBase is BaseStrategy {
 
   function _approveDex() internal virtual {
     IERC20(_getCurveTokenAddress()).safeApprove(dex, type(uint256).max);
-  }
-
-  /// @dev calculate the value of the convex rewards in want token.
-  ///  It will calculate how many CVX tokens can be claimed based on the _crv amount and then swap them to want
-  function _convexRewardsValue(uint256 _crv) internal view returns (uint256) {
-    if (_crv > 0) {
-      // calculations pulled directly from CVX's contract for minting CVX per CRV claimed
-      uint256 totalCliffs = 1000;
-      uint256 maxSupply = 1e8 * 1e18; // 100m
-      uint256 reductionPerCliff = 1e5 * 1e18; // 100k
-      uint256 supply = IERC20(_getConvexTokenAddress()).totalSupply();
-      uint256 _cvx;
-
-      uint256 cliff = supply / reductionPerCliff;
-      // mint if below total cliffs
-      if (cliff < totalCliffs) {
-        // for reduction% take inverse of current cliff
-        uint256 reduction = totalCliffs - cliff;
-        // reduce
-        _cvx = (_crv * reduction) / totalCliffs;
-
-        // supply cap check
-        uint256 amtTillMax = maxSupply - supply;
-        if (_cvx > amtTillMax) {
-          _cvx = amtTillMax;
-        }
-      }
-      uint256 rewardsValue;
-      if (_crv > 0) {
-        rewardsValue += _getQuoteForTokenToWant(_getCurveTokenAddress(), _crv);
-      }
-      if (_cvx > 0) {
-        rewardsValue += _getQuoteForTokenToWant(_getConvexTokenAddress(), _cvx);
-      }
-      return rewardsValue;
-    }
-    return 0;
   }
 
   // does not deal with over/under flow

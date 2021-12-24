@@ -5,6 +5,14 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./CurveBase.sol";
 
+/// @notice Implements the strategy using the oBTC/sBTC(renBTC/wBTC/sBTC) pool.
+///  The strategy uses the zap depositor(0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D) for the pool, which will deposit the wBTC token to the 3 BTC pool first, and the deposit the LP tokens to the meta pool.
+///  Then the strategy will deposit the LP tokens into the gauge.
+///  Input token: WBTC
+///  Zap depositor:  0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D
+///  Base pool: 0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714 (sBTC pool)
+///  Meta pool: 0xd81dA8D904b52208541Bade1bD6595D8a251F8dd
+///  Gauge: 0x11137B10C210b579405c21A07489e28F3c040AB1
 contract CurveBtc is CurveBase {
   using SafeERC20 for IERC20;
   using Address for address;
@@ -16,8 +24,6 @@ contract CurveBtc is CurveBase {
   // 0 - oBTC, 1 - renBTC, 2 - WBTC, 3 - sBTC
   uint256 private constant WBTC_TOKEN_INDEX = 2;
   uint256 private constant NUMBER_OF_COINS = 4;
-
-  // address internal constant CURVE_OBTC_POOL_ADDRESS = 0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D;
 
   /* solhint-disable  no-empty-blocks */
   /// @dev the _pool here is a zap depositor, which will automatically add/remove liquidity to/from the base and meta pool

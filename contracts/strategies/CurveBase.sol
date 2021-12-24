@@ -11,6 +11,10 @@ import "../interfaces/curve/ICurveAddressProvider.sol";
 import "../interfaces/sushiswap/IUniswapV2Router.sol";
 import "hardhat/console.sol";
 
+/// @dev The base implementation for all Curve strategies. All strategies will add liquidity to a Curve pool (could be a plain or meta pool), and then deposit the LP tokens to the corresponding gauge to earn Curve tokens.
+///  When it comes to harvest time, the Curve tokens will be minted and sold, and the profit will be reported and moved back to the vault.
+///  The next time when harvest is called again, the profits from previous harvests will be invested again (if they haven't been withdrawn from the vault).
+///  The Convex strategies are pretty much the same as the Curve ones, the only different is that the LP tokens are deposited into Convex instead, and it will take rewards from both Curve and Convex.
 abstract contract CurveBase is BaseStrategy {
   using SafeERC20 for IERC20;
   using Address for address;
@@ -25,12 +29,22 @@ abstract contract CurveBase is BaseStrategy {
   address private constant UNISWAP_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
   address private constant WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
+  // Curve token minter
   ICurveMinter public curveMinter;
+  // Curve address provider, where we can query for the address of the registry
   ICurveAddressProvider public curveAddressProvider;
+  // Curve pool. Can be either a plain pool, or meta pool, or Curve zap depositor (automatically add liquidity to base pool and then meta pool).
   ICurveDeposit public curvePool;
+  // The Curve gauge corresponding to the Curve pool
   ICurveGauge public curveGauge;
+  // Dex address for token swaps.
   address public dex;
 
+  /// @param _vault The address of the vault. The underlying token should match the `want` token of the strategy.
+  /// @param _strategist The address of the strategist, who is responsible for maining the strategy
+  /// @param _rewards The address of the rewards (can either be an EOA or smart contract). It can pull rewards from the strategy.
+  /// @param _keeper The address of the keeper of the strategy.
+  /// @param _pool The address of the Curve pool
   constructor(
     address _vault,
     address _strategist,
@@ -48,13 +62,16 @@ abstract contract CurveBase is BaseStrategy {
     _approveOnInit();
   }
 
+  /// @notice Approves pools/dexes to be spenders of the tokens of this strategy
   function approveAll() external onlyAuthorized {
     _approveBasic();
     _approveDex();
   }
 
-  function switchDex(bool isUniswap) external onlyAuthorized {
-    if (isUniswap) {
+  /// @notice Changes the dex to use when swap tokens
+  /// @param _isUniswap If true, uses Uniswap, otherwise uses Sushiswap
+  function switchDex(bool _isUniswap) external onlyAuthorized {
+    if (_isUniswap) {
       dex = UNISWAP_ADDRESS;
     } else {
       dex = SUSHISWAP_ADDRESS;
@@ -62,12 +79,13 @@ abstract contract CurveBase is BaseStrategy {
     _approveDex();
   }
 
-  /// @notice returns the total value of assets in want tokens
+  /// @notice Returns the total value of assets in want tokens
   /// @dev it should include the current balance of want tokens, the assets that are deployed and value of rewards so far
   function estimatedTotalAssets() public view virtual override returns (uint256) {
     return _balanceOfWant() + _balanceOfPool() + _balanceOfRewards();
   }
 
+  /// @dev Before migration, we will claim all rewards and remove all liquidity.
   function prepareMigration(address _newStrategy) internal override {
     // mint all the CRV tokens
     _claimRewards();
@@ -75,6 +93,8 @@ abstract contract CurveBase is BaseStrategy {
   }
 
   // solhint-disable-next-line no-unused-vars
+  /// @dev This will perform the actual invest steps.
+  ///   For both Curve & Convex, it will add liquidity to Curve pool(s) first, and then deposit the LP tokens to either Curve gauges or Convex booster.
   function adjustPosition(uint256 _debtOutstanding) internal virtual override {
     if (emergencyExit) {
       return;
@@ -83,6 +103,7 @@ abstract contract CurveBase is BaseStrategy {
     _depositLPTokens();
   }
 
+  /// @dev This will claim the rewards from either Curve or Convex, swap them to want tokens and calcuate the profit/loss.
   function prepareReturn(uint256 _debtOutstanding)
     internal
     virtual
@@ -112,6 +133,7 @@ abstract contract CurveBase is BaseStrategy {
     }
   }
 
+  /// @dev Liquidates the positions from either Curve or Convex.
   function liquidatePosition(uint256 _amountNeeded)
     internal
     virtual
@@ -137,11 +159,13 @@ abstract contract CurveBase is BaseStrategy {
     return protected;
   }
 
+  /// @dev Can be used to perform some actions by the strategy, before the rewards are claimed (like call the checkpoint to update user rewards).
   function onHarvest() internal virtual override {
     // make sure the claimable rewards record is up to date
     curveGauge.user_checkpoint(address(this));
   }
 
+  /// @dev Initialises the state variables. Put them in a function to allow for testing. Testing contracts can override these.
   function _initCurvePool(address _pool) internal virtual {
     curveAddressProvider = ICurveAddressProvider(CURVE_ADDRESS_PROVIDER_ADDRESS);
     curveMinter = ICurveMinter(CURVE_MINTER_ADDRESS);
@@ -154,10 +178,13 @@ abstract contract CurveBase is BaseStrategy {
     _approveDex();
   }
 
+  /// @dev Returns the balance of the `want` token.
   function _balanceOfWant() internal view returns (uint256) {
     return want.balanceOf(address(this));
   }
 
+  /// @dev Returns total liquidity provided to Curve pools.
+  ///  Can be overridden if the strategy has a different way to get the value of the pool.
   function _balanceOfPool() internal view virtual returns (uint256) {
     uint256 lpTokenAmount = _getLpTokenBalance();
     if (lpTokenAmount > 0) {
@@ -167,6 +194,7 @@ abstract contract CurveBase is BaseStrategy {
     return 0;
   }
 
+  /// @dev Returns the estimated value of the unclaimed rewards.
   function _balanceOfRewards() internal view virtual returns (uint256) {
     uint256 totalClaimableCRV = curveGauge.integrate_fraction(address(this));
     uint256 mintedCRV = curveMinter.minted(address(this), address(curveGauge));
@@ -178,6 +206,7 @@ abstract contract CurveBase is BaseStrategy {
     return 0;
   }
 
+  /// @dev Swaps the `_from` token to the want token using either Uniswap or Sushiswap
   function _swapToWant(address _from, uint256 _fromAmount) internal virtual returns (uint256) {
     if (_fromAmount > 0) {
       address[] memory path;
@@ -205,6 +234,7 @@ abstract contract CurveBase is BaseStrategy {
     return 0;
   }
 
+  /// @dev Deposits the LP tokens to Curve gauge.
   function _depositLPTokens() internal virtual {
     address poolLPToken = curveGauge.lp_token();
     uint256 balance = IERC20(poolLPToken).balanceOf(address(this));
@@ -213,6 +243,8 @@ abstract contract CurveBase is BaseStrategy {
     }
   }
 
+  /// @dev Withdraws the given amount of want tokens from the Curve pools.
+  /// @param _amount The amount of *want* tokens (not LP token).
   function _withdrawSome(uint256 _amount) internal virtual returns (uint256) {
     uint256 requiredLPTokenAmount;
     // check how many LP tokens we will need for the given want _amount
@@ -234,7 +266,7 @@ abstract contract CurveBase is BaseStrategy {
     return _removeLiquidity(requiredLPTokenAmount);
   }
 
-  /// @dev Remove the liquidity by the LP token amount
+  /// @dev Removes the liquidity by the LP token amount
   /// @param _amount The amount of LP token (not want token)
   function _removeLiquidity(uint256 _amount) internal virtual returns (uint256) {
     uint256 balance = _getLpTokenBalance();
@@ -246,26 +278,33 @@ abstract contract CurveBase is BaseStrategy {
     return amount;
   }
 
+  /// @dev Returns the total amount of Curve LP tokens the strategy has
   function _getLpTokenBalance() internal view virtual returns (uint256) {
     return curveGauge.balanceOf(address(this));
   }
 
+  /// @dev Withdraws the given amount of LP tokens from Curve gauge
+  /// @param _amount The amount of LP tokens to withdraw
   function _removeLpToken(uint256 _amount) internal virtual {
     curveGauge.withdraw(_amount);
   }
 
+  /// @dev Claims the curve rewards tokens and swap them to want tokens
   function _claimRewards() internal virtual {
     curveMinter.mint(address(curveGauge));
     uint256 crvBalance = IERC20(_getCurveTokenAddress()).balanceOf(address(this));
     _swapToWant(_getCurveTokenAddress(), crvBalance);
   }
 
+  /// @dev Returns the address of the pool LP token. Use a function to allow override in sub contracts to allow for unit testing.
   function _getPoolLPTokenAddress(address _pool) internal virtual returns (address) {
     require(_pool != address(0), "invalid pool address");
     address registry = curveAddressProvider.get_registry();
     return ICurveRegistry(registry).get_lp_token(address(_pool));
   }
 
+  /// @dev Returns the address of the curve gauge. It will use the Curve registry to look up the gauge for a Curve pool.
+  ///  Use a function to allow override in sub contracts to allow for unit testing.
   function _getCurvePoolGaugeAddress() internal view virtual returns (address) {
     address registry = curveAddressProvider.get_registry();
     (address[10] memory gauges, ) = ICurveRegistry(registry).get_gauges(address(curvePool));
@@ -274,14 +313,17 @@ abstract contract CurveBase is BaseStrategy {
     return gauges[0];
   }
 
+  /// @dev Returns the address of the Curve token. Use a function to allow override in sub contracts to allow for unit testing.
   function _getCurveTokenAddress() internal view virtual returns (address) {
     return CRV_TOKEN_ADDRESS;
   }
 
+  /// @dev Returns the address of the WETH token. Use a function to allow override in sub contracts to allow for unit testing.
   function _getWETHTokenAddress() internal view virtual returns (address) {
     return WETH_ADDRESS;
   }
 
+  /// @dev Gets an estimate value in want token for the given amount of given token using the dex.
   function _getQuoteForTokenToWant(address _from, uint256 _fromAmount) internal view virtual returns (uint256) {
     if (_fromAmount > 0) {
       address[] memory path;
@@ -301,10 +343,12 @@ abstract contract CurveBase is BaseStrategy {
     return 0;
   }
 
+  /// @dev Approves Curve pools/gauges/rewards contracts to access the tokens in the strategy
   function _approveBasic() internal virtual {
     IERC20(curveGauge.lp_token()).safeApprove(address(curveGauge), type(uint256).max);
   }
 
+  /// @dev Approves dex to access tokens in the strategy for swaps
   function _approveDex() internal virtual {
     IERC20(_getCurveTokenAddress()).safeApprove(dex, type(uint256).max);
   }
@@ -314,9 +358,12 @@ abstract contract CurveBase is BaseStrategy {
     return int128(uint128(_val));
   }
 
+  /// @dev This needs to be overridden by the concrete strategyto implement how liquidity will be added to Curve pools
   function _addLiquidityToCurvePool() internal virtual;
 
+  /// @dev Returns the index of the want token for a Curve pool
   function _getWantTokenIndex() internal view virtual returns (uint256);
 
+  /// @dev Returns the total number of coins the Curve pool supports
   function _getCoinsCount() internal view virtual returns (uint256);
 }

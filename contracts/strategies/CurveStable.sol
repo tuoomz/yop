@@ -11,17 +11,30 @@ import "./CurveBase.sol";
 
 import "hardhat/console.sol";
 
+/// @notice Implements the strategy using the usdn/3Crv(DAI/USDC/USDT) pool.
+///  There is a zap depositor available, however, we came across an error when we tried to use it, and can't figure out a fix, that's why it's not used.
+///  So the strategy will deploy the input token (USDC) to the 3Crv pool first, and then deploy the 3Crv LP token to the meta pool.
+///  Finally, the strategy will deposit the meta pool LP tokens into the gauge.
+///  Input token: USDC
+///  Base pool: 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7 (3Crv pool)
+///  Meta pool: 0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1
+///  Gauge: 0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4
 contract CurveStable is CurveBase {
   using SafeERC20 for IERC20;
   using Address for address;
 
+  // the address of the meta pool
   address internal constant USDN_METAPOOL = address(0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1);
+  // the address of the gauge
   address internal constant CURVE_GAUGE = address(0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4);
+  // the address of the 3Crv pool LP token
   IERC20 internal constant THREE_CRV = IERC20(0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490);
+  // the address of the usdn/3Crv meta pool LP token
   IERC20 internal constant USDN_3CRV = IERC20(0x4f3E8F405CF5aFC05D68142F3783bDfE13811522);
 
   ICurveDeposit internal usdnMetaPool;
   IERC20 internal triPoolLpToken;
+  // the index of the want token in the 3Crv pool
   int128 internal wantThreepoolIndex;
   uint256 internal N_POOL_COINS = 3;
 
@@ -88,6 +101,8 @@ contract CurveStable is CurveBase {
     return 0;
   }
 
+  /// @dev The input is the LP token of the meta pool. To get the value of the original liquidity in the base pool,
+  ///  we need to use `calc_withdraw_one_coin` from meta pool and base pool to see how much `want` we will get if we withdraw, without actually doing the withdraw.
   function _quoteWantInMetapoolLp(uint256 _metaPoolLpTokens) public view returns (uint256) {
     uint256 _3crvInUsdn3crv = usdnMetaPool.calc_withdraw_one_coin(_metaPoolLpTokens, 1);
     uint256 _wantIn3crv = curvePool.calc_withdraw_one_coin(_3crvInUsdn3crv, wantThreepoolIndex);
@@ -127,6 +142,9 @@ contract CurveStable is CurveBase {
     return _tokenBins;
   }
 
+  /// @dev The `_amount` is in want token, so we need to convert that to LP tokens first.
+  ///  We use the `calc_token_amount` to calculate how many LP tokens we will get with the `_amount` of want tokens without actually doing the deposit.
+  ///  Then we add a bit more (2%) for padding.
   function _withdrawSome(uint256 _amount) internal override returns (uint256) {
     uint256 requiredTriPoollLpTokens = curvePool.calc_token_amount(_buildDepositArray(_amount), true);
     uint256 requiredMetaPoollLpTokens = (usdnMetaPool.calc_token_amount([0, requiredTriPoollLpTokens], true) * 10200) /
@@ -144,6 +162,7 @@ contract CurveStable is CurveBase {
   function _removeLiquidity(uint256 _amount) internal override returns (uint256) {
     uint256 _before = _balanceOfWant();
     uint256 lpBalance = _getLpTokenBalance();
+    // need to make sure we don't withdraw more than what we have
     uint256 withdrawAmount = Math.min(lpBalance, _amount);
     // withdraw this amount of token from the gauge first
     _removeLpToken(withdrawAmount);

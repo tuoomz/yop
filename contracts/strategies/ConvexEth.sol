@@ -5,6 +5,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./CurveEth.sol";
 import "./ConvexBase.sol";
 
+/// @notice Implements the strategy using Convex. Ths steps are similar to CurveEth strategy, the main differences are:
+///  1) The Curve LP tokens are deposited into Convex Booster contract
+///  2) Use the Convex Rewards contract to claim rewards and get both CRV and CVX in return
+///  Because of this, the strategy only overrides some of the functions from parent contracts for the different parts.
+/// Booster: 0xF403C135812408BFbE8713b5A23a04b3D48AAE31
+/// Rewards: 0x0A760466E1B4621579a82a39CB56Dda2F4E70f03
+/// Pool Id: 25 (This id is used by Convex to look up pool information in the booster)
 contract ConvexEth is CurveEth, ConvexBase {
   using SafeERC20 for IERC20;
 

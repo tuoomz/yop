@@ -5,16 +5,23 @@ import "../interfaces/convex/IConvexDeposit.sol";
 import "../interfaces/convex/IConvexRewards.sol";
 import "hardhat/console.sol";
 
+/// @notice This contract provides common functions that will be used by all Convex strategies.
 contract ConvexBase {
   using SafeERC20 for IERC20;
 
   address private constant CONVEX_TOKEN_ADDRESS = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
 
+  // The pool id. This is unique for each Curve pool.
   uint256 public poolId;
+  // The address of the Convex booster contract
   address public convexBooster;
+  // The address of the Rewards contract for the pool. Different for each pool
   address public cvxRewards;
+  // The address of the LP token that the booster contract will accept for a pool
   address public lpToken;
 
+  /// @param _pooId the id of the pool
+  /// @param _booster the address of the booster contract
   constructor(uint256 _pooId, address _booster) {
     require(_booster != address(0), "invalid booster address");
     poolId = _pooId;
@@ -23,14 +30,17 @@ contract ConvexBase {
     _approveConvexExtra();
   }
 
+  // Need to allow booster to access the lp tokens for deposit
   function _approveConvexExtra() internal {
     IERC20(lpToken).safeApprove(convexBooster, type(uint256).max);
   }
 
+  // Need to allow dex to access the Convex tokens for swaps
   function _approveDexExtra(address _dex) internal {
     IERC20(_getConvexTokenAddress()).safeApprove(_dex, type(uint256).max);
   }
 
+  // Keep CRV, CVX and the pool lp tokens in the strategy. Everything else can be sent to somewhere else.
   function _buildProtectedTokens(address _curveToken) internal view returns (address[] memory) {
     address[] memory protected = new address[](3);
     protected[0] = _curveToken;
@@ -39,6 +49,7 @@ contract ConvexBase {
     return protected;
   }
 
+  /// @dev Add Curve LP tokens to Convex booster
   function _depositToConvex() internal {
     uint256 balance = IERC20(lpToken).balanceOf(address(this));
     if (balance > 0) {
@@ -46,10 +57,14 @@ contract ConvexBase {
     }
   }
 
+  /// @dev Return the amount of Curve LP tokens.
+  ///  The Curve LP tokens are eventually deposited into the Rewards contract, and we can query it to get the balance.
   function _getConvexBalance() internal view returns (uint256) {
     return IConvexRewards(cvxRewards).balanceOf(address(this));
   }
 
+  /// @dev When withdraw, withdraw the LP tokens from the Rewards contract and claim rewards. Unwrap these to Curve LP tokens.
+  /// @param _amount The amount of rewards (1:1 to LP tokens) to withdraw.
   function _withdrawFromConvex(uint256 _amount) internal {
     IConvexRewards(cvxRewards).withdrawAndUnwrap(_amount, true);
   }
@@ -58,6 +73,7 @@ contract ConvexBase {
     return CONVEX_TOKEN_ADDRESS;
   }
 
+  /// @dev Get the rewards (CRV and CVX) from Convex, and swap them for the `want` tokens.
   function _claimConvexRewards(address _curveTokenAddress, function(address, uint256) returns (uint256) _swapFunc)
     internal
     virtual

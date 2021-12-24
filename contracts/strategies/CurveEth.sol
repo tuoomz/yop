@@ -11,6 +11,12 @@ interface IWETH is IERC20 {
   function deposit(uint256) external payable;
 }
 
+/// @notice Implements the strategy using the ETH/stETH swap pool.
+///  The strategy will take wETH as the input token, swap them to ETH, and then add liquidity to the ETH/stETH pool.
+///  Then the strategy will deposit the LP tokens into the gauge.
+///  Input token: wETH
+///  Base pool: 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022 (ETH/stEH pool)
+///  Gauge: 0x182B723a58739a9c974cFDB385ceaDb237453c28
 contract CurveEth is CurveBase {
   using SafeERC20 for IERC20;
   using Address for address;

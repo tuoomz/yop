@@ -520,6 +520,19 @@ describe("YOPVaultsReward", () => {
       console.log("diff = %s", user2Rewards.sub(expectedUser2Rewards));
       expect(user2Rewards).to.closeTo(BigNumber.from(expectedUser2Rewards), ONE_UNIT);
     });
+
+    it("totalRewardsForVault", async () => {
+      const start = monthsInSeconds(-0.5);
+      const end = monthsInSeconds(119.5);
+      const now = nowInSeconds();
+      await vaultRewardsContract.setEpochStartTime(start);
+      await vaultRewardsContract.setEpochEndTime(end);
+      await vaultRewardsContract.setBlocktimestamp(now); // within the first month
+      const expectedVaultRewards = BigNumber.from(now).sub(BigNumber.from(start)).mul(INITIAL_RATE).mul(100).div(SECONDS_PER_MONTH).div(150);
+      // check vault total rewards
+      const vaultRewards = await vaultRewardsContract.totalRewardsForVault(vault1.address);
+      expect(vaultRewards).to.closeTo(BigNumber.from(expectedVaultRewards), ONE_UNIT);
+    });
   });
 
   describe("claim && claimAll", async () => {

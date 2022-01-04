@@ -71,3 +71,10 @@ export async function jumpForward(duration: number) {
     params: [duration],
   });
 }
+
+export async function setNextBlockTimestamp(ts: number) {
+  await network.provider.request({
+    method: "evm_setNextBlockTimestamp",
+    params: [ts],
+  });
+}

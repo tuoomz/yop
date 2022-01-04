@@ -211,15 +211,21 @@ contract YOPVaultRewards is IYOPVaultRewards, GovernableUpgradeable, PausableUpg
     _claim(msg.sender, _to);
   }
 
-  /// @notice Returns the total of unclaimed rewards across all the vaults for the caller.
+  /// @notice Returns the total of estimated unclaimed rewards across all the vaults for the caller.
   function allUnclaimedRewards() external view returns (uint256) {
     address[] memory vaults = vaultAddresses.values();
     return _unclaimedRewards(vaults, msg.sender);
   }
 
-  /// @notice Returns the total of unclaimed rewards across the given vaults for the caller.
+  /// @notice Returns the total of estiamted unclaimed rewards across the given vaults for the caller.
   function unclaimedRewards(address[] calldata _vaults) external view returns (uint256) {
     return _unclaimedRewards(_vaults, msg.sender);
+  }
+
+  /// @notice Returns the total of estimated rewards for a vault up to the current block time. Can be useful to calculate APY.
+  function totalRewardsForVault(address _vault) external view returns (uint256) {
+    VaultRewardsState memory vaultState = _calculateVaultState(_vault);
+    return vaultState.totalRewards;
   }
 
   /// @notice Set the address of the reward wallet that this contract can draw rewards from. Can only be called by governance.
@@ -266,54 +272,54 @@ contract YOPVaultRewards is IYOPVaultRewards, GovernableUpgradeable, PausableUpg
     if (end > start) {
       uint256 r = vaultState.epochRate;
       uint256 totalSupply = IERC20Upgradeable(_vault).totalSupply();
-      if (totalSupply > 0) {
-        uint256 totalAccurated;
-        // Start from where last time the snapshot was taken, and loop through the epochs.
-        // We the calculate the for each epoch, how many rewards the vault should get and all them up.
-        // Finally we divide the value by the totalSupply of the vault.
-        for (uint256 i = vaultState.epochCount; i < MAX_EPOCH_COUNT; i++) {
-          uint256 epochStart = _getEpochStartTime() + SECONDS_PER_EPOCH * i;
-          uint256 epochEnd = epochStart + SECONDS_PER_EPOCH;
-          // Get the rate, take the vaultsRewardsRatio and the weight of the vault into account.
-          uint256 currentVaultRate = (r * vaultsRewardsRatio * _weightForVault(_vault)) / MAX_BPS / WEIGHT_AMP;
-          uint256 duration;
-          // For each epoch, we will check if it is: the starting point, the ending point, or in between.
-          // Add these to the total duration.
-          if (epochStart <= start && end <= epochEnd) {
-            // Inside the same epoch, so it is the starting epoch and the ending epoch.
-            duration = end - start;
-          } else if (epochStart <= start && start <= epochEnd && end > epochEnd) {
-            // This is the starting epoch, not the ending epoch. The time included is from start to epochEnd.
-            duration = epochEnd - start;
-          } else if (end <= epochEnd && end >= epochStart && start < epochStart) {
-            // This is the ending epoch, not the start epoch. The time included is from the epochStart to the end.
-            duration = end - epochStart;
-          } else {
-            // Neither the starting or endoing epoch. So the whole epoch should be included.
-            duration = epochEnd - epochStart;
-          }
-          totalAccurated += currentVaultRate * duration;
-          if (end <= epochEnd || i == MAX_EPOCH_COUNT - 1) {
-            // This is either the ending epoch, or the last epoch ever. Do the calcuation and store the value.
-            // Solidity doesn't have support for fix-point numbers, so we use a library here to store this value.
+      uint256 totalAccrued;
+      // Start from where last time the snapshot was taken, and loop through the epochs.
+      // We the calculate the for each epoch, how many rewards the vault should get and all them up.
+      // Finally we divide the value by the totalSupply of the vault.
+      for (uint256 i = vaultState.epochCount; i < MAX_EPOCH_COUNT; i++) {
+        uint256 epochStart = _getEpochStartTime() + SECONDS_PER_EPOCH * i;
+        uint256 epochEnd = epochStart + SECONDS_PER_EPOCH;
+        // Get the rate, take the vaultsRewardsRatio and the weight of the vault into account.
+        uint256 currentVaultRate = (r * vaultsRewardsRatio * _weightForVault(_vault)) / MAX_BPS / WEIGHT_AMP;
+        uint256 duration;
+        // For each epoch, we will check if it is: the starting point, the ending point, or in between.
+        // Add these to the total duration.
+        if (epochStart <= start && end <= epochEnd) {
+          // Inside the same epoch, so it is the starting epoch and the ending epoch.
+          duration = end - start;
+        } else if (epochStart <= start && start <= epochEnd && end > epochEnd) {
+          // This is the starting epoch, not the ending epoch. The time included is from start to epochEnd.
+          duration = epochEnd - start;
+        } else if (end <= epochEnd && end >= epochStart && start < epochStart) {
+          // This is the ending epoch, not the start epoch. The time included is from the epochStart to the end.
+          duration = end - epochStart;
+        } else {
+          // Neither the starting or endoing epoch. So the whole epoch should be included.
+          duration = epochEnd - epochStart;
+        }
+        totalAccrued += currentVaultRate * duration;
+        if (end <= epochEnd || i == MAX_EPOCH_COUNT - 1) {
+          // This is either the ending epoch, or the last epoch ever. Do the calcuation and store the value.
+          // Solidity doesn't have support for fix-point numbers, so we use a library here to store this value.
+          if (totalSupply > 0) {
             vaultState.index = vaultState.index.add(
-              PRBMathUD60x18Typed.fromUint(totalAccurated).div(PRBMathUD60x18Typed.fromUint(SECONDS_PER_EPOCH)).div(
+              PRBMathUD60x18Typed.fromUint(totalAccrued).div(PRBMathUD60x18Typed.fromUint(SECONDS_PER_EPOCH)).div(
                 PRBMathUD60x18Typed.fromUint(totalSupply)
               )
             );
             // the rate is per month and use the decimal of the vault
             vaultState.totalRewards +=
-              (totalAccurated * (10**YOP_DECIMAL)) /
+              (totalAccrued * (10**YOP_DECIMAL)) /
               SECONDS_PER_EPOCH /
               (10**IERC20MetadataUpgradeable(_vault).decimals());
-            vaultState.timestamp = end;
-            vaultState.epochCount = i;
-            vaultState.epochRate = r;
-            break;
           }
-          // reduce the rate based on the deflation setting
-          r = (r * (MAX_BPS - DEFLATION_RATE)) / MAX_BPS;
+          vaultState.timestamp = end;
+          vaultState.epochCount = i;
+          vaultState.epochRate = r;
+          break;
         }
+        // reduce the rate based on the deflation setting
+        r = (r * (MAX_BPS - DEFLATION_RATE)) / MAX_BPS;
       }
     }
     return vaultState;

@@ -18,6 +18,12 @@ npx hardhat compile
 npx hardhat test
 ```
 
+To run tests with the solidity events emmited to the console run
+
+```
+npx hardhat test --logs
+```
+
 ### Run Tests in VSCode
 
 To run the tests in VSCode, install the [Mocha Test Explorer](https://marketplace.visualstudio.com/items?itemName=hbenl.vscode-mocha-test-adapter) extension, and then update this VSCode option `mochaExplorer.files` to `test/**/*.{j,t}s`.

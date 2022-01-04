@@ -2,7 +2,6 @@ import chai, { expect } from "chai";
 import { ethers, waffle } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { SingleAssetVault, VaultStrategyDataStore } from "../../../types";
-// import { curveStableUsdcStrategyMock } from "../../../types/curveStableUsdcStrategyMock";
 import { CurveStableStrategyMock } from "../../../types/CurveStableStrategyMock";
 import { TokenMock } from "../../../types/TokenMock";
 import { MockContract, solidity } from "ethereum-waffle";
@@ -14,7 +13,6 @@ const { loadFixture } = waffle;
 
 chai.use(solidity);
 chai.use(near);
-const { deployMockContract } = waffle;
 
 describe("CurveStable strategy", async () => {
   let vault: SingleAssetVault;
@@ -68,10 +66,6 @@ describe("CurveStable strategy", async () => {
       mockUsdc,
       mockUsdt,
     } = await loadFixture(setupVaultAndCurveTrio));
-
-    await mockCurvePool.mock.coins.withArgs(0).returns(vaultToken.address);
-    await mockCurvePool.mock.coins.withArgs(1).returns(mockUsdc.address);
-    await mockCurvePool.mock.coins.withArgs(2).returns(mockUsdt.address);
 
     const curveStableUsdcStrategyFactory = await ethers.getContractFactory("CurveStableStrategyMock");
     curveStableUsdcStrategy = (await curveStableUsdcStrategyFactory.deploy(

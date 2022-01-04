@@ -292,7 +292,7 @@ describe("BaseStrategy", async () => {
       await expect(await strategy.harvestTrigger(100)).to.equal(true);
     });
 
-    it("should return false if gas cost is higer than the gain", async () => {
+    it("should return false if gas cost is higher than the gain", async () => {
       const currentTime = 100;
       const lastReport = 90;
       strategyParams.lastReport = lastReport;

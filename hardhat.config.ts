@@ -15,6 +15,7 @@ import "solidity-coverage";
 import "hardhat-contract-sizer";
 import "@rumblefishdev/hardhat-kms-signer";
 import "@openzeppelin/hardhat-upgrades";
+import "hardhat-tracer";
 
 import { NetworkUserConfig, HardhatUserConfig } from "hardhat/types";
 

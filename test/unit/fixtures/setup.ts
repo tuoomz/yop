@@ -17,6 +17,8 @@ import daiABI from "../../abis/coins/dai.json";
 import usdtABI from "../../abis/coins/usdt.json";
 import usdcABI from "../../abis/coins/usdc.json";
 import vaultStrategyDataStoreABI from "../../../abi/VaultStrategyDataStore.json";
+import convexBoosterABI from "../../abis/convexBooster.json";
+import convexRewardsABI from "../../abis/convexBaseRewards.json";
 
 const { deployMockContract } = waffle;
 
@@ -162,5 +164,17 @@ export async function setupCurveTrio() {
 export async function setupVaultAndCurveTrio() {
   const vault = await setupVault();
   const strat = await setupCurveTrio();
+  await strat.mockCurvePool.mock.coins.withArgs(0).returns(vault.vaultToken.address);
+  await strat.mockCurvePool.mock.coins.withArgs(1).returns(strat.mockUsdc.address);
+  await strat.mockCurvePool.mock.coins.withArgs(2).returns(strat.mockUsdt.address);
   return { ...vault, ...strat };
+}
+
+export async function setupConvexMocks() {
+  const [deployer] = await ethers.getSigners();
+  const mockConvexBooster = await deployMockContract(deployer, convexBoosterABI);
+  const mockConvexRewards = await deployMockContract(deployer, convexRewardsABI);
+  const TokenMockFactory = await ethers.getContractFactory("TokenMock");
+  const mockConvexToken = (await TokenMockFactory.deploy("mockCurve", "mc")) as TokenMock;
+  return { mockConvexBooster, mockConvexRewards, mockConvexToken, ...(await setupVaultAndCurveTrio()) };
 }

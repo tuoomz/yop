@@ -26,8 +26,8 @@ contract ConvexStable is CurveStable, ConvexBase {
     address _booster
   ) CurveStable(_vault, _strategist, _rewards, _keeper, _pool) ConvexBase(POOL_ID, _booster) {}
 
-  function name() external pure override returns (string memory) {
-    return "ConvexUSDC";
+  function name() external view override returns (string memory) {
+    return string(abi.encodePacked("ConvexStable_", IERC20Metadata(address(want)).symbol()));
   }
 
   function protectedTokens() internal view virtual override returns (address[] memory) {

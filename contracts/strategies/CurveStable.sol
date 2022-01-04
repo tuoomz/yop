@@ -127,7 +127,9 @@ contract CurveStable is CurveBase {
       // uint256 _usdn3crvLPs2 = usdnMetaPool.add_liquidity([uint256(0), _3crv], uint256(0));
       usdnMetaPool.add_liquidity([uint256(0), _3crv], uint256(0));
     }
+  }
 
+  function _depositLPTokens() internal virtual override {
     uint256 _usdn3crvLPs = _getMetaPoolLpToken().balanceOf(address(this));
     if (_usdn3crvLPs > 0) {
       // add usdn3crvLp tokens to curvegauge, this allow to call mint to receive CRV tokens
@@ -164,9 +166,9 @@ contract CurveStable is CurveBase {
     uint256 lpBalance = _getLpTokenBalance();
     // need to make sure we don't withdraw more than what we have
     uint256 withdrawAmount = Math.min(lpBalance, _amount);
-    // withdraw this amount of token from the gauge first
+    // withdraw this amount of lp tokens first
     _removeLpToken(withdrawAmount);
-    // then remove the liqudity from the pool, will get eth back
+    // then remove the liqudity from the pool, will get want back
     uint256 usdn3crv = _getMetaPoolLpToken().balanceOf(address(this));
     usdnMetaPool.remove_liquidity_one_coin(usdn3crv, 1, uint256(0));
     uint256 _3crv = _getTriPoolLpToken().balanceOf(address(this));

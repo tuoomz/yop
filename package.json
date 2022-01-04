@@ -27,6 +27,7 @@
     "@openzeppelin/contracts": "^4.3.2",
     "@openzeppelin/contracts-upgradeable": "^4.3.3",
     "hardhat-contract-sizer": "^2.1.1",
+    "hardhat-tracer": "^1.0.0-alpha.6",
     "hardhat-watcher": "^2.1.1",
     "prb-math": "^2.4.1"
   },

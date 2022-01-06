@@ -64,7 +64,7 @@ describe("BaseVault", function () {
       await baseVault2.deployed();
       expect(
         baseVault2.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero)
-      ).to.be.revertedWith("invalid input");
+      ).to.be.revertedWith("!input");
     });
   });
 
@@ -89,7 +89,7 @@ describe("BaseVault", function () {
   it("test setRewards", async () => {
     expect(baseVault.connect(user1).setRewards(user2.address)).to.be.revertedWith("governance only");
     expect(baseVault.connect(gatekeeper).setRewards(user2.address)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(governance).setRewards(ethers.constants.AddressZero)).to.be.revertedWith("invalid address");
+    expect(baseVault.connect(governance).setRewards(ethers.constants.AddressZero)).to.be.revertedWith("!input");
     expect(await baseVault.connect(governance).setRewards(user2.address))
       .to.emit(baseVault, "RewardsUpdated")
       .withArgs(user2.address);
@@ -103,7 +103,7 @@ describe("BaseVault", function () {
     const newFee = 500;
     expect(baseVault.connect(user1).setManagementFee(500)).to.be.revertedWith("governance only");
     expect(baseVault.connect(gatekeeper).setManagementFee(500)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(governance).setManagementFee(11000)).to.be.revertedWith("invalid input");
+    expect(baseVault.connect(governance).setManagementFee(11000)).to.be.revertedWith("!input");
     expect(await baseVault.connect(governance).setManagementFee(newFee))
       .to.emit(baseVault, "ManagementFeeUpdated")
       .withArgs(newFee);
@@ -134,7 +134,7 @@ describe("BaseVault", function () {
   });
 
   it("test setHealthCheck", async () => {
-    expect(baseVault.connect(user1).setHealthCheck(user2.address)).to.be.revertedWith("not authorised");
+    expect(baseVault.connect(user1).setHealthCheck(user2.address)).to.be.revertedWith("!authorised");
     // gatekeeper is allowed
     expect(await baseVault.connect(gatekeeper).setHealthCheck(user2.address))
       .to.emit(baseVault, "HealthCheckUpdated")
@@ -151,7 +151,7 @@ describe("BaseVault", function () {
   });
 
   it("test setVaultEmergencyShutdown", async () => {
-    expect(baseVault.connect(user1).setVaultEmergencyShutdown(true)).to.be.revertedWith("not authorised");
+    expect(baseVault.connect(user1).setVaultEmergencyShutdown(true)).to.be.revertedWith("!authorised");
     expect(baseVault.connect(user1).setVaultEmergencyShutdown(false)).to.be.revertedWith("governance only");
 
     // gatekeeper can shutdown vault
@@ -175,9 +175,7 @@ describe("BaseVault", function () {
     const degradation = BigNumber.from("23000000000000");
     expect(baseVault.connect(user1).setLockedProfileDegradation(degradation)).to.be.revertedWith("governance only");
     expect(baseVault.connect(gatekeeper).setLockedProfileDegradation(degradation)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(governance).setLockedProfileDegradation(BigNumber.from("2000000000000000000"))).to.be.revertedWith(
-      "degradation value is too large"
-    );
+    expect(baseVault.connect(governance).setLockedProfileDegradation(BigNumber.from("2000000000000000000"))).to.be.revertedWith("!value");
     expect(await baseVault.connect(governance).setLockedProfileDegradation(degradation))
       .to.emit(baseVault, "LockedProfitDegradationUpdated")
       .withArgs(degradation);
@@ -188,7 +186,7 @@ describe("BaseVault", function () {
 
   it("test setDepositLimit", async () => {
     const depositLimit = BigNumber.from("10000000000");
-    expect(baseVault.connect(user1).setDepositLimit(depositLimit)).to.be.revertedWith("not authorised");
+    expect(baseVault.connect(user1).setDepositLimit(depositLimit)).to.be.revertedWith("!authorised");
     // gatekeeper is allowed
     expect(await baseVault.connect(gatekeeper).setDepositLimit(depositLimit))
       .to.emit(baseVault, "DepositLimitUpdated")
@@ -232,9 +230,9 @@ describe("BaseVault", function () {
       expect(baseVault.addStrategy(mockStrategy.address)).to.be.revertedWith("emergency shutdown");
 
       await baseVault.connect(governance).setVaultEmergencyShutdown(false);
-      expect(baseVault.connect(governance).addStrategy(mockStrategy.address)).to.be.revertedWith("only strategy store");
-      expect(baseVault.connect(gatekeeper).addStrategy(mockStrategy.address)).to.be.revertedWith("only strategy store");
-      expect(baseVault.connect(user1).addStrategy(mockStrategy.address)).to.be.revertedWith("only strategy store");
+      expect(baseVault.connect(governance).addStrategy(mockStrategy.address)).to.be.revertedWith("!strategyStore");
+      expect(baseVault.connect(gatekeeper).addStrategy(mockStrategy.address)).to.be.revertedWith("!strategyStore");
+      expect(baseVault.connect(user1).addStrategy(mockStrategy.address)).to.be.revertedWith("!strategyStore");
       expect(await baseVault.connect(vaultStrategyDataStoreSigner).addStrategy(mockStrategy.address))
         .to.emit(baseVault, "StrategyAdded")
         .withArgs(mockStrategy.address);
@@ -244,13 +242,9 @@ describe("BaseVault", function () {
       const MockStrategy = await ethers.getContractFactory("StrategyMock");
       const mockStrategy1 = (await MockStrategy.deploy(ethers.constants.AddressZero)) as StrategyMock;
       await mockStrategy1.deployed();
-      expect(baseVault.connect(governance).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith(
-        "only strategy store"
-      );
-      expect(baseVault.connect(gatekeeper).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith(
-        "only strategy store"
-      );
-      expect(baseVault.connect(user1).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith("only strategy store");
+      expect(baseVault.connect(governance).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith("!strategyStore");
+      expect(baseVault.connect(gatekeeper).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith("!strategyStore");
+      expect(baseVault.connect(user1).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith("!strategyStore");
       expect(await baseVault.connect(vaultStrategyDataStoreSigner).migrateStrategy(mockStrategy.address, mockStrategy1.address))
         .to.emit(baseVault, "StrategyMigrated")
         .withArgs(mockStrategy.address, mockStrategy1.address);
@@ -258,8 +252,8 @@ describe("BaseVault", function () {
 
     it("test revokeStrategy", async () => {
       await vaultStrategyDataStore.connect(governance).addStrategy(baseVault.address, mockStrategy.address, 0, 0, 100, 100);
-      expect(baseVault.connect(governance).revokeStrategy()).to.be.revertedWith("not authorised");
-      expect(baseVault.connect(gatekeeper).revokeStrategy()).to.be.revertedWith("not authorised");
+      expect(baseVault.connect(governance).revokeStrategy()).to.be.revertedWith("!strategy");
+      expect(baseVault.connect(gatekeeper).revokeStrategy()).to.be.revertedWith("!strategy");
       expect(await baseVault.connect(mockStrategySigner).revokeStrategy())
         .to.emit(baseVault, "StrategyRevoked")
         .withArgs(mockStrategy.address);

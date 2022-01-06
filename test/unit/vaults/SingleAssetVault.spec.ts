@@ -18,6 +18,7 @@ describe("SingleAssetVault", async () => {
   let manager: SignerWithAddress;
   let rewards: SignerWithAddress;
   let user: SignerWithAddress;
+  let user2: SignerWithAddress;
   let wallet: SignerWithAddress;
   let token: TokenMock;
   let strategyDataStore: VaultStrategyDataStore;
@@ -25,7 +26,7 @@ describe("SingleAssetVault", async () => {
   let yopRewards: YOPVaultRewards;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, manager, rewards, user, wallet] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, manager, rewards, user, user2, wallet] = await ethers.getSigners();
     const MockToken = await ethers.getContractFactory("TokenMock");
     token = (await MockToken.deploy("LosPolosHermanos", "lph")) as TokenMock;
     await token.deployed();
@@ -82,7 +83,7 @@ describe("SingleAssetVault", async () => {
     });
 
     it("normal user have no access", async () => {
-      expect(vault.connect(user).pause()).to.be.revertedWith("not authorised");
+      expect(vault.connect(user).pause()).to.be.revertedWith("!authorised");
     });
 
     it("gatekeeper can pause", async () => {
@@ -132,7 +133,7 @@ describe("SingleAssetVault", async () => {
     const randomAddress1 = "0x8888888888888888888888888888888888888888";
     const randomAddress2 = "0x9999999999999999999999999999999999999999";
     it("normal user have no access", async () => {
-      expect(vault.connect(user).setAccessManager(randomAddress1)).to.be.revertedWith("not authorised");
+      expect(vault.connect(user).setAccessManager(randomAddress1)).to.be.revertedWith("!authorised");
     });
     it("gatekeeper can set access control manager", async () => {
       expect(await vault.connect(gatekeeper).setAccessManager(randomAddress1))
@@ -165,7 +166,7 @@ describe("SingleAssetVault", async () => {
       expect(vault.connect(user).deposit(ethers.constants.WeiPerEther, user.address)).to.be.revertedWith("emergency shutdown");
     });
     it("can not deposit if recipient address is not valid", async () => {
-      expect(vault.connect(user).deposit(ethers.constants.WeiPerEther, ethers.constants.AddressZero)).to.be.revertedWith("invalid recipient");
+      expect(vault.connect(user).deposit(ethers.constants.WeiPerEther, ethers.constants.AddressZero)).to.be.revertedWith("!recipient");
     });
     describe("check access control policy", async () => {
       let allowlistPolicy: AllowlistAccessControl;
@@ -186,7 +187,7 @@ describe("SingleAssetVault", async () => {
       });
 
       it("should not allow access if user is not on the allowlist", async () => {
-        expect(vault.connect(user).deposit(ethers.constants.WeiPerEther, user.address)).to.be.revertedWith("no access");
+        expect(vault.connect(user).deposit(ethers.constants.WeiPerEther, user.address)).to.be.revertedWith("!access");
       });
 
       it("should allow access if user is on the allowlist", async () => {
@@ -235,6 +236,17 @@ describe("SingleAssetVault", async () => {
           .withArgs(ethers.constants.AddressZero, user.address, expectedAmount);
         expect(await vault.balanceOf(user.address)).to.equal(amountIn.add(expectedAmount));
       });
+
+      it("user can transfer the LP tokens to another user", async () => {
+        const amountIn = ethers.utils.parseEther("1");
+        await vault.connect(user).deposit(amountIn, user.address);
+        expect(await vault.balanceOf(user.address)).to.equal(amountIn);
+        expect(await vault.balanceOf(user2.address)).to.equal(ethers.constants.Zero);
+        const transferAmount = ethers.utils.parseEther("0.5");
+        await vault.connect(user).transfer(user2.address, transferAmount);
+        expect(await vault.balanceOf(user.address)).to.equal(amountIn.sub(transferAmount));
+        expect(await vault.balanceOf(user2.address)).to.equal(transferAmount);
+      });
     });
   });
 
@@ -252,17 +264,13 @@ describe("SingleAssetVault", async () => {
       expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, maxLoss)).to.be.revertedWith("emergency shutdown");
     });
     it("can not withdraw if recipient address is not valid", async () => {
-      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, ethers.constants.AddressZero, maxLoss)).to.be.revertedWith(
-        "invalid recipient"
-      );
+      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, ethers.constants.AddressZero, maxLoss)).to.be.revertedWith("!recipient");
     });
     it("can not withdraw when the maxLoss value is over the limit", async () => {
-      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, BigNumber.from("11000"))).to.be.revertedWith(
-        "invalid maxLoss"
-      );
+      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, BigNumber.from("11000"))).to.be.revertedWith("!loss");
     });
     it("can not withdraw when users don't have LP tokens", async () => {
-      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, maxLoss)).to.be.revertedWith("no shares");
+      expect(vault.connect(user).withdraw(ethers.constants.WeiPerEther, user.address, maxLoss)).to.be.revertedWith("!shares");
     });
     describe("verify withdraw values", async () => {
       const amountIn = ethers.utils.parseEther("1");
@@ -325,7 +333,7 @@ describe("SingleAssetVault", async () => {
           const loss = ethers.utils.parseEther("0.011");
           await mockStrategy.setLoss(loss);
           await mockStrategy.setReturnAmount(ethers.utils.parseEther("0.9").sub(loss));
-          expect(vault.connect(user).withdraw(amountIn, user.address, maxLoss)).to.be.revertedWith("loss is over limit");
+          expect(vault.connect(user).withdraw(amountIn, user.address, maxLoss)).to.be.revertedWith("loss limit");
         });
 
         it("will withdraw when loss is not over the limit", async () => {
@@ -391,7 +399,7 @@ describe("SingleAssetVault", async () => {
 
     it("should not be able to call the vault if it's not a strategy for the vault", async () => {
       await mockStrategy.setVault(vault.address);
-      expect(mockStrategy.callVault()).to.be.revertedWith("invalid strategy");
+      expect(mockStrategy.callVault()).to.be.revertedWith("!strategy");
     });
 
     describe("report from valid strategy", async () => {
@@ -411,7 +419,7 @@ describe("SingleAssetVault", async () => {
       it("should fail if the strategy doesn't have enough balance", async () => {
         await mockStrategy.setProfit(ethers.utils.parseEther("0.1"));
         await mockStrategy.setDebtPayment(ethers.utils.parseEther("0.1"));
-        expect(mockStrategy.callVault()).to.be.revertedWith("not enough balance");
+        expect(mockStrategy.callVault()).to.be.revertedWith("!balance");
       });
 
       it("report profit", async () => {

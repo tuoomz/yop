@@ -1,29 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-IERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
+import "../interfaces/IYOPVaultRewards.sol";
 import "./VaultMetaDataStore.sol";
 
 import {StrategyInfo} from "../interfaces/IVault.sol";
 
-// the Vault itself also represents an ERC20 token, which means it also inherits all methods that are available on the ERC20 interface.
-// This token is the shares that the users will get when they deposit money into the Vault
-interface IBaseVault is IERC20Upgradeable, IERC20PermitUpgradeable {
-  function addStrategy(address _strategy) external returns (bool);
-
-  function migrateStrategy(address _oldVersion, address _newVersion) external returns (bool);
-
-  function revokeStrategy() external;
-}
-
 /// @dev This contract is marked abstract to avoid being used directly.
 ///  NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
-abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaDataStore {
+abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event StrategyAdded(address indexed _strategy);
@@ -89,7 +79,7 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
   ///  However, that means we will need to change the interfaces to Strategies and make them incompatible with Yearn's strategies.
   ///  To avoid that, the strategies will continue talking to the Vault and the Vault will then let the {VaultStrategyDataStore} know.
   function revokeStrategy() external {
-    require(strategies[_msgSender()].activation > 0, "not authorised");
+    _validateStrategy(_msgSender());
     _strategyDataStore().revokeStrategyByStrategy(_msgSender());
     emit StrategyRevoked(_msgSender());
   }
@@ -102,12 +92,29 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
     return _strategyDataStore().strategyDebtRatio(address(this), _strategy);
   }
 
+  /// @dev This is called when tokens are minted, transferred or burned by the ERC20 implementation from openzeppelin
+  // solhint-disable-next-line no-unused-vars
+  function _beforeTokenTransfer(
+    address _from,
+    address _to,
+    uint256 _amount
+  ) internal override {
+    if (vaultRewards != address(0)) {
+      if (_from != address(0)) {
+        IYOPVaultRewards(vaultRewards).calculateRewards(address(this), _from);
+      }
+      if (_to != address(0)) {
+        IYOPVaultRewards(vaultRewards).calculateRewards(address(this), _to);
+      }
+    }
+  }
+
   function _strategyDataStore() internal view returns (IVaultStrategyDataStore) {
     return IVaultStrategyDataStore(strategyDataStore);
   }
 
   function _onlyStrategyDataStore() internal view {
-    require(_msgSender() == strategyDataStore, "only strategy store");
+    require(_msgSender() == strategyDataStore, "!strategyStore");
   }
 
   /// @dev ensure the vault is not in emergency shutdown mode
@@ -116,7 +123,7 @@ abstract contract BaseVault is IBaseVault, ERC20PermitUpgradeable, VaultMetaData
   }
 
   function _validateStrategy(address _strategy) internal view {
-    require(strategies[_strategy].activation > 0, "invalid strategy");
+    require(strategies[_strategy].activation > 0, "!strategy");
   }
 
   function _addStrategy(address _strategy) internal returns (bool) {

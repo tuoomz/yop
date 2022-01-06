@@ -4,8 +4,8 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/utils/Context.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
+import "../interfaces/IVault.sol";
 import "./roles/Governable.sol";
-import "./BaseVault.sol";
 
 /// @notice This contract will allow governance and managers to configure strategies and withdraw queues for a vault.
 ///  This contract should be deployed first, and then the address of this contract should be used to deploy a vault.
@@ -262,7 +262,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     });
     /* solhint-enable */
 
-    require(IBaseVault(_vault).addStrategy(_strategy), "vault error");
+    require(IVault(_vault).addStrategy(_strategy), "vault error");
     if (IStrategy(_strategy).vault() == address(0)) {
       IStrategy(_strategy).setVault(_vault);
     }
@@ -447,7 +447,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
       vault: params.vault
     });
 
-    require(IBaseVault(_vault).migrateStrategy(_oldStrategy, _newStrategy), "vault error");
+    require(IVault(_vault).migrateStrategy(_oldStrategy, _newStrategy), "vault error");
     emit StrategyMigrated(_vault, _oldStrategy, _newStrategy);
     for (uint256 i = 0; i < configs[_vault].withdrawQueue.length; i++) {
       if (configs[_vault].withdrawQueue[i] == _oldStrategy) {

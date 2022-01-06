@@ -101,7 +101,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   /// @param _degradation The rate of degradation in percent per second scaled to 1e18.
   function setLockedProfileDegradation(uint256 _degradation) external {
     _onlyGovernance();
-    require(_degradation <= DEGRADATION_COEFFICIENT, "degradation value is too large");
+    require(_degradation <= DEGRADATION_COEFFICIENT, "!value");
     if (lockedProfitDegradation != _degradation) {
       lockedProfitDegradation = _degradation;
       emit LockedProfitDegradationUpdated(_degradation);
@@ -119,11 +119,11 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   }
 
   function _onlyGovernanceOrGatekeeper() internal view {
-    require((_msgSender() == governance) || (gatekeeper != address(0) && gatekeeper == _msgSender()), "not authorised");
+    require((_msgSender() == governance) || (gatekeeper != address(0) && gatekeeper == _msgSender()), "!authorised");
   }
 
   function _updateRewards(address _rewards) internal {
-    require(_rewards != address(0), "invalid address");
+    require(_rewards != address(0), "!input");
     if (rewards != _rewards) {
       rewards = _rewards;
       emit RewardsUpdated(_rewards);
@@ -131,7 +131,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   }
 
   function _updateManagementFee(uint256 _managementFee) internal {
-    require(_managementFee < MAX_BASIS_POINTS, "invalid input");
+    require(_managementFee < MAX_BASIS_POINTS, "!input");
     if (managementFee != _managementFee) {
       managementFee = _managementFee;
       emit ManagementFeeUpdated(_managementFee);
@@ -146,7 +146,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   }
 
   function _updateStrategyDataStore(address _strategyDataStore) internal {
-    require(_strategyDataStore != address(0), "invalid input");
+    require(_strategyDataStore != address(0), "!input");
     if (strategyDataStore != _strategyDataStore) {
       strategyDataStore = _strategyDataStore;
       emit StrategyDataStoreUpdated(_strategyDataStore);

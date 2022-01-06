@@ -15,7 +15,7 @@ abstract contract SingleAssetVaultBase is BaseVault {
 
   // solhint-disable-next-line func-name-mixedcase
   function __SingleAssetVaultBase_init_unchained(address _token) internal {
-    require(_token != address(0), "invalid token address");
+    require(_token != address(0), "!token");
     token = IERC20Upgradeable(_token);
     // the vault decimals need to match the tokens to avoid any conversion
     vaultDecimals = ERC20Upgradeable(address(token)).decimals();
@@ -113,7 +113,7 @@ abstract contract SingleAssetVaultBase is BaseVault {
   /// @param _amount the amount of tokens to send
   function sweep(address _token, uint256 _amount) external {
     _onlyGovernance();
-    require(address(token) != _token, "invalid token");
+    require(address(token) != _token, "!token");
     _sweep(_token, _amount, governance);
   }
 

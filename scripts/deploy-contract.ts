@@ -1,12 +1,12 @@
 import hre from "hardhat";
 import { readDeploymentFile, writeDeploymentFile, getTxn } from "./util";
 
-export async function deployContract(
-  name: string,
-  contractFactory: string,
-  upgradeable: boolean,
-  ...contractParams: any
-): Promise<{ address: string }> {
+import { SingleAssetVault } from "../types/SingleAssetVault";
+import { VaultStrategyDataStore } from "../types/VaultStrategyDataStore";
+import { YOPVaultRewards } from "../types/YOPVaultRewards";
+import { AccessControlManager } from "../types/AccessControlManager";
+
+export async function deployContract<Type>(name: string, contractFactory: string, upgradeable: boolean, ...contractParams: any): Promise<Type> {
   const { ethers } = hre;
   const [deployer] = await ethers.getSigners();
   const deployerAddress = await deployer.getAddress();
@@ -51,5 +51,7 @@ export async function deployContract(
   await writeDeploymentFile(deployRecord);
   console.log(`${deploymentRecordName} deployed - txHash: ${contract.deployTransaction.hash} - address: ${contract.address} \n\n`);
 
-  return contract;
+  // return contract;
+  const res = contract as unknown as Type;
+  return res;
 }

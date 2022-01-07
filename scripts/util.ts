@@ -5,10 +5,24 @@ import { promises as fs } from "fs";
 import assert from "assert";
 
 import { TransactionResponse } from "@ethersproject/abstract-provider";
+import { Contract } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 const NETWORK_NAME = hre.network.name;
 
 // Read deployment file
+export function spaces(length: number): string {
+  return new Array(length).fill(" ").join("");
+}
+
+export function address(contract: SignerWithAddress | Contract | string): string {
+  return typeof contract === "string" ? contract : contract.address;
+}
+
+export function isDevelopmentNetwork(): boolean {
+  return ["hardhat", "localhost"].includes(hre.network.name);
+}
+
 export async function readDeploymentFile(): Promise<any> {
   const deploymentsFile = await getDeploymentFile();
 

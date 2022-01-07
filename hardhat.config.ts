@@ -48,8 +48,10 @@ const chainIds = {
 const config: HardhatUserConfig = {
   abiExporter: {
     path: "./abi",
-    clear: false,
-    flat: true,
+    clear: true,
+    flat: false,
+    spacing: 2,
+    pretty: true,
     // only: [],
     // except: []
   },

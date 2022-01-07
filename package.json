@@ -27,12 +27,12 @@
     "@openzeppelin/contracts": "^4.3.2",
     "@openzeppelin/contracts-upgradeable": "^4.3.3",
     "hardhat-contract-sizer": "^2.1.1",
-    "hardhat-tracer": "^1.0.0-alpha.6",
-    "hardhat-watcher": "^2.1.1",
     "prb-math": "^2.4.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^13.2.1",
+    "hardhat-tracer": "^1.0.0-alpha.6",
+    "hardhat-watcher": "^2.1.1",
     "@commitlint/config-conventional": "^13.2.0",
     "@ethersproject/abstract-provider": "^5.5.1",
     "@nomiclabs/hardhat-ethers": "^2.0.3",
@@ -68,7 +68,7 @@
     "ethers": "^5.5.2",
     "fs-extra": "^10.0.0",
     "hardhat": "^2.7.1",
-    "hardhat-abi-exporter": "^2.3.1",
+    "hardhat-abi-exporter": "^2.7.2",
     "hardhat-contract-sizer": "^2.1.1",
     "hardhat-deploy": "^0.9.4",
     "hardhat-deploy-ethers": "^0.3.0-beta.11",

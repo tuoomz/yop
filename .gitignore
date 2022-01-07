@@ -1,12 +1,11 @@
 #Hardhat files
+.localDev
 abi
 artifacts
 cache
 typechain
 types
 bin
-deployments/localhost.json
-
 node_modules
 build
 .vscode

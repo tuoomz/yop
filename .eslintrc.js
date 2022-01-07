@@ -12,7 +12,7 @@ module.exports = {
     ecmaVersion: 12,
   },
   rules: {
-    "node/no-unsupported-features/es-syntax": ["error", { ignores: ["modules"] }],
+    "node/no-unsupported-features/es-syntax": ["warn", { ignores: ["modules"] }],
     "node/no-unpublished-import": "off",
     // this is not ideal as it duplicates configs in prettierrc, but it helps clear the errors in VSCode.
     // `usePrettierrc` doesn't work for some reason.

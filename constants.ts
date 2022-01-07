@@ -36,7 +36,7 @@ export const CONSTANTS: any = {
 } as const;
 
 export function fetchConstant(constantGroup: string, constantName: string) {
-  const network = hre.network.name === "localhost" ? "mainnet" : hre.network.name;
+  const network = ["hardhat", "localhost"].includes(hre.network.name) ? "mainnet" : hre.network.name;
   try {
     return CONSTANTS[constantGroup][network][constantName];
   } catch (error) {

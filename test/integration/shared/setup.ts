@@ -7,6 +7,7 @@ import { BigNumber } from "ethers";
 
 const YOP_WHALE_ADDRESS = "0x2f535f200847d4bc7ee6e2d6de9fcc40011f7214";
 const YOP_CONTRACT_ADDRESS = "0xae1eaae3f627aaca434127644371b67b18444051";
+const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 
 export async function setupVault(tokenAddress: string) {
   const now = Math.round(new Date().getTime() / 1000);
@@ -50,6 +51,10 @@ export async function setupVault(tokenAddress: string) {
     rewards,
     yopWalletAccount,
   };
+}
+
+export async function setupWBTCVault() {
+  return setupVault(WBTC_ADDRESS);
 }
 
 export async function impersonate(account: string) {

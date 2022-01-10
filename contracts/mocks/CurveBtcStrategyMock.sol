@@ -45,6 +45,10 @@ contract CurveBtcStrategyMock is CurveBtc {
     dex = _dex;
   }
 
+  function testApproveDex() external {
+    _approveDex();
+  }
+
   function setBTCTokenAddress(address _address) external {
     wbtcTokenAddress = _address;
     super.checkWantToken();

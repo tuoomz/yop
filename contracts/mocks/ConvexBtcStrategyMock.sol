@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "../strategies/ConvexStable.sol";
-import "../mocks/CurveStableStrategyMock.sol";
+import "../strategies/ConvexBtc.sol";
 import "hardhat/console.sol";
 
-contract ConvexStableStrategyMock is ConvexStable {
+contract ConvexBtcStrategyMock is ConvexBtc {
   address public metapoolLpToken;
   address public curveTokenAddress;
   address public convexTokenAddress;
-  IERC20 public _triPoolLpToken;
+  address public wbtcTokenAddress;
+  IERC20 public curvelpToken;
 
   constructor(
     address _vault,
@@ -18,7 +18,7 @@ contract ConvexStableStrategyMock is ConvexStable {
     address _keeper,
     address _pool,
     address _booster
-  ) ConvexStable(_vault, _strategist, _rewards, _keeper, _pool, _booster) {}
+  ) ConvexBtc(_vault, _strategist, _rewards, _keeper, _pool, _booster) {}
 
   function setDex(address _dex) external {
     dex = _dex;
@@ -36,17 +36,17 @@ contract ConvexStableStrategyMock is ConvexStable {
     metapoolLpToken = _lpToken;
   }
 
-  function _getMetaPoolLpToken() internal view override returns (IERC20) {
+  function _getMetaPoolLpToken() internal view returns (IERC20) {
     return IERC20(metapoolLpToken);
   }
 
-  function setMetaPool(address _metaPool) external {
-    usdnMetaPool = ICurveDeposit(_metaPool);
-  }
+  // function setMetaPool(address _metaPool) external {
+  //   _meta = ICurveDeposit(_metaPool);
+  // }
 
-  function _getMetaPool() internal view override returns (address) {
-    return address(usdnMetaPool);
-  }
+  // function _getMetaPool() internal view override returns (address) {
+  //   return address(usdnMetaPool);
+  // }
 
   function mockProtectedTokens() external view returns (address[] memory) {
     return super.protectedTokens();
@@ -68,18 +68,6 @@ contract ConvexStableStrategyMock is ConvexStable {
     return convexTokenAddress;
   }
 
-  function setTriPoolLpToken(address _lpToken) external {
-    _triPoolLpToken = IERC20(_lpToken);
-  }
-
-  function _getTriPoolLpToken() internal view override returns (IERC20) {
-    return _triPoolLpToken;
-  }
-
-  function getConvexTokenAddress() public view returns (address) {
-    return convexTokenAddress;
-  }
-
   function mockClaimRewards() public {
     _claimRewards();
   }
@@ -88,7 +76,7 @@ contract ConvexStableStrategyMock is ConvexStable {
     _depositLPTokens();
   }
 
-  function mockApproveDex() public {
+  function testApproveDex() public {
     _approveDex();
   }
 
@@ -96,7 +84,33 @@ contract ConvexStableStrategyMock is ConvexStable {
     curvePool = ICurveDeposit(_pool);
   }
 
-  function _approveCurveExtra() internal override {}
+  function _getWTBCTokenAddress() internal view override returns (address) {
+    return wbtcTokenAddress;
+  }
+
+  function setWBTCTokenAddress(address _address) external {
+    wbtcTokenAddress = _address;
+  }
 
   function _approveOnInit() internal override {}
+
+  function _approveDexExtra() internal {}
+
+  function setCurveAddressProvider(address _provider) external {
+    curveAddressProvider = ICurveAddressProvider(_provider);
+  }
+
+  function getLpToken() external view returns (IERC20) {
+    return curvelpToken;
+  }
+
+  function checkWantToken() internal view override {}
+
+  function setLpToken(address _lpToken) external {
+    curvelpToken = IERC20(_lpToken);
+  }
+
+  function mockOnHarvest() external {
+    onHarvest();
+  }
 }

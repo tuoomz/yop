@@ -31,7 +31,7 @@ contract ConvexBase {
   }
 
   // Need to allow booster to access the lp tokens for deposit
-  function _approveConvexExtra() internal {
+  function _approveConvexExtra() internal virtual {
     IERC20(lpToken).safeApprove(convexBooster, type(uint256).max);
   }
 

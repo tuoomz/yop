@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, jumpForward } from "../shared/setup";
-import { ethers } from "hardhat";
+import { setupVault, impersonate, setEthBalance, jumpForward, setupWBTCVault } from "../shared/setup";
+import { ethers, waffle } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -23,6 +23,8 @@ const CONVEX_BOOSTER_ADDRESS = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const CONVEX_REWARD_CONTRACT_ADDRESS = "0xeeeCE77e0bc5e59c77fc408789A9A172A504bD2f";
 const WBTC_DECIMALS = 8;
 
+const { loadFixture } = waffle;
+
 describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
   let vaultStrategyDataStore: VaultStrategyDataStore;
@@ -42,7 +44,7 @@ describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
 
   beforeEach(async () => {
     // setup the vault
-    ({ vault, vaultStrategyDataStore, governance, rewards } = await setupVault(WBTC_ADDRESS));
+    ({ vault, vaultStrategyDataStore, governance, rewards } = await loadFixture(setupWBTCVault));
     // deploy the strategy
     [strategist, keeper, user] = (await ethers.getSigners()).reverse();
     const strategyFactory = await ethers.getContractFactory("ConvexBtc");

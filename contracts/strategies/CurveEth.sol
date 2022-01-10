@@ -4,12 +4,7 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./CurveBase.sol";
-
-interface IWETH is IERC20 {
-  function withdraw(uint256 wad) external;
-
-  function deposit(uint256) external payable;
-}
+import "../interfaces/IWeth.sol";
 
 /// @notice Implements the strategy using the ETH/stETH swap pool.
 ///  The strategy will take wETH as the input token, swap them to ETH, and then add liquidity to the ETH/stETH pool.

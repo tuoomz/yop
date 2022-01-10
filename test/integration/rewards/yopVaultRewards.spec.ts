@@ -3,7 +3,7 @@ import { setupVault, impersonate, setEthBalance, setNextBlockTimestamp } from ".
 import { ethers } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import WethABI from "../../abis/weth.json";
+import IWethABI from "../../../abi/contracts/interfaces/IWeth.sol/IWETH.json";
 import { IWETH } from "../../../types";
 import { YOPVaultRewards } from "../../../types/YOPVaultRewards";
 import { BigNumber } from "ethers";
@@ -16,7 +16,7 @@ const SECONDS_PER_MONTH = 2629743;
 let blockTime = Math.round(new Date().getTime() / 1000);
 let currentEmissionRate = INITIAL_RATE;
 
-describe.only("yopVaultRewards [@skip-on-coverage]", async () => {
+describe("yopVaultRewards [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
   let governance: SignerWithAddress;
   let yopRewards: YOPVaultRewards;
@@ -32,7 +32,7 @@ describe.only("yopVaultRewards [@skip-on-coverage]", async () => {
     await vault.connect(governance).unpause();
 
     // send some weth to the user
-    wethContract = (await ethers.getContractAt(WethABI, WETH_ADDRESS)) as IWETH;
+    wethContract = (await ethers.getContractAt(IWethABI, WETH_ADDRESS)) as IWETH;
     await setEthBalance(WETH_WHALE_ADDRESS, ethers.utils.parseEther("10"));
     await wethContract.connect(await impersonate(WETH_WHALE_ADDRESS)).transfer(user.address, ethers.utils.parseEther("100"));
     await wethContract.connect(user).approve(vault.address, ethers.constants.MaxUint256);

@@ -83,4 +83,8 @@ contract CurveEthStrategyMock is CurveEth {
   function testProtectedTokens() external view returns (address[] memory) {
     return super.protectedTokens();
   }
+
+  function testOnHarvest() external {
+    super.onHarvest();
+  }
 }

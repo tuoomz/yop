@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { CurveEthStrategyMock } from "../../../types/CurveEthStrategyMock";
 import { setupMockVault, setupCurve } from "../fixtures/setup";
 import { MockContract } from "ethereum-waffle";
-import IWethABI from "../../../abi/contracts/strategies/CurveEth.sol/IWETH.json";
+import IWethABI from "../../../abi/contracts/interfaces/IWeth.sol/IWETH.json";
 const { loadFixture, deployMockContract } = waffle;
 
 describe("CurveEth strategy", async () => {
@@ -254,6 +254,12 @@ describe("CurveEth strategy", async () => {
     it("should return the expected protected tokens", async () => {
       const tokens = await curveEthStrategy.testProtectedTokens();
       expect(tokens).to.deep.equal([curveToken.address, poolLpToken.address]);
+    });
+  });
+  describe("onHarvest", async () => {
+    it("should set the user checkpoint", async () => {
+      await mockCurveGauge.mock.user_checkpoint.returns(true);
+      await expect(curveEthStrategy.testOnHarvest()).not.to.be.reverted;
     });
   });
 });

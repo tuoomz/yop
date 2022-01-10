@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { CurveBtcStrategyMock } from "../../../types/CurveBtcStrategyMock";
 import { setupMockVault, setupCurve } from "../fixtures/setup";
 import { MockContract } from "ethereum-waffle";
-import ERC20ABI from "../../../abi/ERC20.json";
+import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 import CurveZapDepositorABI from "../../abis/curvePoolZapDepositor.json";
 const { loadFixture, deployMockContract } = waffle;
 

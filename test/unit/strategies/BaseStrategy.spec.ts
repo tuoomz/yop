@@ -5,8 +5,8 @@ import { BaseStrategyMock } from "../../../types/BaseStrategyMock";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { MockContract } from "ethereum-waffle";
 import { impersonate } from "../utils/Impersonate";
-import BaseStrategyABI from "../../../abi/BaseStrategy.json";
-import ERC20ABI from "../../../abi/ERC20.json";
+import BaseStrategyABI from "../../../abi/contracts/strategies/BaseStrategy.sol/BaseStrategy.json";
+import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 const { loadFixture, deployMockContract } = waffle;
 
 describe("BaseStrategy", async () => {

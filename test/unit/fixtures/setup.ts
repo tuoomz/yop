@@ -11,12 +11,12 @@ import curvePoolABI from "../../abis/curvePlainPool.json";
 import dexABI from "../../abis/sushiSwapRouter.json";
 import curvePooTrioABI from "../../abis/curvePlainPoolTrio.json";
 import curveMetaPoolABI from "../../abis/curveMetaPool.json";
-import vaultABI from "../../../abi/SingleAssetVault.json";
-import ERC20ABI from "../../../abi/ERC20.json";
+import vaultABI from "../../../abi/contracts/interfaces/IVault.sol/IVault.json";
+import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 import daiABI from "../../abis/coins/dai.json";
 import usdtABI from "../../abis/coins/usdt.json";
 import usdcABI from "../../abis/coins/usdc.json";
-import vaultStrategyDataStoreABI from "../../../abi/VaultStrategyDataStore.json";
+import vaultStrategyDataStoreABI from "../../../abi/contracts/vaults/VaultStrategyDataStore.sol/VaultStrategyDataStore.json";
 import convexBoosterABI from "../../abis/convexBooster.json";
 import convexRewardsABI from "../../abis/convexBaseRewards.json";
 

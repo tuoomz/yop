@@ -48,7 +48,16 @@ contract BaseVaultMock2 is BaseVaultMock {
     address _rewards,
     address _strategyDataStoreAddress
   ) public override initializer {
-    BaseVaultMock.initialize(_name, _symbol, _governance, _gatekeeper, _rewards, _strategyDataStoreAddress);
+    __BaseVault__init(
+      _name,
+      _symbol,
+      _governance,
+      _gatekeeper,
+      _rewards,
+      _strategyDataStoreAddress,
+      address(0),
+      address(0)
+    );
     migrateStrategyResult = true;
     addStrategyResult = true;
   }

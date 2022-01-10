@@ -48,10 +48,12 @@ const chainIds = {
 const config: HardhatUserConfig = {
   abiExporter: {
     path: "./abi",
+    runOnCompile: true,
     clear: true,
     flat: false,
     spacing: 2,
-    pretty: true,
+    // do not use the interface-style formatting as some of the tests will fail to encode the data
+    pretty: false,
     // only: [],
     // except: []
   },

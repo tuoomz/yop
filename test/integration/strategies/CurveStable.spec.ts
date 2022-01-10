@@ -6,7 +6,7 @@ import { BigNumber } from "ethers";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import ERC20ABI from "../../../abi/ERC20.json";
+import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 import CurveBasePoolABI from "../../abis/curvePlainPoolTrio.json";
 import { ICurveDeposit } from "../../../types/ICurveDeposit";
 import { CurveStable, ERC20 } from "../../../types";

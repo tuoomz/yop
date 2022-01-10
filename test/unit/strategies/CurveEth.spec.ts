@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { CurveEthStrategyMock } from "../../../types/CurveEthStrategyMock";
 import { setupMockVault, setupCurve } from "../fixtures/setup";
 import { MockContract } from "ethereum-waffle";
-import IWethABI from "../../../abi/IWETH.json";
+import IWethABI from "../../../abi/contracts/strategies/CurveEth.sol/IWETH.json";
 const { loadFixture, deployMockContract } = waffle;
 
 describe("CurveEth strategy", async () => {

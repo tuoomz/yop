@@ -7,7 +7,7 @@ export const CONSTANTS: any = {
       yopGatekeeper: "0x5B6394Eb0C9Ac102fA5777D32Cd87151E894A940",
       yopManager: "0x65A7cDfd73d6f6A5bE6604521c8001FE2cE58f0D",
       yopStrategist: "0xEe06F6574856512Eae3c350972E056Df52e42b0D",
-      yopKeeper: "0xE9CDD67b924a8e82709207373699bb749F8851CE",
+      yopHarvester: "0xE9CDD67b924a8e82709207373699bb749F8851CE",
     },
   },
   addresses: {

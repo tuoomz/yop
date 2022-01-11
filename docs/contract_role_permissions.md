@@ -66,22 +66,22 @@ _Notes_:
 
 ## Strategies
 
-| Strategies |                   | Governance | Gatekeeper | Manager | Strategist | Keeper |
-| ---------- | ----------------- | :--------: | :--------: | :-----: | :--------: | :----: |
-|            | setStrategist     |     x      |            |         |     x      |        |
-|            | setKeeper         |     x      |            |         |     x      |        |
-|            | setVault          |     x      |            |         |     x      |        |
-|            | setRewards        |            |            |         |     x      |        |
-|            | setMinReportDelay |     x      |            |         |     x      |        |
-|            | setMaxReportDelay |     x      |            |         |     x      |        |
-|            | setProfitFactor   |     x      |            |         |     x      |        |
-|            | setDebtThreshold  |     x      |            |         |     x      |        |
-|            | setMetadataURI    |     x      |            |         |     x      |        |
-|            | tend              |     x      |            |         |     x      |   x    |
-|            | harvest           |     x      |            |         |     x      |   x    |
-|            | migrate           |     x      |            |         |            |        |
-|            | setEmergencyExit  |     x      |            |         |     x      |        |
-|            | sweep             |     x      |            |         |            |        |
+| Strategies |                   | Governance | Gatekeeper | Manager | Strategist | Harvester |
+| ---------- | ----------------- | :--------: | :--------: | :-----: | :--------: | :-------: |
+|            | setStrategist     |     x      |            |         |     x      |           |
+|            | setKeeper         |     x      |            |         |     x      |           |
+|            | setVault          |     x      |            |         |     x      |           |
+|            | setRewards        |            |            |         |     x      |           |
+|            | setMinReportDelay |     x      |            |         |     x      |           |
+|            | setMaxReportDelay |     x      |            |         |     x      |           |
+|            | setProfitFactor   |     x      |            |         |     x      |           |
+|            | setDebtThreshold  |     x      |            |         |     x      |           |
+|            | setMetadataURI    |     x      |            |         |     x      |           |
+|            | tend              |     x      |            |         |     x      |     x     |
+|            | harvest           |     x      |            |         |     x      |     x     |
+|            | migrate           |     x      |            |         |            |           |
+|            | setEmergencyExit  |     x      |            |         |     x      |           |
+|            | sweep             |     x      |            |         |            |           |
 
 ### Convex
 

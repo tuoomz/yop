@@ -40,7 +40,7 @@ interface IStrategy {
   // *** public read functions that can be called by anyone *** //
   function name() external view returns (string memory);
 
-  function keeper() external view returns (address);
+  function harvester() external view returns (address);
 
   function strategist() external view returns (address);
 
@@ -56,7 +56,7 @@ interface IStrategy {
   // *** write functions that can be called by the govenance or the strategist ***//
   function setStrategist(address _strategist) external;
 
-  function setKeeper(address _keeper) external;
+  function setHarvester(address _havester) external;
 
   function setRewards(address _rewards) external;
 

@@ -71,14 +71,14 @@ abstract contract BaseStrategy is IStrategy {
   address public vault;
   address public strategist;
   address public rewards;
-  address public keeper;
+  address public harvester;
   IERC20 public want;
 
   // So indexers can keep track of this
 
   event UpdatedStrategist(address newStrategist);
 
-  event UpdatedKeeper(address newKeeper);
+  event UpdatedHarvester(address newHarvester);
 
   event UpdatedRewards(address rewards);
 
@@ -130,13 +130,7 @@ abstract contract BaseStrategy is IStrategy {
   }
 
   modifier onlyKeepers() {
-    require(
-      msg.sender == keeper ||
-        msg.sender == strategist ||
-        msg.sender == governance() ||
-        msg.sender == IVault(vault).gatekeeper(),
-      "!authorized"
-    );
+    require(msg.sender == harvester || msg.sender == strategist || msg.sender == governance(), "!authorized");
     _;
   }
 
@@ -144,9 +138,9 @@ abstract contract BaseStrategy is IStrategy {
     address _vault,
     address _strategist,
     address _rewards,
-    address _keeper
+    address _harvester
   ) {
-    _initialize(_vault, _strategist, _rewards, _keeper);
+    _initialize(_vault, _strategist, _rewards, _harvester);
   }
 
   /**
@@ -160,7 +154,7 @@ abstract contract BaseStrategy is IStrategy {
     address _vault,
     address _strategist,
     address _rewards,
-    address _keeper
+    address _harvester
   ) internal {
     require(address(want) == address(0), "Strategy already initialized");
 
@@ -170,7 +164,7 @@ abstract contract BaseStrategy is IStrategy {
     want.safeApprove(_vault, type(uint256).max); // Give Vault unlimited access (might save gas)
     strategist = _strategist;
     rewards = _rewards;
-    keeper = _keeper;
+    harvester = _harvester;
 
     // initialize variables
     minReportDelay = 0;
@@ -196,21 +190,21 @@ abstract contract BaseStrategy is IStrategy {
 
   /**
    * @notice
-   *  Used to change `keeper`.
+   *  Used to change `harvester`.
    *
-   *  `keeper` is the only address that may call `tend()` or `harvest()`,
+   *  `harvester` is the only address that may call `tend()` or `harvest()`,
    *  other than `governance()` or `strategist`. However, unlike
-   *  `governance()` or `strategist`, `keeper` may *only* call `tend()`
+   *  `governance()` or `strategist`, `harvester` may *only* call `tend()`
    *  and `harvest()`, and no other authorized functions, following the
    *  principle of least privilege.
    *
    *  This may only be called by governance or the strategist.
-   * @param _keeper The new address to assign as `keeper`.
+   * @param _harvester The new address to assign as `keeper`.
    */
-  function setKeeper(address _keeper) external onlyAuthorized {
-    require(_keeper != address(0), "! address 0");
-    keeper = _keeper;
-    emit UpdatedKeeper(_keeper);
+  function setHarvester(address _harvester) external onlyAuthorized {
+    require(_harvester != address(0), "! address 0");
+    harvester = _harvester;
+    emit UpdatedHarvester(_harvester);
   }
 
   function setVault(address _vault) external onlyAuthorized {

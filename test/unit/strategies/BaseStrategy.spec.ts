@@ -13,7 +13,7 @@ describe("BaseStrategy", async () => {
   let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let strategist: SignerWithAddress;
-  let gatekeeper: SignerWithAddress;
+  let harvester: SignerWithAddress;
   let rewards: SignerWithAddress;
   let user: SignerWithAddress;
   let mockVault: MockContract;
@@ -22,21 +22,15 @@ describe("BaseStrategy", async () => {
   let strategy: BaseStrategyMock;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, rewards, strategist, user] = await ethers.getSigners();
+    [deployer, governance, harvester, rewards, strategist, user] = await ethers.getSigners();
     ({ mockVault, mockVaultToken, mockStrategyDataStore } = await loadFixture(setupMockVault));
     await mockVault.mock.token.returns(mockVaultToken.address);
     await mockVault.mock.approve.returns(true);
     await mockVault.mock.governance.returns(governance.address);
-    await mockVault.mock.gatekeeper.returns(gatekeeper.address);
     await mockVaultToken.mock.allowance.returns(0);
     await mockVaultToken.mock.approve.returns(true);
     const StrategyBaseFactory = await ethers.getContractFactory("BaseStrategyMock");
-    strategy = (await StrategyBaseFactory.deploy(
-      mockVault.address,
-      strategist.address,
-      rewards.address,
-      gatekeeper.address
-    )) as BaseStrategyMock;
+    strategy = (await StrategyBaseFactory.deploy(mockVault.address, strategist.address, rewards.address, harvester.address)) as BaseStrategyMock;
   });
 
   describe("basic properties", async () => {
@@ -67,19 +61,19 @@ describe("BaseStrategy", async () => {
     });
   });
 
-  describe("setKeeper", async () => {
+  describe("setHarvester", async () => {
     it("should revert is user is not authorised", async () => {
-      await expect(strategy.connect(user).setKeeper(gatekeeper.address)).to.be.revertedWith("!authorized");
+      await expect(strategy.connect(user).setHarvester(harvester.address)).to.be.revertedWith("!authorized");
     });
     it("should revert if address is not valid", async () => {
-      await expect(strategy.connect(governance).setKeeper(ethers.constants.AddressZero)).to.be.revertedWith("! address 0");
+      await expect(strategy.connect(governance).setHarvester(ethers.constants.AddressZero)).to.be.revertedWith("! address 0");
     });
     it("should update the keeper", async () => {
-      await expect(await strategy.keeper()).to.equal(gatekeeper.address);
-      await expect(await strategy.connect(governance).setKeeper(user.address))
-        .to.emit(strategy, "UpdatedKeeper")
+      await expect(await strategy.harvester()).to.equal(harvester.address);
+      await expect(await strategy.connect(governance).setHarvester(user.address))
+        .to.emit(strategy, "UpdatedHarvester")
         .withArgs(user.address);
-      await expect(await strategy.keeper()).to.equal(user.address);
+      await expect(await strategy.harvester()).to.equal(user.address);
     });
   });
 
@@ -102,7 +96,7 @@ describe("BaseStrategy", async () => {
   describe("setRewards", async () => {
     it("should revert is user is not authorised", async () => {
       await expect(strategy.connect(governance).setRewards(rewards.address)).to.be.revertedWith("!strategist");
-      await expect(strategy.connect(gatekeeper).setRewards(rewards.address)).to.be.revertedWith("!strategist");
+      await expect(strategy.connect(harvester).setRewards(rewards.address)).to.be.revertedWith("!strategist");
     });
     it("should revert if address is not valid", async () => {
       await expect(strategy.connect(strategist).setRewards(ethers.constants.AddressZero)).to.be.revertedWith("! address 0");
@@ -384,7 +378,7 @@ describe("BaseStrategy", async () => {
   describe("setEmergencyExit", async () => {
     it("should revert if user is not authorised", async () => {
       await expect(strategy.connect(user).setEmergencyExit()).to.be.revertedWith("!authorized");
-      await expect(strategy.connect(gatekeeper).setEmergencyExit()).to.be.revertedWith("!authorized");
+      await expect(strategy.connect(harvester).setEmergencyExit()).to.be.revertedWith("!authorized");
     });
 
     it("should success if user is authorised", async () => {
@@ -401,7 +395,7 @@ describe("BaseStrategy", async () => {
     it("should revert is user is not authorised", async () => {
       await expect(strategy.connect(user).sweep(newToken.address)).to.be.revertedWith("!authorized");
       await expect(strategy.connect(strategist).sweep(newToken.address)).to.be.revertedWith("!authorized");
-      await expect(strategy.connect(gatekeeper).sweep(newToken.address)).to.be.revertedWith("!authorized");
+      await expect(strategy.connect(harvester).sweep(newToken.address)).to.be.revertedWith("!authorized");
     });
     it("should revert if the newToken is the address of want token", async () => {
       await expect(strategy.connect(governance).sweep(mockVaultToken.address)).to.be.revertedWith("!want");

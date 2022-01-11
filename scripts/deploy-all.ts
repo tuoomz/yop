@@ -1,13 +1,11 @@
 // This is our game day deploy script. It will deploy all our known contracts together (big bang)
 
-import hre, { ethers, network } from "hardhat";
-import { Wallet, Contract } from "ethers";
-import { HttpNetworkConfig } from "hardhat/types";
+import hre, { ethers } from "hardhat";
 import { fetchConstant } from "../constants";
 
 import { SingleAssetVault } from "../types/SingleAssetVault";
 import { YOPVaultRewards } from "../types/YOPVaultRewards";
-import { VaultStrategyDataStore, BaseStrategy, IWETH, CurveEth } from "../types";
+import { VaultStrategyDataStore, BaseStrategy, CurveEth } from "../types";
 import { AccessControlManager } from "../types/AccessControlManager";
 
 import { readDeploymentFile, verifyEnvVar, spaces, address, isDevelopmentNetwork } from "./util";
@@ -15,7 +13,6 @@ import { deployContract } from "./deploy-contract";
 
 import { VAULTS } from "../deployment-config/vaults";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BaseVault } from "../types/BaseVault";
 
 const requireEnvVar = ["ETHERSCAN_API_KEY", "ALCHEMY_API_KEY", "REWARDS_ADDRESS", "YOP_WALLET_ADDRESS"];
 verifyEnvVar(requireEnvVar);
@@ -30,17 +27,17 @@ async function getRolesAddresses(): Promise<Record<string, SignerWithAddress | s
   let GOVERNANCE;
   let GATEKEEPER;
   let STRATEGIST;
-  let KEEPER;
+  let HARVESTER;
 
   if (isDevelopmentNetwork()) {
-    [, GOVERNANCE, GATEKEEPER, STRATEGIST, KEEPER] = await ethers.getSigners();
+    [, GOVERNANCE, GATEKEEPER, STRATEGIST, HARVESTER] = await ethers.getSigners();
   }
   if (hre.network.name === "mainnet") {
     // These are our MULTISIG gnosis-safe wallets. Env Var can be used to override for development
     GOVERNANCE = fetchConstant("multisig", "yopGovernance");
     GATEKEEPER = fetchConstant("multisig", "yopGatekeeper");
     STRATEGIST = fetchConstant("multisig", "yopStrategist");
-    KEEPER = fetchConstant("multisig", "yopKeeper");
+    HARVESTER = fetchConstant("multisig", "yopHarvester");
   }
   const YOP = fetchConstant("addresses", "yop_address");
   const YOP_NFT_CONTRACT = fetchConstant("addresses", "yop_nft_contract_address");
@@ -49,7 +46,7 @@ async function getRolesAddresses(): Promise<Record<string, SignerWithAddress | s
     GOVERNANCE,
     GATEKEEPER,
     STRATEGIST,
-    KEEPER,
+    HARVESTER,
     YOP,
     YOP_NFT_CONTRACT,
   };
@@ -69,7 +66,7 @@ interface DeployedInfra {
 }
 // async function main(): Promise<Record<string, Contract | Record<string, BaseStrategy | SingleAssetVault>>> {
 async function main(): Promise<DeployedInfra> {
-  const { GOVERNANCE, GATEKEEPER, STRATEGIST, KEEPER, YOP, YOP_NFT_CONTRACT } = await getRolesAddresses();
+  const { GOVERNANCE, GATEKEEPER, STRATEGIST, HARVESTER, YOP, YOP_NFT_CONTRACT } = await getRolesAddresses();
   const deployRecord = await readDeploymentFile();
 
   console.log("\nStarting contract deployments\n");
@@ -148,7 +145,7 @@ async function main(): Promise<DeployedInfra> {
 
       // Start strategy Contract Deploy
       // This is assuming a certain order for strategy constructor params
-      // vault address, strategist, rewards address, keeper and any other params that are passed via the config file
+      // vault address, strategist, rewards address, harvester and any other params that are passed via the config file
       const strategyContract = await deployContract<BaseStrategy>(
         strategyName,
         strategyName,
@@ -156,7 +153,7 @@ async function main(): Promise<DeployedInfra> {
         vault.address,
         address(STRATEGIST),
         process.env.REWARDS_ADDRESS,
-        address(GATEKEEPER),
+        address(HARVESTER),
         ...strategyParams
       );
       deployedStrategies[strategyName] = strategyContract;

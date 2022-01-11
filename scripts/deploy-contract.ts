@@ -1,11 +1,6 @@
 import hre from "hardhat";
 import { readDeploymentFile, writeDeploymentFile, getTxn } from "./util";
 
-import { SingleAssetVault } from "../types/SingleAssetVault";
-import { VaultStrategyDataStore } from "../types/VaultStrategyDataStore";
-import { YOPVaultRewards } from "../types/YOPVaultRewards";
-import { AccessControlManager } from "../types/AccessControlManager";
-
 export async function deployContract<Type>(name: string, contractFactory: string, upgradeable: boolean, ...contractParams: any): Promise<Type> {
   const { ethers } = hre;
   const [deployer] = await ethers.getSigners();

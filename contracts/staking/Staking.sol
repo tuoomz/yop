@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../vaults/roles/Governable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "../security/BasePauseableUpgradeable.sol";
+import "../interfaces/IYOPRewards.sol";
 
 /// @notice This contract will stake (lock) YOP tokens for a period of time. While the tokens are locked in this contract, users will be able to claim additional YOP tokens (from the community emission as per YOP tokenomics).
 ///  Users can stake as many times as they want, but each stake can't be modified/extended once it is created.
 ///  For each stake, the user will recive an ERC1155 NFT token as the receipt. These NFT tokens can be transferred to other to still allow users to use the locked YOP tokens as a collateral.
 ///  When the NFT tokens are transferred, all the remaining unclaimed rewards will be transferred to the new owner as well.
-contract Staking is ERC1155, Governable {
-  using SafeERC20 for IERC20;
+contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event Staked(
     address indexed _user,
@@ -53,21 +54,48 @@ contract Staking is ERC1155, Governable {
   string public contractURI;
   // all the stake positions
   Stake[] public stakes;
+  // the address of the YOPRewards contract
+  address public yopRewards;
   // stakes for each account
   mapping(address => uint256[]) internal stakesForAddress;
-  // the total working balance for each account
-  mapping(address => uint256) internal workingBalances;
   // ownership of the NFTs
   mapping(uint256 => address) public owners;
 
-  /// @param _governance The address of governance.
-  /// @param _url The base url for the metadata file
-  /// @param _contractURI The url for the contract metadata file
-  constructor(
+  // solhint-disable-next-line no-empty-blocks
+  constructor() {}
+
+  /// @notice Initialize the contract.
+  /// @param _governance the governance address
+  /// @param _gatekeeper the gatekeeper address
+  /// @param _yopRewards the address of the yop rewards contract
+  /// @param _uri the base URI for the token
+  function initialize(
     address _governance,
-    string memory _url,
+    address _gatekeeper,
+    address _yopRewards,
+    string memory _uri,
     string memory _contractURI
-  ) ERC1155(_url) Governable(_governance) {
+  ) external initializer {
+    __Staking_init(_governance, _gatekeeper, _yopRewards, _uri, _contractURI);
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __Staking_init(
+    address _governance,
+    address _gatekeeper,
+    address _yopRewards,
+    string memory _uri,
+    string memory _contractURI
+  ) internal onlyInitializing {
+    __ERC1155_init(_uri);
+    __BasePauseableUpgradeable_init(_governance, _gatekeeper);
+    __Staking_init_unchained(_yopRewards, _contractURI);
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function __Staking_init_unchained(address _yopRewards, string memory _contractURI) internal onlyInitializing {
+    require(_yopRewards != address(0), "!input");
+    yopRewards = _yopRewards;
     contractURI = _contractURI;
   }
 
@@ -77,16 +105,27 @@ contract Staking is ERC1155, Governable {
     minStakeAmount = _minAmount;
   }
 
+  /// @dev Set the contractURI for store front metadata. Can only be called by governance.
+  /// @param _contractURI URL of the metadata
+  function setContractURI(string memory _contractURI) external onlyGovernance {
+    contractURI = _contractURI;
+    emit StakingContractURIUpdated(_contractURI);
+  }
+
   /// @notice Create a new staking position
   /// @param _amount The amount of YOP tokens to stake
   /// @param _lockPeriod The locking period of the stake, in months
-  /// @return The id of the NFT token
-  function stake(uint248 _amount, uint8 _lockPeriod) external returns (uint256) {
-    require(_amount >= minStakeAmount, "!amount");
+  /// @return The id of the NFT token that is also the id of the stake
+  function stake(uint248 _amount, uint8 _lockPeriod) external whenNotPaused returns (uint256) {
+    require(_amount > minStakeAmount, "!amount");
     require(_lockPeriod > 0 && _lockPeriod <= MAX_LOCK_PERIOD, "!lockPeriod");
-    require(IERC20(_getYOPAddress()).balanceOf(_msgSender()) >= _amount, "!balance");
+    require(IERC20Upgradeable(_getYOPAddress()).balanceOf(_msgSender()) >= _amount, "!balance");
     // issue token id
     uint256 tokenId = stakes.length;
+    // calculate the rewards for the token.
+    // This only needs to be called when NFT tokens are minted/burne. It doesn't need to be called again when NFTs are transferred as the balance of the token and the totalBalance are not changed when tokens are transferred
+    // This needs to be called before the stakes array is updated as otherwise the workingBalanceOfStake will return a value.
+    IYOPRewards(yopRewards).calculateStakingRewards(tokenId);
     // record the stake
     Stake memory s = Stake({
       lockPeriod: _lockPeriod,
@@ -96,29 +135,56 @@ contract Staking is ERC1155, Governable {
     });
     stakes.push(s);
     // transfer the the tokens to this contract and mint an NFT token
-    IERC20(_getYOPAddress()).safeTransferFrom(_msgSender(), address(this), _amount);
+    IERC20Upgradeable(_getYOPAddress()).safeTransferFrom(_msgSender(), address(this), _amount);
     bytes memory data;
     _mint(_msgSender(), tokenId, 1, data);
     emit Staked(_msgSender(), tokenId, _amount, _lockPeriod, _getBlockTimestamp());
     return tokenId;
   }
 
-  /// @notice Unstake a single staking position after it's expired
-  /// @param _stakeId The id of the staking NFT token
-  function unstakeSingle(uint256 _stakeId) external {
-    Stake storage s = stakes[_stakeId];
+  /// @notice Unstake a single staking position that is owned by the caller after it's unlocked, and transfer the unlocked tokens to the _to address
+  /// @param _stakeId The id of the staking NFT token, and owned by the caller
+  function unstakeSingle(uint256 _stakeId, address _to) external whenNotPaused {
+    require(_to != address(0), "!input");
     require(balanceOf(_msgSender(), _stakeId) > 0, "!stake");
-    require(_getBlockTimestamp() > (s.startTime + s.lockPeriod * SECONDS_PER_MONTH), "!expired");
+    Stake memory s = stakes[_stakeId];
+    uint256 startTime = s.startTime;
+    uint248 amount = s.amount;
+    uint8 lockPeriod = s.lockPeriod;
+    require(_isUnlocked(s), "locked");
+    // This only needs to be called when NFT tokens are minted/burne. It doesn't need to be called again when NFTs are transferred as the balance of the token and the totalBalance are not changed when tokens are transferred
+    IYOPRewards(yopRewards).calculateStakingRewards(_stakeId);
     // burn the NFT
     _burn(_msgSender(), _stakeId, 1);
-    // transfer the tokens back to the user
-    IERC20(_getYOPAddress()).safeTransfer(_msgSender(), s.amount);
-    emit Unstaked(_msgSender(), _stakeId, s.amount, s.lockPeriod, s.startTime);
-    // reset the stake instance
-    s.startTime = 0;
-    s.amount = 0;
-    s.lockPeriod = 0;
-    s.lastTransferTime = 0;
+    // transfer the tokens to _to
+    IERC20Upgradeable(_getYOPAddress()).safeTransfer(_to, amount);
+    emit Unstaked(_msgSender(), _stakeId, amount, lockPeriod, startTime);
+  }
+
+  /// @notice Unstake all the unlocked stakes the caller currently has and transfer all the tokens to _to address in a single transfer.
+  ///  This will be more gas efficient if the caller has multiple stakes that are unlocked.
+  /// @param _to the address that will receive the tokens
+  function unstakeAll(address _to) external whenNotPaused {
+    require(_to != address(0), "!input");
+    uint256[] memory stakeIds = stakesForAddress[_msgSender()];
+    uint256 toTransfer = 0;
+    uint256[] memory unlockedIds = _getUnlockedStakeIds(stakeIds);
+    require(unlockedIds.length > 0, "!unlocked");
+    uint256[] memory amounts = new uint256[](unlockedIds.length);
+    for (uint256 i = 0; i < unlockedIds.length; i++) {
+      amounts[i] = 1;
+      Stake memory s = stakes[unlockedIds[i]];
+      IYOPRewards(yopRewards).calculateStakingRewards(unlockedIds[i]);
+      uint256 startTime = s.startTime;
+      uint248 amount = s.amount;
+      uint8 lockPeriod = s.lockPeriod;
+      toTransfer += amount;
+      emit Unstaked(_msgSender(), unlockedIds[i], amount, lockPeriod, startTime);
+    }
+    // burn the NFTs
+    _burnBatch(_msgSender(), unlockedIds, amounts);
+    // transfer the tokens to _to
+    IERC20Upgradeable(_getYOPAddress()).safeTransfer(_to, toTransfer);
   }
 
   /// @notice Lists the is of stakes for a user
@@ -128,11 +194,58 @@ contract Staking is ERC1155, Governable {
     return stakesForAddress[_user];
   }
 
-  /// @notice Check the working balance of an account. Use this and `totalWorkingSupply` to calculate the proportion of a user's stake
+  /// @notice Check the working balance of an user address.
   /// @param _user The user address
   /// @return The value of working balance
   function workingBalanceOf(address _user) external view returns (uint256) {
-    return workingBalances[_user];
+    uint256 balance = 0;
+    uint256[] memory stakeIds = stakesForAddress[_user];
+    for (uint256 i = 0; i < stakeIds.length; i++) {
+      balance += _workingBalanceOfStake(stakes[stakeIds[i]]);
+    }
+    return balance;
+  }
+
+  /// @notice Get the working balance for the stake with the given stake id.
+  /// @param _stakeId The id of the stake
+  /// @return The working balance, calculated as stake.amount * stake.lockPeriod
+  function workingBalanceOfStake(uint256 _stakeId) external view returns (uint256) {
+    if (_stakeId < stakes.length) {
+      Stake memory s = stakes[_stakeId];
+      return _workingBalanceOfStake(s);
+    }
+    return 0;
+  }
+
+  function _workingBalanceOfStake(Stake memory _stake) internal pure returns (uint256) {
+    return _stake.amount * _stake.lockPeriod;
+  }
+
+  function _isUnlocked(Stake memory _stake) internal view returns (bool) {
+    return _getBlockTimestamp() > (_stake.startTime + _stake.lockPeriod * SECONDS_PER_MONTH);
+  }
+
+  function _getUnlockedStakeIds(uint256[] memory _stakeIds) internal view returns (uint256[] memory) {
+    // solidity doesn't allow changing the size of memory arrays dynamically, so have to use this function to build the array that only contains stake ids that are unlocked
+    uint256[] memory temp = new uint256[](_stakeIds.length);
+    uint256 counter;
+    for (uint256 i = 0; i < _stakeIds.length; i++) {
+      Stake memory s = stakes[_stakeIds[i]];
+      // find all the unlocked stakes first and store them in an array
+      if (_isUnlocked(s)) {
+        temp[counter] = _stakeIds[i];
+        counter++;
+      }
+    }
+    // copy the array to change the size
+    uint256[] memory unlocked;
+    if (counter > 0) {
+      unlocked = new uint256[](counter);
+      for (uint256 j = 0; j < counter; j++) {
+        unlocked[j] = temp[j];
+      }
+    }
+    return unlocked;
   }
 
   /// @dev This function is invoked by the ERC1155 implementation. It will be called everytime when tokens are minted, transferred and burned.
@@ -145,26 +258,33 @@ contract Staking is ERC1155, Governable {
     uint256[] memory _amounts,
     bytes memory _data
   ) internal override {
-    uint256 tokenId = _ids[0];
-    Stake storage s = stakes[tokenId];
-    s.lastTransferTime = _getBlockTimestamp();
-    uint256 balance = s.amount * s.lockPeriod;
-    if (_from != address(0)) {
-      workingBalances[_from] -= balance;
-      totalWorkingSupply -= balance;
-      _removeValue(stakesForAddress[_from], tokenId);
-      owners[tokenId] = address(0);
-    }
-    if (_to != address(0)) {
-      workingBalances[_to] += balance;
-      totalWorkingSupply += balance;
-      stakesForAddress[_to].push(tokenId);
-      owners[tokenId] = _to;
+    for (uint256 i = 0; i < _ids.length; i++) {
+      uint256 tokenId = _ids[i];
+      Stake storage s = stakes[tokenId];
+      s.lastTransferTime = _getBlockTimestamp();
+      uint256 balance = _workingBalanceOfStake(s);
+      if (_from != address(0)) {
+        totalWorkingSupply -= balance;
+        _removeValue(stakesForAddress[_from], tokenId);
+        owners[tokenId] = address(0);
+      }
+      if (_to != address(0)) {
+        totalWorkingSupply += balance;
+        stakesForAddress[_to].push(tokenId);
+        owners[tokenId] = _to;
+      } else {
+        // this is a burn, reset the fields of the stake record
+        s.startTime = 0;
+        s.lockPeriod = 0;
+        s.amount = 0;
+        s.lastTransferTime = 0;
+      }
     }
   }
 
   /// @dev For testing
   function _getBlockTimestamp() internal view virtual returns (uint256) {
+    // solhint-disable-next-line not-rely-on-time
     return block.timestamp;
   }
 
@@ -184,13 +304,5 @@ contract Staking is ERC1155, Governable {
       _values[i] = _values[i + 1];
     }
     _values.pop();
-  }
-
-  /// @dev Set the contractURI for store front metadata. Can only be called by governance.
-  /// @param _contractURI URL of the metadata
-  function setContractURI(string memory _contractURI) external {
-    _onlyGovernance();
-    contractURI = _contractURI;
-    emit StakingContractURIUpdated(_contractURI);
   }
 }

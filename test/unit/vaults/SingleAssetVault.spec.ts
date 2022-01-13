@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { ethers, network, upgrades } from "hardhat";
 import { AllowlistAccessControl, TokenMock, SingleAssetVault, VaultStrategyDataStore, StrategyMock, HealthCheckMock } from "../../../types";
 import { AccessControlManager } from "../../../types/AccessControlManager";
-import { YOPVaultRewards } from "../../../types/YOPVaultRewards";
+import { YOPRewards } from "../../../types/YOPRewards";
 
 const YOP_CONTRACT_ADDRESS = "0xAE1eaAE3F627AAca434127644371b67B18444051";
 const EPOCH_START_TIME = 1640995200; // 2022-1-1-00:00:00 GMT
@@ -23,7 +23,7 @@ describe("SingleAssetVault", async () => {
   let token: TokenMock;
   let strategyDataStore: VaultStrategyDataStore;
   let vault: SingleAssetVault;
-  let yopRewards: YOPVaultRewards;
+  let yopRewards: YOPRewards;
 
   beforeEach(async () => {
     [deployer, governance, gatekeeper, manager, rewards, user, user2, wallet] = await ethers.getSigners();
@@ -35,9 +35,9 @@ describe("SingleAssetVault", async () => {
     strategyDataStore = (await StrategyDataStore.deploy(governance.address)) as VaultStrategyDataStore;
     await strategyDataStore.deployed();
 
-    const YOPVaultsRewards = await ethers.getContractFactory("YOPVaultRewards");
-    yopRewards = (await YOPVaultsRewards.deploy()) as YOPVaultRewards;
-    await yopRewards.initialize(governance.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+    const YOPRewards = await ethers.getContractFactory("YOPRewards");
+    yopRewards = (await YOPRewards.deploy()) as YOPRewards;
+    await yopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
     await yopRewards.deployed();
 
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
@@ -768,7 +768,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
   let strategyDataStore: VaultStrategyDataStore;
   let vault1: SingleAssetVault;
   let vault2: SingleAssetVault;
-  let yopRewards: YOPVaultRewards;
+  let yopRewards: YOPRewards;
 
   beforeEach(async () => {
     [deployer, governance, gatekeeper, manager, rewards, user, wallet] = await ethers.getSigners();
@@ -782,9 +782,9 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
     strategyDataStore = (await StrategyDataStore.deploy(governance.address)) as VaultStrategyDataStore;
     await strategyDataStore.deployed();
 
-    const YOPVaultsRewards = await ethers.getContractFactory("YOPVaultRewards");
-    yopRewards = (await YOPVaultsRewards.deploy()) as YOPVaultRewards;
-    await yopRewards.initialize(governance.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+    const YOPRewards = await ethers.getContractFactory("YOPRewards");
+    yopRewards = (await YOPRewards.deploy()) as YOPRewards;
+    await yopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
     await yopRewards.deployed();
 
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");

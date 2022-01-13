@@ -2,7 +2,7 @@ import { ethers, waffle } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { TokenMock } from "../../../types/TokenMock";
-import { YOPVaultRewardsMock } from "../../../types/YOPVaultRewardsMock";
+import { YOPRewardsMock } from "../../../types/YOPRewardsMock";
 import curveAddressProviderABI from "../../abis/curveAddressProvider.json";
 import curveGaugeABI from "../../abis/curveGauge.json";
 import curveRegistryABI from "../../abis/curveRegistry.json";
@@ -32,8 +32,8 @@ export async function setupVault() {
   const vaultStrategyDataStore = (await VaultStrategyDataStoreFactory.deploy(governance.address)) as VaultStrategyDataStore;
   await vaultStrategyDataStore.deployed();
 
-  const YOPRewardsFactory = await ethers.getContractFactory("YOPVaultRewardsMock");
-  const yopRewards = (await YOPRewardsFactory.deploy()) as YOPVaultRewardsMock;
+  const YOPRewardsFactory = await ethers.getContractFactory("YOPRewardsMock");
+  const yopRewards = (await YOPRewardsFactory.deploy()) as YOPRewardsMock;
   await yopRewards.deployed();
 
   const TokenMockFactory = await ethers.getContractFactory("TokenMock");

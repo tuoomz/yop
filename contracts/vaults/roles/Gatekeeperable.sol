@@ -15,11 +15,12 @@ abstract contract Gatekeeperable is ContextUpgradeable {
   ///  which means any changes to the state variables could corrupt the data. Do not modify this at all.
   address public gatekeeper;
 
-  // /// @dev make sure msg.sender is the guardian or the governance
-  // modifier onlyGovernanceOrGuardian() {
-  //   require((_msgSender() == governance) || (_msgSender() == guardian), "governance or guardian only");
-  //   _;
-  // }
+  /// @dev make sure msg.sender is the guardian or the governance
+  modifier onlyGovernanceOrGatekeeper(address _governance) {
+    _onlyGovernanceOrGatekeeper(_governance);
+    _;
+  }
+
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
 
@@ -43,5 +44,9 @@ abstract contract Gatekeeperable is ContextUpgradeable {
     require(_gatekeeper != gatekeeper, "already the gatekeeper");
     gatekeeper = _gatekeeper;
     emit GatekeeperUpdated(_gatekeeper);
+  }
+
+  function _onlyGovernanceOrGatekeeper(address _governance) internal view {
+    require((_msgSender() == _governance) || (gatekeeper != address(0) && gatekeeper == _msgSender()), "!authorised");
   }
 }

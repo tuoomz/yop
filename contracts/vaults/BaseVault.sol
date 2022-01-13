@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
-import "../interfaces/IYOPVaultRewards.sol";
+import "../interfaces/IYOPRewards.sol";
 import "./VaultMetaDataStore.sol";
 
 import {StrategyInfo} from "../interfaces/IVault.sol";
@@ -101,10 +101,10 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
   ) internal override {
     if (vaultRewards != address(0)) {
       if (_from != address(0)) {
-        IYOPVaultRewards(vaultRewards).calculateRewards(address(this), _from);
+        IYOPRewards(vaultRewards).calculateVaultRewards(_from);
       }
       if (_to != address(0)) {
-        IYOPVaultRewards(vaultRewards).calculateRewards(address(this), _to);
+        IYOPRewards(vaultRewards).calculateVaultRewards(_to);
       }
     }
   }

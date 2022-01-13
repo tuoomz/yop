@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "../rewards/YOPVaultRewards.sol";
+import "../rewards/YOPRewards.sol";
 
-contract YOPVaultRewardsMock is YOPVaultRewards {
+contract YOPRewardsMock is YOPRewards {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   uint256 internal blockTimestamp;
 
@@ -20,6 +20,12 @@ contract YOPVaultRewardsMock is YOPVaultRewards {
 
   function setBlocktimestamp(uint256 _blockTimestamp) external {
     blockTimestamp = _blockTimestamp;
+  }
+
+  function setInitialRewardsRatios(uint256 _ratioForVaults, uint256 _ratioForStaking) external {
+    require((_ratioForVaults + _ratioForStaking) == MAX_BPS, "!input");
+    vaultsRewardsRatio = _ratioForVaults;
+    stakingRewardsRatio = _ratioForStaking;
   }
 
   function setInitialVaultWeights(address[] calldata _vaults, uint256[] calldata _weights) external {
@@ -40,6 +46,7 @@ contract YOPVaultRewardsMock is YOPVaultRewards {
   }
 
   function _getBlockTimestamp() internal view override returns (uint256) {
+    super._getBlockTimestamp(); // to improve code coverage
     return blockTimestamp;
   }
 

@@ -4,15 +4,10 @@ pragma solidity =0.8.9;
 import "../staking/Staking.sol";
 
 contract StakingMock is Staking {
-  string public constant DEFAULT_URL = "https://example.com";
   address public token;
   uint256 public blocktime;
 
-  constructor(
-    address _governance,
-    address _token,
-    string memory _contractURI
-  ) Staking(_governance, DEFAULT_URL, _contractURI) {
+  function setToken(address _token) external {
     token = _token;
   }
 

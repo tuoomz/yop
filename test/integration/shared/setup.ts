@@ -1,12 +1,14 @@
 import { ethers, network } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
-import { YOPVaultRewards } from "../../../types/YOPVaultRewards";
+import { YOPRewards } from "../../../types/YOPRewards";
 import { AccessControlManager } from "../../../types/AccessControlManager";
 import { BigNumber } from "ethers";
+import { Staking } from "../../../types/Staking";
+import ERC20ABI from "../../../abi/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json";
 
-const YOP_WHALE_ADDRESS = "0x2f535f200847d4bc7ee6e2d6de9fcc40011f7214";
-const YOP_CONTRACT_ADDRESS = "0xae1eaae3f627aaca434127644371b67b18444051";
+export const YOP_WHALE_ADDRESS = "0x2f535f200847d4bc7ee6e2d6de9fcc40011f7214";
+export const YOP_CONTRACT_ADDRESS = "0xae1eaae3f627aaca434127644371b67b18444051";
 const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 
 export async function setupVault(tokenAddress: string) {
@@ -20,12 +22,18 @@ export async function setupVault(tokenAddress: string) {
   const vaultStrategyDataStore = (await VaultStrategyDataStoreFactory.deploy(governance.address)) as VaultStrategyDataStore;
   await vaultStrategyDataStore.deployed();
 
-  const YOPRewardsFactory = await ethers.getContractFactory("YOPVaultRewards");
-  const yopRewards = (await YOPRewardsFactory.deploy()) as YOPVaultRewards;
+  const YOPRewardsFactory = await ethers.getContractFactory("YOPRewards");
+  const yopRewards = (await YOPRewardsFactory.deploy()) as YOPRewards;
   await yopRewards.deployed();
-  await yopRewards.initialize(governance.address, YOP_WHALE_ADDRESS, YOP_CONTRACT_ADDRESS, now);
+  await yopRewards.initialize(governance.address, gatekeeper.address, YOP_WHALE_ADDRESS, YOP_CONTRACT_ADDRESS, now);
+
+  const StakingFactory = await ethers.getContractFactory("Staking");
+  const yopStaking = (await StakingFactory.deploy()) as Staking;
+  await yopStaking.deployed();
+  await yopStaking.initialize(governance.address, gatekeeper.address, yopRewards.address, "https://example.com", "https://example.com");
 
   const yopWalletAccount = await impersonate(YOP_WHALE_ADDRESS);
+  await setEthBalance(YOP_WHALE_ADDRESS, ethers.utils.parseEther("10"));
   const AccessManagerFactory = await ethers.getContractFactory("AccessControlManager");
   const accessManager = (await AccessManagerFactory.deploy(governance.address)) as AccessControlManager;
   await accessManager.deployed();
@@ -40,7 +48,12 @@ export async function setupVault(tokenAddress: string) {
     accessManager.address,
     yopRewards.address
   );
+  await yopRewards.connect(governance).setStakingContractAddress(yopStaking.address);
+  await yopRewards.connect(governance).setRewardsRatios(5000, 5000);
   await yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address], [100]);
+
+  const yopContract = await ethers.getContractAt(ERC20ABI, YOP_CONTRACT_ADDRESS);
+  await yopContract.connect(yopWalletAccount).approve(yopRewards.address, ethers.constants.MaxUint256);
   return {
     vault,
     vaultStrategyDataStore,
@@ -49,6 +62,7 @@ export async function setupVault(tokenAddress: string) {
     governance,
     gatekeeper,
     rewards,
+    yopStaking,
     yopWalletAccount,
   };
 }

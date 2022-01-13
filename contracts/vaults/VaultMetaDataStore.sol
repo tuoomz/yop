@@ -70,7 +70,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   }
 
   function setHealthCheck(address _healthCheck) external {
-    _onlyGovernanceOrGatekeeper();
+    _onlyGovernanceOrGatekeeper(governance);
     _updateHealthCheck(_healthCheck);
   }
 
@@ -87,7 +87,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   /// @param _active If true, the Vault goes into Emergency Shutdown. If false, the Vault goes back into Normal Operation.
   function setVaultEmergencyShutdown(bool _active) external {
     if (_active) {
-      _onlyGovernanceOrGatekeeper();
+      _onlyGovernanceOrGatekeeper(governance);
     } else {
       _onlyGovernance();
     }
@@ -109,17 +109,13 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   }
 
   function setDepositLimit(uint256 _limit) external {
-    _onlyGovernanceOrGatekeeper();
+    _onlyGovernanceOrGatekeeper(governance);
     _updateDepositLimit(_limit);
   }
 
   function setAccessManager(address _accessManager) external {
-    _onlyGovernanceOrGatekeeper();
+    _onlyGovernanceOrGatekeeper(governance);
     _updateAccessManager(_accessManager);
-  }
-
-  function _onlyGovernanceOrGatekeeper() internal view {
-    require((_msgSender() == governance) || (gatekeeper != address(0) && gatekeeper == _msgSender()), "!authorised");
   }
 
   function _updateRewards(address _rewards) internal {

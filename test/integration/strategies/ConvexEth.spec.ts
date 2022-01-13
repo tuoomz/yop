@@ -23,9 +23,9 @@ describe("ConvexStEthStrategy [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
   let vaultStrategyDataStore: VaultStrategyDataStore;
   let governance: SignerWithAddress;
-  let rewards: SignerWithAddress;
   let convexEthStrategy: ConvexEth;
-  let strategist: SignerWithAddress;
+  let proposer: SignerWithAddress;
+  let developer: SignerWithAddress;
   let keeper: SignerWithAddress;
   let user: SignerWithAddress;
   let wethContract: IWETH;
@@ -37,14 +37,14 @@ describe("ConvexStEthStrategy [@skip-on-coverage]", async () => {
 
   beforeEach(async () => {
     // setup the vault
-    ({ vault, vaultStrategyDataStore, governance, rewards } = await setupVault(WETH_ADDRESS));
+    ({ vault, vaultStrategyDataStore, governance } = await setupVault(WETH_ADDRESS));
     // deploy the strategy
-    [strategist, keeper, user] = (await ethers.getSigners()).reverse();
+    [proposer, developer, keeper, user] = (await ethers.getSigners()).reverse();
     const ConvexEthStrategyFactory = await ethers.getContractFactory("ConvexEth");
     convexEthStrategy = (await ConvexEthStrategyFactory.deploy(
       vault.address,
-      strategist.address,
-      rewards.address,
+      proposer.address,
+      developer.address,
       keeper.address,
       CURVE_STETH_POOL_ADDRESS,
       CONVEX_BOOSTER_ADDRESS

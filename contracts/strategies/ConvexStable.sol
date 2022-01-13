@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./CurveStable.sol";
 import "./ConvexBase.sol";
 
-/// @notice Implements the strategy using Convex. Ths steps are similar to CurveStable strategy, the main differences are:
+/// @notice Implements the strategy using Convex. The steps are similar to CurveStable strategy, the main differences are:
 ///  1) The Curve LP tokens are deposited into Convex Booster contract
 ///  2) Use the Convex Rewards contract to claim rewards and get both CRV and CVX in return
 ///  Because of this, the strategy only overrides some of the functions from parent contracts for the different parts.
@@ -19,12 +19,12 @@ contract ConvexStable is CurveStable, ConvexBase {
 
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _proposer,
+    address _developer,
     address _keeper,
     address _pool,
     address _booster
-  ) CurveStable(_vault, _strategist, _rewards, _keeper, _pool) ConvexBase(POOL_ID, _booster) {}
+  ) CurveStable(_vault, _proposer, _developer, _keeper, _pool) ConvexBase(POOL_ID, _booster) {}
 
   function name() external view override returns (string memory) {
     return string(abi.encodePacked("ConvexStable_", IERC20Metadata(address(want)).symbol()));
@@ -42,7 +42,7 @@ contract ConvexStable is CurveStable, ConvexBase {
   function _balanceOfPool() internal view virtual override returns (uint256) {
     // get staked cvxusdn3crv
     uint256 convexBalance = _getLpTokenBalance();
-    // staked covex converts 1 to 1 to usdn3crv so no need to calc
+    // staked convex converts 1 to 1 to usdn3crv so no need to calc
     // convert usdn3crv to want
     if (convexBalance > 0) {
       return _quoteWantInMetapoolLp(convexBalance);

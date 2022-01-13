@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./CurveBtc.sol";
 import "./ConvexBase.sol";
 
-/// @notice Implements the strategy using Convex. Ths steps are similar to CurveBtc strategy, the main differences are:
+/// @notice Implements the strategy using Convex. The steps are similar to CurveBtc strategy, the main differences are:
 ///  1) The Curve LP tokens are deposited into Convex Booster contract
 ///  2) Use the Convex Rewards contract to claim rewards and get both CRV and CVX in return
 ///  Because of this, the strategy only overrides some of the functions from parent contracts for the different parts.
@@ -19,12 +19,12 @@ contract ConvexBtc is CurveBtc, ConvexBase {
 
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _proposer,
+    address _developer,
     address _keeper,
     address _pool,
     address _booster
-  ) CurveBtc(_vault, _strategist, _rewards, _keeper, _pool) ConvexBase(POOL_ID, _booster) {}
+  ) CurveBtc(_vault, _proposer, _developer, _keeper, _pool) ConvexBase(POOL_ID, _booster) {}
 
   function name() external pure override returns (string memory) {
     return "ConvexBTC";

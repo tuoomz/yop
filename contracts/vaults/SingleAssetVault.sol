@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IHealthCheck.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IAccessControlManager.sol";
+import "../interfaces/IFeeCollection.sol";
 import "./SingleAssetVaultBase.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
@@ -298,18 +299,13 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     (totalFee_, performanceFee_) = _calculateFees(_strategy, _gain);
 
     if (totalFee_ > 0) {
-      // rewards are given in the form of shares of the vault. This will allow further gain if the vault is making more profit.
-      // but it does mean the strategist/governance will need to redeem the shares to get the tokens.
-      // TODO: should we just transfer the token values to the rewards & strategist instead?
-      uint256 rewards_ = _issueSharesForAmount(address(this), totalFee_);
-      if (performanceFee_ > 0) {
-        uint256 strategistReward_ = (rewards_ * performanceFee_) / totalFee_;
-        //TODO: this transfer the rewards to the strategy, not the strategist. How does the strategist get the rewards?
-        _transfer(address(this), _strategy, strategistReward_);
+      token.approve(feeCollection, totalFee_);
+      uint256 managementFee_ = totalFee_ - performanceFee_;
+      if (managementFee_ > 0) {
+        IFeeCollection(feeCollection).collectManageFee(managementFee_);
       }
-
-      if (balanceOf(address(this)) > 0) {
-        _transfer(address(this), rewards, balanceOf(address(this)));
+      if (performanceFee_ > 0) {
+        IFeeCollection(feeCollection).collectPerformanceFee(_strategy, performanceFee_);
       }
     }
     return totalFee_;
@@ -479,8 +475,6 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     returns (uint256 totalFee, uint256 performanceFee)
   {
     // Issue new shares to cover fees
-    // NOTE: In effect, this reduces overall share price by the combined fee
-    // NOTE: may throw if Vault.totalAssets() > 1e64, or not called for more than a year
     // solhint-disable-next-line not-rely-on-time
     if (strategies[_strategy].activation == block.timestamp) {
       return (0, 0); // NOTE: Just added, no fees to assess

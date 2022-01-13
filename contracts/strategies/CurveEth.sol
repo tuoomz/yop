@@ -10,7 +10,7 @@ import "../interfaces/IWeth.sol";
 ///  The strategy will take wETH as the input token, swap them to ETH, and then add liquidity to the ETH/stETH pool.
 ///  Then the strategy will deposit the LP tokens into the gauge.
 ///  Input token: wETH
-///  Base pool: 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022 (ETH/stEH pool)
+///  Base pool: 0xDC24316b9AE028F1497c275EB9192a3Ea0f67022 (ETH/stETH pool)
 ///  Gauge: 0x182B723a58739a9c974cFDB385ceaDb237453c28
 contract CurveEth is CurveBase {
   using SafeERC20 for IERC20;
@@ -23,11 +23,11 @@ contract CurveEth is CurveBase {
   /* solhint-disable  no-empty-blocks */
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _proposer,
+    address _developer,
     address _keeper,
     address _pool
-  ) CurveBase(_vault, _strategist, _rewards, _keeper, _pool) {}
+  ) CurveBase(_vault, _proposer, _developer, _keeper, _pool) {}
 
   /* solhint-enable */
 
@@ -62,7 +62,7 @@ contract CurveEth is CurveBase {
   /// @param _amount The amount of LP token (not want token)
   function _removeLiquidity(uint256 _amount) internal override returns (uint256) {
     uint256 amount = super._removeLiquidity(_amount);
-    // wrapp the eth to weth
+    // wrap the eth to weth
     IWETH(_getWETHTokenAddress()).deposit{value: amount}(amount);
     return amount;
   }

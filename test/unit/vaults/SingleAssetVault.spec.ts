@@ -1,10 +1,13 @@
 import { BigNumber, utils } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers, network, upgrades } from "hardhat";
+import { ethers, network, upgrades, waffle } from "hardhat";
 import { AllowlistAccessControl, TokenMock, SingleAssetVault, VaultStrategyDataStore, StrategyMock, HealthCheckMock } from "../../../types";
 import { AccessControlManager } from "../../../types/AccessControlManager";
 import { YOPRewards } from "../../../types/YOPRewards";
+import { MockContract } from "ethereum-waffle";
+import FeeCollectionABI from "../../../abi/contracts/interfaces/IFeeCollection.sol/IFeeCollection.json";
+const { deployMockContract } = waffle;
 
 const YOP_CONTRACT_ADDRESS = "0xAE1eaAE3F627AAca434127644371b67B18444051";
 const EPOCH_START_TIME = 1640995200; // 2022-1-1-00:00:00 GMT
@@ -16,7 +19,7 @@ describe("SingleAssetVault", async () => {
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let manager: SignerWithAddress;
-  let rewards: SignerWithAddress;
+  let feeCollection: MockContract;
   let user: SignerWithAddress;
   let user2: SignerWithAddress;
   let wallet: SignerWithAddress;
@@ -26,7 +29,7 @@ describe("SingleAssetVault", async () => {
   let yopRewards: YOPRewards;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, manager, rewards, user, user2, wallet] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, manager, user, user2, wallet] = await ethers.getSigners();
     const MockToken = await ethers.getContractFactory("TokenMock");
     token = (await MockToken.deploy("LosPolosHermanos", "lph")) as TokenMock;
     await token.deployed();
@@ -39,6 +42,9 @@ describe("SingleAssetVault", async () => {
     yopRewards = (await YOPRewards.deploy()) as YOPRewards;
     await yopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
     await yopRewards.deployed();
+    feeCollection = await deployMockContract(deployer, FeeCollectionABI);
+    await feeCollection.mock.collectManageFee.returns();
+    await feeCollection.mock.collectPerformanceFee.returns();
 
     const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
     vault = (await SingleAssetVault.deploy()) as SingleAssetVault;
@@ -48,7 +54,7 @@ describe("SingleAssetVault", async () => {
       symbol,
       governance.address,
       gatekeeper.address,
-      rewards.address,
+      feeCollection.address,
       strategyDataStore.address,
       token.address,
       ethers.constants.AddressZero,
@@ -66,7 +72,7 @@ describe("SingleAssetVault", async () => {
           symbol,
           governance.address,
           gatekeeper.address,
-          rewards.address,
+          feeCollection.address,
           strategyDataStore.address,
           token.address,
           ethers.constants.AddressZero,
@@ -424,12 +430,16 @@ describe("SingleAssetVault", async () => {
         const profit = ethers.utils.parseEther("0.5");
         await healthCheck.setDoCheck(true);
         // both rewards and strategies should have not fees before hand
-        expect(await vault.balanceOf(rewards.address)).to.eq(ethers.constants.Zero);
+        expect(await vault.balanceOf(feeCollection.address)).to.eq(ethers.constants.Zero);
         expect(await vault.balanceOf(mockStrategy.address)).to.eq(ethers.constants.Zero);
         await mockStrategy.callVault(); // allocate some funds to the strategy first
         await network.provider.send("evm_increaseTime", [1800]);
         await mockStrategy.setProfit(profit);
         await network.provider.send("evm_increaseTime", [1800]); // 1 hour gap between the two reports
+        const performanceFee = ethers.utils.parseEther("0.005");
+        // management fee = 0.9 * 0.02 * (3600/SECONDS_PER_YEAR) ~= 0.000002053430255
+        const managementFee = BigNumber.from("2053430255241");
+        const total = managementFee.add(performanceFee);
         expect(await mockStrategy.callVault())
           .to.emit(vault, "StrategyReported")
           .withArgs(
@@ -444,13 +454,9 @@ describe("SingleAssetVault", async () => {
             sDebtRatio
           )
           .to.emit(token, "Transfer")
-          .withArgs(mockStrategy.address, vault.address, profit);
-        const performanceFee = ethers.utils.parseEther("0.005");
-        expect(await vault.balanceOf(mockStrategy.address)).to.eq(performanceFee);
-        // management fee = 0.9 * 0.02 * (3600/SECONDS_PER_YEAR) ~= 0.000002053430255
-        const managementFee = BigNumber.from("2053430255241");
-        expect(await vault.balanceOf(rewards.address)).to.be.closeTo(managementFee, Math.pow(10, 10)); // this is to fix intermittent test failures in coverage tests
-        expect(await vault.lockedProfit()).to.be.closeTo(profit.sub(performanceFee).sub(managementFee), Math.pow(10, 10));
+          .withArgs(mockStrategy.address, vault.address, profit)
+          .to.emit(token, "Approval")
+          .withArgs(vault.address, feeCollection.address, total);
       });
 
       it("report loss", async () => {

@@ -22,7 +22,8 @@ describe("Convex Stable strategy", async () => {
   let vaultToken: TokenMock;
 
   let governance: SignerWithAddress;
-  let strategist: SignerWithAddress;
+  let proposer: SignerWithAddress;
+  let developer: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
   let manager: SignerWithAddress;
@@ -49,7 +50,8 @@ describe("Convex Stable strategy", async () => {
 
   beforeEach(async () => {
     const accounts = await ethers.getSigners();
-    strategist = accounts[accounts.length - 1]; // go from the last to avoid conflicts with accounts returned from setupVault
+    proposer = accounts[accounts.length - 1]; // go from the last to avoid conflicts with accounts returned from setupVault
+    developer = accounts[accounts.length - 2];
     ({
       vault,
       vaultToken,
@@ -90,8 +92,8 @@ describe("Convex Stable strategy", async () => {
     const convexStableStrategyFactory = await ethers.getContractFactory("ConvexStableStrategyMock");
     convexStableStrategy = (await convexStableStrategyFactory.deploy(
       vault.address,
-      strategist.address,
-      rewards.address,
+      proposer.address,
+      developer.address,
       gatekeeper.address,
       mockCurvePool.address,
       mockConvexBooster.address

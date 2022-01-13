@@ -12,7 +12,8 @@ describe("CurveEth strategy", async () => {
   let mockVaultToken: MockContract;
   let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
-  let strategist: SignerWithAddress;
+  let proposer: SignerWithAddress;
+  let developer: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
   let newStrategy: SignerWithAddress;
@@ -29,7 +30,7 @@ describe("CurveEth strategy", async () => {
   let curveEthStrategy: CurveEthStrategyMock;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, rewards, strategist, newStrategy] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, rewards, proposer, developer, newStrategy] = await ethers.getSigners();
     ({ mockVault } = await loadFixture(setupMockVault));
     // don't run another `loadFixture` as it will cause some wired issues with hardhat.
     ({ mockCurveAddressProvider, mockCurveMinter, mockCurvePool, mockCurveGauge, mockCurveRegistry, mockDex, poolLpToken, curveToken } =
@@ -44,8 +45,8 @@ describe("CurveEth strategy", async () => {
     const CurveEthStrategyFactory = await ethers.getContractFactory("CurveEthStrategyMock");
     curveEthStrategy = (await CurveEthStrategyFactory.deploy(
       mockVault.address,
-      strategist.address,
-      rewards.address,
+      proposer.address,
+      developer.address,
       gatekeeper.address,
       mockCurvePool.address
     )) as CurveEthStrategyMock;
@@ -99,7 +100,7 @@ describe("CurveEth strategy", async () => {
       await poolLpToken.mock.approve.returns(true);
       await curveToken.mock.allowance.returns(0);
       await curveToken.mock.approve.returns(true);
-      await curveEthStrategy.connect(strategist).approveAll();
+      await curveEthStrategy.connect(developer).approveAll();
     });
   });
 
@@ -115,7 +116,7 @@ describe("CurveEth strategy", async () => {
       // need to make sure the strategy have some ether in order to deposit.
       // sending eth can't be mocked
       await network.provider.send("hardhat_setBalance", [curveEthStrategy.address, ethers.utils.parseEther("10").toHexString()]);
-      await expect(curveEthStrategy.connect(strategist).tend()).not.to.be.reverted;
+      await expect(curveEthStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
     it("should success when balance is 0", async () => {
@@ -123,14 +124,14 @@ describe("CurveEth strategy", async () => {
       await mockVault.mock.debtOutstanding.returns(0);
       await mockVaultToken.mock.balanceOf.returns(balance);
       await poolLpToken.mock.balanceOf.returns(balance);
-      await expect(curveEthStrategy.connect(strategist).tend()).not.to.be.reverted;
+      await expect(curveEthStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
     it("should not do anything if emergency exit", async () => {
       await mockVault.mock.revokeStrategy.returns();
       await mockVault.mock.debtOutstanding.returns(0);
       await curveEthStrategy.connect(governance).setEmergencyExit();
-      await expect(curveEthStrategy.connect(strategist).tend()).not.to.be.reverted;
+      await expect(curveEthStrategy.connect(developer).tend()).not.to.be.reverted;
     });
   });
 

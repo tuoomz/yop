@@ -29,11 +29,11 @@ contract CurveBtc is CurveBase {
   /// @dev the _pool here is a zap depositor, which will automatically add/remove liquidity to/from the base and meta pool
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _proposer,
+    address _developer,
     address _keeper,
     address _pool
-  ) CurveBase(_vault, _strategist, _rewards, _keeper, _pool) {}
+  ) CurveBase(_vault, _proposer, _developer, _keeper, _pool) {}
 
   /* solhint-enable */
 

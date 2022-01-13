@@ -1,12 +1,16 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers, upgrades } from "hardhat";
+import { ethers, upgrades, waffle } from "hardhat";
 import { BaseVaultMock } from "../../../types/BaseVaultMock";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { StrategyMock } from "../../../types/StrategyMock";
 import { impersonate } from "../utils/Impersonate";
 import { ContractFactory } from "ethers";
+import { MockContract } from "ethereum-waffle";
+import FeeCollectionABI from "../../../abi/contracts/interfaces/IFeeCollection.sol/IFeeCollection.json";
+
+const { deployMockContract } = waffle;
 
 describe("BaseVault", function () {
   const vaultName = "test vault";
@@ -17,29 +21,45 @@ describe("BaseVault", function () {
   let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
-  let rewards: SignerWithAddress;
+  let feeCollection: MockContract;
   let user1: SignerWithAddress;
   let user2: SignerWithAddress;
   let vaultStrategyDataStore: VaultStrategyDataStore;
   let vaultStrategyDataStoreSigner: SignerWithAddress;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, rewards, user1, user2] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, user1, user2] = await ethers.getSigners();
     const VaultStrategyDataStoreContract = await ethers.getContractFactory("VaultStrategyDataStore");
     vaultStrategyDataStore = (await VaultStrategyDataStoreContract.deploy(governance.address)) as VaultStrategyDataStore;
     await vaultStrategyDataStore.deployed();
     vaultStrategyDataStoreSigner = await impersonate(vaultStrategyDataStore.address);
-
+    feeCollection = await deployMockContract(deployer, FeeCollectionABI);
+    await feeCollection.mock.collectManageFee.returns();
+    await feeCollection.mock.collectPerformanceFee.returns();
     BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
     baseVault = (await BaseVaultMock.deploy()) as BaseVaultMock;
     await baseVault.deployed();
-    await baseVault.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, vaultStrategyDataStore.address);
+    await baseVault.initialize(
+      vaultName,
+      vaultSymbol,
+      governance.address,
+      gatekeeper.address,
+      feeCollection.address,
+      vaultStrategyDataStore.address
+    );
   });
 
   describe("initialize", async () => {
     it("can't initialize the contract again", async () => {
       await expect(
-        baseVault.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, vaultStrategyDataStore.address)
+        baseVault.initialize(
+          vaultName,
+          vaultSymbol,
+          governance.address,
+          gatekeeper.address,
+          feeCollection.address,
+          vaultStrategyDataStore.address
+        )
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
 
@@ -47,7 +67,14 @@ describe("BaseVault", function () {
       const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
       await baseVault2.deployed();
       expect(
-        baseVault2.initialize(vaultName, vaultSymbol, deployer.address, gatekeeper.address, rewards.address, vaultStrategyDataStore.address)
+        baseVault2.initialize(
+          vaultName,
+          vaultSymbol,
+          deployer.address,
+          gatekeeper.address,
+          feeCollection.address,
+          vaultStrategyDataStore.address
+        )
       ).to.be.revertedWith("invalid address");
     });
 
@@ -55,7 +82,14 @@ describe("BaseVault", function () {
       const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
       await baseVault2.deployed();
       expect(
-        baseVault2.initialize(vaultName, vaultSymbol, governance.address, deployer.address, rewards.address, vaultStrategyDataStore.address)
+        baseVault2.initialize(
+          vaultName,
+          vaultSymbol,
+          governance.address,
+          deployer.address,
+          feeCollection.address,
+          vaultStrategyDataStore.address
+        )
       ).to.be.revertedWith("invalid address");
     });
 
@@ -63,7 +97,14 @@ describe("BaseVault", function () {
       const baseVault2 = (await BaseVaultMock.deploy()) as BaseVaultMock;
       await baseVault2.deployed();
       expect(
-        baseVault2.initialize(vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, ethers.constants.AddressZero)
+        baseVault2.initialize(
+          vaultName,
+          vaultSymbol,
+          governance.address,
+          gatekeeper.address,
+          feeCollection.address,
+          ethers.constants.AddressZero
+        )
       ).to.be.revertedWith("!input");
     });
   });
@@ -76,7 +117,7 @@ describe("BaseVault", function () {
     expect(await baseVault.decimals()).to.equal(defaultDecimals);
     expect(await baseVault.governance()).to.equal(governance.address);
     expect(await baseVault.gatekeeper()).to.equal(gatekeeper.address);
-    expect(await baseVault.rewards()).to.equal(rewards.address);
+    expect(await baseVault.feeCollection()).to.equal(feeCollection.address);
     expect(await baseVault.strategyDataStore()).to.equal(vaultStrategyDataStore.address);
     expect(await baseVault.managementFee()).to.equal(0);
     expect(await baseVault.depositLimit()).to.equal(ethers.constants.MaxUint256);
@@ -86,17 +127,17 @@ describe("BaseVault", function () {
     // expect(await baseVault.lockedProfitDegradation()).to.equal(BigNumber.from("46000000000000"));
   });
 
-  it("test setRewards", async () => {
-    expect(baseVault.connect(user1).setRewards(user2.address)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(gatekeeper).setRewards(user2.address)).to.be.revertedWith("governance only");
-    expect(baseVault.connect(governance).setRewards(ethers.constants.AddressZero)).to.be.revertedWith("!input");
-    expect(await baseVault.connect(governance).setRewards(user2.address))
-      .to.emit(baseVault, "RewardsUpdated")
+  it("test setFeeCollection", async () => {
+    expect(baseVault.connect(user1).setFeeCollection(user2.address)).to.be.revertedWith("governance only");
+    expect(baseVault.connect(gatekeeper).setFeeCollection(user2.address)).to.be.revertedWith("governance only");
+    expect(baseVault.connect(governance).setFeeCollection(ethers.constants.AddressZero)).to.be.revertedWith("!input");
+    expect(await baseVault.connect(governance).setFeeCollection(user2.address))
+      .to.emit(baseVault, "FeeCollectionUpdated")
       .withArgs(user2.address);
-    expect(await baseVault.connect(governance).setRewards(user2.address))
-      .not.to.emit(baseVault, "RewardsUpdated")
+    expect(await baseVault.connect(governance).setFeeCollection(user2.address))
+      .not.to.emit(baseVault, "FeeCollectionUpdated")
       .withArgs(user2.address);
-    expect(await baseVault.rewards()).to.equal(user2.address);
+    expect(await baseVault.feeCollection()).to.equal(user2.address);
   });
 
   it("test setManagementFee", async () => {
@@ -267,20 +308,24 @@ describe("BaseVault Proxy [ @skip-on-coverage ]", async () => {
   const vaultName = "test vault";
   const vaultSymbol = "tVault";
   const defaultDecimals = 18;
+  let deployer: SignerWithAddress;
   let baseVault: BaseVaultMock;
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
-  let rewards: SignerWithAddress;
+  let feeCollection: MockContract;
   let user1: SignerWithAddress;
   let vaultStrategyDataStore: VaultStrategyDataStore;
 
   beforeEach(async () => {
-    [, governance, gatekeeper, rewards, user1] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, user1] = await ethers.getSigners();
     const VaultStrategyDataStoreContract = await ethers.getContractFactory("VaultStrategyDataStore");
     vaultStrategyDataStore = (await VaultStrategyDataStoreContract.deploy(governance.address)) as VaultStrategyDataStore;
     await vaultStrategyDataStore.deployed();
+    feeCollection = await deployMockContract(deployer, FeeCollectionABI);
+    await feeCollection.mock.collectManageFee.returns();
+    await feeCollection.mock.collectPerformanceFee.returns();
     const BaseVaultMock = await ethers.getContractFactory("BaseVaultMock");
-    const params = [vaultName, vaultSymbol, governance.address, gatekeeper.address, rewards.address, vaultStrategyDataStore.address];
+    const params = [vaultName, vaultSymbol, governance.address, gatekeeper.address, feeCollection.address, vaultStrategyDataStore.address];
     baseVault = (await upgrades.deployProxy(BaseVaultMock, params, { kind: "uups" })) as BaseVaultMock;
     await baseVault.deployed();
   });
@@ -293,7 +338,7 @@ describe("BaseVault Proxy [ @skip-on-coverage ]", async () => {
     expect(await baseVault.decimals()).to.equal(defaultDecimals);
     expect(await baseVault.governance()).to.equal(governance.address);
     expect(await baseVault.gatekeeper()).to.equal(gatekeeper.address);
-    expect(await baseVault.rewards()).to.equal(rewards.address);
+    expect(await baseVault.feeCollection()).to.equal(feeCollection.address);
     expect(await baseVault.strategyDataStore()).to.equal(vaultStrategyDataStore.address);
     expect(await baseVault.managementFee()).to.equal(0);
     expect(await baseVault.depositLimit()).to.equal(ethers.constants.MaxUint256);

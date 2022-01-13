@@ -13,12 +13,12 @@ contract ConvexStableStrategyMock is ConvexStable {
 
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _proposer,
+    address _developer,
     address _keeper,
     address _pool,
     address _booster
-  ) ConvexStable(_vault, _strategist, _rewards, _keeper, _pool, _booster) {}
+  ) ConvexStable(_vault, _proposer, _developer, _keeper, _pool, _booster) {}
 
   function setDex(address _dex) external {
     dex = _dex;

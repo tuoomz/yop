@@ -16,10 +16,10 @@ contract BaseStrategyMock is BaseStrategy {
 
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _proposer,
+    address _developer,
     address _keeper
-  ) BaseStrategy(_vault, _strategist, _rewards, _keeper) {}
+  ) BaseStrategy(_vault, _proposer, _developer, _keeper) {}
 
   function name() external view override returns (string memory) {
     return "MockStrategy";

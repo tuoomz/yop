@@ -1799,7 +1799,7 @@ contract Manageable is IManageable, Governable {
   }
 
   modifier onlyGovernanceOrManagement() {
-    require((_msgSender() == governance) || (_msgSender() == management), "govenance or management only");
+    require((_msgSender() == governance) || (_msgSender() == management), "governance or management only");
     _;
   }
 
@@ -1940,7 +1940,7 @@ contract StrategyManager is Governable, Guardianable, IStrategyManager {
 
   function migrateStrategy(address _oldStrategy, address _newStrategy) external {}
 
-  // *** The following are write functions that can only be called by the govenance or the management *** //
+  // *** The following are write functions that can only be called by the governance or the management *** //
   function setWithdrawQueue(address[] calldata _queue) external {}
 
   function updateStrategyDebtRatio(address _strategy, uint256 _debtRation) external {}
@@ -1996,7 +1996,7 @@ interface IBaseVault {
 
   function setLockedProfileDegradation(uint256 _degradation) external;
 
-  /// @notice remove tokens that are not managed by the Vault to the govenance account
+  /// @notice remove tokens that are not managed by the Vault to the governance account
   function sweep(address _token, uint256 _amount) external;
 
   // *** The following are write functions that can only be called by the govenance or the guardian *** //

@@ -29,6 +29,8 @@ interface IVault is IERC20, IERC20Permit {
 
   function governance() external view returns (address);
 
+  function creator() external view returns (address);
+
   function strategyDataStore() external view returns (address);
 
   function healthCheck() external view returns (address);

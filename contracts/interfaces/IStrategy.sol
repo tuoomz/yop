@@ -8,7 +8,6 @@ interface IStrategy {
   event Harvested(uint256 _profit, uint256 _loss, uint256 _debtPayment, uint256 _debtOutstanding);
   event StrategistUpdated(address _newStrategist);
   event KeeperUpdated(address _newKeeper);
-  event RewardsUpdated(address _rewards);
   event MinReportDelayUpdated(uint256 _delay);
   event MaxReportDelayUpdated(uint256 _delay);
   event ProfitFactorUpdated(uint256 _profitFactor);
@@ -31,7 +30,7 @@ interface IStrategy {
   /// @notice withdraw the amount from the strategy
   function withdraw(uint256 _amount) external returns (uint256);
 
-  /// @notice the amount of total assets managed by this strategy that should not acount towards the TVL of the strategy
+  /// @notice the amount of total assets managed by this strategy that should not account towards the TVL of the strategy
   function delegatedAssets() external view returns (uint256);
 
   /// @notice the total assets that the strategy is managing
@@ -42,23 +41,21 @@ interface IStrategy {
 
   function harvester() external view returns (address);
 
-  function strategist() external view returns (address);
-
   function tendTrigger(uint256 _callCost) external view returns (bool);
 
   function harvestTrigger(uint256 _callCost) external view returns (bool);
 
-  // *** write functions that can be called by the govenance, the strategist or the keeper *** //
+  // *** write functions that can be called by the governance, the strategist or the keeper *** //
   function tend() external;
 
   function harvest() external;
 
-  // *** write functions that can be called by the govenance or the strategist ***//
-  function setStrategist(address _strategist) external;
+  // *** write functions that can be called by the governance or the strategist ***//
+  function strategyProposer() external view returns (address);
+
+  function strategyDeveloper() external view returns (address);
 
   function setHarvester(address _havester) external;
-
-  function setRewards(address _rewards) external;
 
   function setVault(address _vault) external;
 
@@ -73,6 +70,6 @@ interface IStrategy {
   /// @notice Sets how far the Strategy can go into loss without a harvest and report being required.
   function setDebtThreshold(uint256 _debtThreshold) external;
 
-  // *** write functions that can be called by the govenance, or the strategist, or the guardian, or the management *** //
+  // *** write functions that can be called by the governance, or the strategist, or the guardian, or the management *** //
   function setEmergencyExit() external;
 }

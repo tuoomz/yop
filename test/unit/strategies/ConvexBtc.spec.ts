@@ -23,7 +23,8 @@ describe("ConvexBtc strategy", async () => {
   let deployer: SignerWithAddress;
   let user: SignerWithAddress;
   let governance: SignerWithAddress;
-  let strategist: SignerWithAddress;
+  let proposer: SignerWithAddress;
+  let developer: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
   let manager: SignerWithAddress;
@@ -50,7 +51,7 @@ describe("ConvexBtc strategy", async () => {
   let convexBtcStrategy: ConvexBtcStrategyMock;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, rewards, strategist] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, rewards, proposer, developer] = await ethers.getSigners();
     ({ mockVault } = await loadFixture(setupMockVault));
     user = (await ethers.getSigners()).reverse()[0];
     // don't run another `loadFixture` as it will cause some wired issues with hardhat.
@@ -83,8 +84,8 @@ describe("ConvexBtc strategy", async () => {
     );
     convexBtcStrategy = (await ConvexBTCStrategyFactory.deploy(
       mockVault.address,
-      strategist.address,
-      rewards.address,
+      proposer.address,
+      developer.address,
       gatekeeper.address,
       mockCurvePool.address,
       mockConvexBooster.address

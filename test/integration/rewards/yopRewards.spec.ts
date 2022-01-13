@@ -10,6 +10,7 @@ import { YOPRewards } from "../../../types/YOPRewards";
 import { BigNumber } from "ethers";
 import { ERC20 } from "../../../types/ERC20";
 import { Staking } from "../../../types/Staking";
+import { FeeCollection } from "../../../types/FeeCollection";
 
 const WETH_ADDRESS = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_WHALE_ADDRESS = "0x2f0b23f53734252bda2277357e97e1517d6b042a";
@@ -29,7 +30,7 @@ describe("yopRewards [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
-  let rewards: SignerWithAddress;
+  let feeCollection: FeeCollection;
   let vaultStrategyDataStore: VaultStrategyDataStore;
   let accessManager: AccessControlManager;
   let yopRewards: YOPRewards;
@@ -42,7 +43,7 @@ describe("yopRewards [@skip-on-coverage]", async () => {
 
   beforeEach(async () => {
     // setup the vault
-    ({ vault, governance, gatekeeper, yopRewards, yopWalletAccount, yopStaking, rewards, vaultStrategyDataStore, accessManager } =
+    ({ vault, governance, gatekeeper, yopRewards, yopWalletAccount, yopStaking, feeCollection, vaultStrategyDataStore, accessManager } =
       await setupVault(WETH_ADDRESS));
     // deploy the strategy
     [user, user2] = (await ethers.getSigners()).reverse();
@@ -193,7 +194,7 @@ describe("yopRewards [@skip-on-coverage]", async () => {
         "v2",
         governance.address,
         gatekeeper.address,
-        rewards.address,
+        feeCollection.address,
         vaultStrategyDataStore.address,
         WBTC_ADDRESS,
         accessManager.address,

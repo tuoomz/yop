@@ -7,6 +7,7 @@ import { BigNumber } from "ethers";
 import { Staking } from "../../../types/Staking";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json";
 import { AllowAnyAccessControl } from "../../../types/AllowAnyAccessControl";
+import { FeeCollection } from "../../../types/FeeCollection";
 
 export const YOP_WHALE_ADDRESS = "0x2f535f200847d4bc7ee6e2d6de9fcc40011f7214";
 export const YOP_CONTRACT_ADDRESS = "0xae1eaae3f627aaca434127644371b67b18444051";
@@ -14,7 +15,7 @@ const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 
 export async function setupVault(tokenAddress: string) {
   const now = Math.round(new Date().getTime() / 1000);
-  const [, governance, gatekeeper, rewards, owner] = await ethers.getSigners();
+  const [, governance, gatekeeper, rewardsWallet, owner] = await ethers.getSigners();
   const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault");
   const vault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVault;
   await vault.deployed();
@@ -36,6 +37,18 @@ export async function setupVault(tokenAddress: string) {
   const AccessManagerFactory = await ethers.getContractFactory("AccessControlManager");
   const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address])) as AccessControlManager;
   await accessManager.deployed();
+  const FeeCollectionFactory = await ethers.getContractFactory("FeeCollection");
+  const feeCollection = (await FeeCollectionFactory.deploy()) as FeeCollection;
+  await feeCollection.deployed();
+  await feeCollection.initialize(
+    governance.address,
+    gatekeeper.address,
+    rewardsWallet.address,
+    vaultStrategyDataStore.address,
+    2000, // 20%
+    1000, // 10%
+    1000 // 10%
+  );
 
   const StakingFactory = await ethers.getContractFactory("Staking");
   const yopStaking = (await StakingFactory.deploy()) as Staking;
@@ -59,7 +72,7 @@ export async function setupVault(tokenAddress: string) {
     "test",
     governance.address,
     gatekeeper.address,
-    rewards.address,
+    feeCollection.address,
     vaultStrategyDataStore.address,
     tokenAddress,
     accessManager.address,
@@ -78,7 +91,7 @@ export async function setupVault(tokenAddress: string) {
     yopRewards,
     governance,
     gatekeeper,
-    rewards,
+    feeCollection,
     yopStaking,
     yopWalletAccount,
     allowAnyAccessControl,

@@ -531,7 +531,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     require(strategies[_vault][_strategy].activation > 0, "invalid strategy");
   }
 
-  /// @dev make sure the valut exists and msg.send is either the governance or the manager of the vault
+  /// @dev make sure the vault exists and msg.send is either the governance or the manager of the vault
   ///   could be an modifier as well, but using internal functions to reduce the code size
   function _onlyGovernanceOrVaultManager(address _vault) internal view {
     require((governance == _msgSender()) || (configs[_vault].manager == _msgSender()), "not authorised");

@@ -69,18 +69,19 @@ abstract contract BaseStrategy is IStrategy {
   }
 
   address public vault;
-  address public strategist;
+  address public strategyProposer;
+  address public strategyDeveloper;
   address public rewards;
   address public harvester;
   IERC20 public want;
 
   // So indexers can keep track of this
 
-  event UpdatedStrategist(address newStrategist);
+  event UpdatedStrategyProposer(address strategyProposer);
+
+  event UpdatedStrategyDeveloper(address strategyDeveloper);
 
   event UpdatedHarvester(address newHarvester);
-
-  event UpdatedRewards(address rewards);
 
   event UpdatedVault(address vault);
 
@@ -115,12 +116,15 @@ abstract contract BaseStrategy is IStrategy {
 
   // modifiers
   modifier onlyAuthorized() {
-    require(msg.sender == strategist || msg.sender == governance(), "!authorized");
+    require(
+      msg.sender == strategyProposer || msg.sender == strategyDeveloper || msg.sender == governance(),
+      "!authorized"
+    );
     _;
   }
 
   modifier onlyStrategist() {
-    require(msg.sender == strategist, "!strategist");
+    require(msg.sender == strategyProposer || msg.sender == strategyDeveloper, "!strategist");
     _;
   }
 
@@ -130,17 +134,23 @@ abstract contract BaseStrategy is IStrategy {
   }
 
   modifier onlyKeepers() {
-    require(msg.sender == harvester || msg.sender == strategist || msg.sender == governance(), "!authorized");
+    require(
+      msg.sender == harvester ||
+        msg.sender == strategyProposer ||
+        msg.sender == strategyDeveloper ||
+        msg.sender == governance(),
+      "!authorized"
+    );
     _;
   }
 
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _strategyProposer,
+    address _strategyDeveloper,
     address _harvester
   ) {
-    _initialize(_vault, _strategist, _rewards, _harvester);
+    _initialize(_vault, _strategyProposer, _strategyDeveloper, _harvester);
   }
 
   /**
@@ -152,8 +162,8 @@ abstract contract BaseStrategy is IStrategy {
    */
   function _initialize(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _strategyProposer,
+    address _strategyDeveloper,
     address _harvester
   ) internal {
     require(address(want) == address(0), "Strategy already initialized");
@@ -162,8 +172,8 @@ abstract contract BaseStrategy is IStrategy {
     want = IERC20(IVault(vault).token());
     checkWantToken();
     want.safeApprove(_vault, type(uint256).max); // Give Vault unlimited access (might save gas)
-    strategist = _strategist;
-    rewards = _rewards;
+    strategyProposer = _strategyProposer;
+    strategyDeveloper = _strategyDeveloper;
     harvester = _harvester;
 
     // initialize variables
@@ -171,21 +181,25 @@ abstract contract BaseStrategy is IStrategy {
     maxReportDelay = 86400;
     profitFactor = 100;
     debtThreshold = 0;
-
-    IVault(vault).approve(rewards, type(uint256).max); // Allow rewards to be pulled
   }
 
   /**
    * @notice
-   *  Used to change `strategist`.
+   *  Used to change `_strategyProposer`.
    *
    *  This may only be called by governance or the existing strategist.
-   * @param _strategist The new address to assign as `strategist`.
+   * @param _strategyProposer The new address to assign as `strategist`.
    */
-  function setStrategist(address _strategist) external onlyAuthorized {
-    require(_strategist != address(0), "! address 0");
-    strategist = _strategist;
-    emit UpdatedStrategist(_strategist);
+  function setStrategyProposer(address _strategyProposer) external onlyAuthorized {
+    require(_strategyProposer != address(0), "! address 0");
+    strategyProposer = _strategyProposer;
+    emit UpdatedStrategyProposer(_strategyProposer);
+  }
+
+  function setStrategyDeveloper(address _strategyDeveloper) external onlyAuthorized {
+    require(_strategyDeveloper != address(0), "! address 0");
+    strategyDeveloper = _strategyDeveloper;
+    emit UpdatedStrategyDeveloper(_strategyDeveloper);
   }
 
   /**
@@ -211,22 +225,6 @@ abstract contract BaseStrategy is IStrategy {
     require(_vault != address(0), "! address 0");
     vault = _vault;
     emit UpdatedVault(_vault);
-  }
-
-  /**
-   * @notice
-   *  Used to change `rewards`. EOA or smart contract which has the permission
-   *  to pull rewards from the vault.
-   *
-   *  This may only be called by the strategist.
-   * @param _rewards The address to use for pulling rewards.
-   */
-  function setRewards(address _rewards) external onlyStrategist {
-    require(_rewards != address(0), "! address 0");
-    IVault(vault).approve(rewards, 0);
-    rewards = _rewards;
-    IVault(vault).approve(rewards, type(uint256).max);
-    emit UpdatedRewards(_rewards);
   }
 
   /**
@@ -410,7 +408,7 @@ abstract contract BaseStrategy is IStrategy {
    * irregardless of slippage. Any excess will be re-invested with `adjustPosition()`.
    * This function should return the amount of `want` tokens made available by the
    * liquidation. If there is a difference between them, `_loss` indicates whether the
-   * difference is due to a realized loss, or if there is some other sitution at play
+   * difference is due to a realized loss, or if there is some other situation at play
    * (e.g. locked funds) where the amount made available is less than what is needed.
    * This function is used during emergency exit instead of `prepareReturn()` to
    * liquidate all of the Strategy's positions back to the Vault.
@@ -440,7 +438,7 @@ abstract contract BaseStrategy is IStrategy {
   // solhint-disable-next-line no-unused-vars
   function tendTrigger(uint256 callCost) public view virtual returns (bool) {
     // We usually don't need tend, but if there are positions that need
-    // active maintainence, overriding this function is how you would
+    // active maintenance, overriding this function is how you would
     // signal for that.
     return false;
   }

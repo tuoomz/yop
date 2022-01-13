@@ -41,17 +41,17 @@ abstract contract CurveBase is BaseStrategy {
   address public dex;
 
   /// @param _vault The address of the vault. The underlying token should match the `want` token of the strategy.
-  /// @param _strategist The address of the strategist, who is responsible for maining the strategy
-  /// @param _rewards The address of the rewards (can either be an EOA or smart contract). It can pull rewards from the strategy.
+  /// @param _proposer The address of the strategy proposer
+  /// @param _developer The address of the strategy developer
   /// @param _keeper The address of the keeper of the strategy.
   /// @param _pool The address of the Curve pool
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _proposer,
+    address _developer,
     address _keeper,
     address _pool
-  ) BaseStrategy(_vault, _strategist, _rewards, _keeper) {
+  ) BaseStrategy(_vault, _proposer, _developer, _keeper) {
     require(_pool != address(0), "invalid pool address");
     minReportDelay = 43_200; // 12hr
     maxReportDelay = 259_200; // 72hr
@@ -103,7 +103,7 @@ abstract contract CurveBase is BaseStrategy {
     _depositLPTokens();
   }
 
-  /// @dev This will claim the rewards from either Curve or Convex, swap them to want tokens and calcuate the profit/loss.
+  /// @dev This will claim the rewards from either Curve or Convex, swap them to want tokens and calculate the profit/loss.
   function prepareReturn(uint256 _debtOutstanding)
     internal
     virtual

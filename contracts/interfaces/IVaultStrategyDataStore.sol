@@ -12,6 +12,8 @@ interface IVaultStrategyDataStore {
 
   function strategyMaxDebtPerHarvest(address _vault, address _strategy) external view returns (uint256);
 
+  function vaultStrategies(address _vault) external view returns (address[] memory);
+
   function vaultTotalDebtRatio(address _vault) external view returns (uint256);
 
   function withdrawQueue(address _vault) external view returns (address[] memory);

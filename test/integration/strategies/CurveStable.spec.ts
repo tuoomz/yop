@@ -23,9 +23,9 @@ describe("CurveStableStrategy [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
   let vaultStrategyDataStore: VaultStrategyDataStore;
   let governance: SignerWithAddress;
-  let rewards: SignerWithAddress;
   let curveStrategy: CurveStable;
-  let strategist: SignerWithAddress;
+  let proposer: SignerWithAddress;
+  let developer: SignerWithAddress;
   let keeper: SignerWithAddress;
   let user: SignerWithAddress;
   let usdcContract: ERC20;
@@ -35,14 +35,14 @@ describe("CurveStableStrategy [@skip-on-coverage]", async () => {
   let allocatedFund: BigNumber;
   beforeEach(async () => {
     // setup the vault
-    ({ vault, vaultStrategyDataStore, governance, rewards } = await setupVault(USDC_ADDRESS));
+    ({ vault, vaultStrategyDataStore, governance } = await setupVault(USDC_ADDRESS));
     // deploy the strategy
-    [strategist, keeper, user] = (await ethers.getSigners()).reverse();
+    [proposer, developer, keeper, user] = (await ethers.getSigners()).reverse();
     const strategyFactory = await ethers.getContractFactory("CurveStable");
     curveStrategy = (await strategyFactory.deploy(
       vault.address,
-      strategist.address,
-      rewards.address,
+      proposer.address,
+      developer.address,
       keeper.address,
       CURVE_DAI_USDC_USDT_POOL_ADDRESS
     )) as CurveStable;

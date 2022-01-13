@@ -14,11 +14,11 @@ contract CurveStableStrategyMock is CurveStable {
 
   constructor(
     address _vault,
-    address _strategist,
-    address _rewards,
+    address _proposer,
+    address _developer,
     address _keeper,
     address _pool
-  ) CurveStable(_vault, _strategist, _rewards, _keeper, _pool) {}
+  ) CurveStable(_vault, _proposer, _developer, _keeper, _pool) {}
 
   // do nothing here in the mock as it doesn't have the addresses of mocked contract yet
   function _initCurvePool(address _pool) internal override {}

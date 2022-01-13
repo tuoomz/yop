@@ -32,7 +32,7 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
     string memory _symbol,
     address _governance,
     address _gatekeeper,
-    address _rewards,
+    address _feeCollection,
     address _strategyDataStoreAddress,
     address _accessManager,
     address _vaultRewards
@@ -42,7 +42,7 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
     __VaultMetaDataStore_init(
       _governance,
       _gatekeeper,
-      _rewards,
+      _feeCollection,
       _strategyDataStoreAddress,
       _accessManager,
       _vaultRewards
@@ -74,7 +74,7 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
   }
 
   /// @notice called by the strategy to revoke itself. Should not be called by any other means.
-  ///  Use {VaultStrategyDataStore.revokeStrategy} to revoke a strategy manaully.
+  ///  Use {VaultStrategyDataStore.revokeStrategy} to revoke a strategy manually.
   /// @dev The strategy could talk to the {VaultStrategyDataStore} directly when revoking itself.
   ///  However, that means we will need to change the interfaces to Strategies and make them incompatible with Yearn's strategies.
   ///  To avoid that, the strategies will continue talking to the Vault and the Vault will then let the {VaultStrategyDataStore} know.

@@ -12,17 +12,19 @@ const { loadFixture, deployMockContract } = waffle;
 describe("BaseStrategy", async () => {
   let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
-  let strategist: SignerWithAddress;
+  let proposer: SignerWithAddress;
+  let developer: SignerWithAddress;
   let harvester: SignerWithAddress;
   let rewards: SignerWithAddress;
   let user: SignerWithAddress;
+  let user2: SignerWithAddress;
   let mockVault: MockContract;
   let mockStrategyDataStore: MockContract;
   let mockVaultToken: MockContract;
   let strategy: BaseStrategyMock;
 
   beforeEach(async () => {
-    [deployer, governance, harvester, rewards, strategist, user] = await ethers.getSigners();
+    [deployer, governance, harvester, rewards, proposer, developer, user, user2] = await ethers.getSigners();
     ({ mockVault, mockVaultToken, mockStrategyDataStore } = await loadFixture(setupMockVault));
     await mockVault.mock.token.returns(mockVaultToken.address);
     await mockVault.mock.approve.returns(true);
@@ -30,7 +32,7 @@ describe("BaseStrategy", async () => {
     await mockVaultToken.mock.allowance.returns(0);
     await mockVaultToken.mock.approve.returns(true);
     const StrategyBaseFactory = await ethers.getContractFactory("BaseStrategyMock");
-    strategy = (await StrategyBaseFactory.deploy(mockVault.address, strategist.address, rewards.address, harvester.address)) as BaseStrategyMock;
+    strategy = (await StrategyBaseFactory.deploy(mockVault.address, proposer.address, developer.address, harvester.address)) as BaseStrategyMock;
   });
 
   describe("basic properties", async () => {
@@ -45,19 +47,25 @@ describe("BaseStrategy", async () => {
     });
   });
 
-  describe("setStrategist", async () => {
+  describe("setStrategyProposer & setStrategyDeveloper", async () => {
     it("should revert is user is not authorised", async () => {
-      await expect(strategy.connect(user).setStrategist(strategist.address)).to.be.revertedWith("!authorized");
+      await expect(strategy.connect(user).setStrategyProposer(proposer.address)).to.be.revertedWith("!authorized");
+      await expect(strategy.connect(user).setStrategyDeveloper(developer.address)).to.be.revertedWith("!authorized");
     });
     it("should revert if address is not valid", async () => {
-      await expect(strategy.connect(strategist).setStrategist(ethers.constants.AddressZero)).to.be.revertedWith("! address 0");
+      await expect(strategy.connect(proposer).setStrategyProposer(ethers.constants.AddressZero)).to.be.revertedWith("! address 0");
+      await expect(strategy.connect(proposer).setStrategyDeveloper(ethers.constants.AddressZero)).to.be.revertedWith("! address 0");
     });
     it("should update the strategist", async () => {
-      await expect(await strategy.strategist()).to.equal(strategist.address);
-      await expect(await strategy.connect(strategist).setStrategist(user.address))
-        .to.emit(strategy, "UpdatedStrategist")
+      await expect(await strategy.strategyProposer()).to.equal(proposer.address);
+      await expect(await strategy.strategyDeveloper()).to.equal(developer.address);
+      await expect(await strategy.connect(proposer).setStrategyProposer(user.address))
+        .to.emit(strategy, "UpdatedStrategyProposer")
         .withArgs(user.address);
-      await expect(await strategy.strategist()).to.equal(user.address);
+      await expect(await strategy.connect(developer).setStrategyDeveloper(user.address))
+        .to.emit(strategy, "UpdatedStrategyDeveloper")
+        .withArgs(user.address);
+      await expect(await strategy.strategyDeveloper()).to.equal(user.address);
     });
   });
 
@@ -86,27 +94,10 @@ describe("BaseStrategy", async () => {
     });
     it("should update the vault", async () => {
       await expect(await strategy.vault()).to.equal(mockVault.address);
-      await expect(await strategy.connect(governance).setVault(user.address))
+      await expect(await strategy.connect(governance).setVault(user2.address))
         .to.emit(strategy, "UpdatedVault")
-        .withArgs(user.address);
-      await expect(await strategy.vault()).to.equal(user.address);
-    });
-  });
-
-  describe("setRewards", async () => {
-    it("should revert is user is not authorised", async () => {
-      await expect(strategy.connect(governance).setRewards(rewards.address)).to.be.revertedWith("!strategist");
-      await expect(strategy.connect(harvester).setRewards(rewards.address)).to.be.revertedWith("!strategist");
-    });
-    it("should revert if address is not valid", async () => {
-      await expect(strategy.connect(strategist).setRewards(ethers.constants.AddressZero)).to.be.revertedWith("! address 0");
-    });
-    it("should update the rewards", async () => {
-      await expect(await strategy.rewards()).to.equal(rewards.address);
-      await expect(await strategy.connect(strategist).setRewards(user.address))
-        .to.emit(strategy, "UpdatedRewards")
-        .withArgs(user.address);
-      await expect(await strategy.rewards()).to.equal(user.address);
+        .withArgs(user2.address);
+      await expect(await strategy.vault()).to.equal(user2.address);
     });
   });
 
@@ -200,7 +191,7 @@ describe("BaseStrategy", async () => {
 
     it("should success if user is authorised", async () => {
       await mockVault.mock.debtOutstanding.returns(0);
-      await strategy.connect(strategist).tend();
+      await strategy.connect(developer).tend();
     });
   });
 
@@ -226,7 +217,7 @@ describe("BaseStrategy", async () => {
       strategyParams.activation = 1;
       await mockVault.mock.strategy.returns(strategyParams);
       await strategy.setBlockTimestamp(currentTime);
-      await strategy.connect(strategist).setMinReportDelay(minReportDelay);
+      await strategy.connect(developer).setMinReportDelay(minReportDelay);
       await expect(await strategy.harvestTrigger(0)).to.equal(false);
     });
 
@@ -238,7 +229,7 @@ describe("BaseStrategy", async () => {
       strategyParams.activation = 1;
       await mockVault.mock.strategy.returns(strategyParams);
       await strategy.setBlockTimestamp(currentTime);
-      await strategy.connect(strategist).setMaxReportDelay(maxReportDelay);
+      await strategy.connect(developer).setMaxReportDelay(maxReportDelay);
       await expect(await strategy.harvestTrigger(0)).to.equal(true);
     });
 
@@ -250,7 +241,7 @@ describe("BaseStrategy", async () => {
       await mockVault.mock.strategy.returns(strategyParams);
       await strategy.setBlockTimestamp(currentTime);
       await mockVault.mock.debtOutstanding.returns(100);
-      await strategy.connect(strategist).setDebtThreshold(50);
+      await strategy.connect(developer).setDebtThreshold(50);
       await expect(await strategy.harvestTrigger(0)).to.equal(true);
     });
 
@@ -264,7 +255,7 @@ describe("BaseStrategy", async () => {
       await strategy.setBlockTimestamp(currentTime);
       await strategy.setTotalAssetValue(0);
       await mockVault.mock.debtOutstanding.returns(100);
-      await strategy.connect(strategist).setDebtThreshold(200);
+      await strategy.connect(developer).setDebtThreshold(200);
       await expect(await strategy.harvestTrigger(0)).to.equal(true);
     });
 
@@ -278,9 +269,9 @@ describe("BaseStrategy", async () => {
       await strategy.setBlockTimestamp(currentTime);
       await strategy.setTotalAssetValue(300);
       await mockVault.mock.debtOutstanding.returns(100);
-      await strategy.connect(strategist).setDebtThreshold(200);
+      await strategy.connect(developer).setDebtThreshold(200);
       await mockVault.mock.creditAvailable.returns(100);
-      await strategy.connect(strategist).setProfitFactor(1);
+      await strategy.connect(developer).setProfitFactor(1);
       // credit + profit = 100 + 200 = 300
       // profitFactor * callcost = 1 * 100
       await expect(await strategy.harvestTrigger(100)).to.equal(true);
@@ -296,9 +287,9 @@ describe("BaseStrategy", async () => {
       await strategy.setBlockTimestamp(currentTime);
       await strategy.setTotalAssetValue(300);
       await mockVault.mock.debtOutstanding.returns(100);
-      await strategy.connect(strategist).setDebtThreshold(200);
+      await strategy.connect(developer).setDebtThreshold(200);
       await mockVault.mock.creditAvailable.returns(100);
-      await strategy.connect(strategist).setProfitFactor(1);
+      await strategy.connect(developer).setProfitFactor(1);
       // credit + profit = 100 + 200 = 300
       // profitFactor * callcost = 1 * 400
       await expect(await strategy.harvestTrigger(400)).to.equal(false);
@@ -321,7 +312,7 @@ describe("BaseStrategy", async () => {
       const debtPayment = 100;
       // debtOutstanding: 0 (no more debt outstanding reported by the vault)
       const debtOutstanding = 0;
-      await expect(await strategy.connect(strategist).harvest())
+      await expect(await strategy.connect(developer).harvest())
         .to.emit(strategy, "Harvested")
         .withArgs(profit, loss, debtPayment, debtOutstanding);
     });
@@ -334,7 +325,7 @@ describe("BaseStrategy", async () => {
       const debtOutstanding = 0;
       await strategy.setPrepareReturnResults(profit, loss, debtPayment);
       await mockVault.mock.report.returns(debtOutstanding);
-      await expect(await strategy.connect(strategist).harvest())
+      await expect(await strategy.connect(developer).harvest())
         .to.emit(strategy, "Harvested")
         .withArgs(profit, loss, debtPayment, debtOutstanding);
     });
@@ -342,7 +333,7 @@ describe("BaseStrategy", async () => {
 
   describe("withdraw", async () => {
     it("should revert is user is not the vault", async () => {
-      await expect(strategy.connect(strategist).withdraw(100)).to.be.revertedWith("!vault");
+      await expect(strategy.connect(developer).withdraw(100)).to.be.revertedWith("!vault");
     });
 
     it("should be able to withdraw by the vault", async () => {
@@ -359,7 +350,7 @@ describe("BaseStrategy", async () => {
     });
 
     it("should revert is user is not the vault", async () => {
-      await expect(strategy.connect(strategist).migrate(newStrategy.address)).to.be.revertedWith("!authorised");
+      await expect(strategy.connect(developer).migrate(newStrategy.address)).to.be.revertedWith("!authorised");
     });
 
     it("should revert if vault is already set on the strategy", async () => {
@@ -383,7 +374,7 @@ describe("BaseStrategy", async () => {
 
     it("should success if user is authorised", async () => {
       await mockVault.mock.revokeStrategy.returns();
-      await expect(await strategy.connect(strategist).setEmergencyExit()).to.emit(strategy, "EmergencyExitEnabled");
+      await expect(await strategy.connect(developer).setEmergencyExit()).to.emit(strategy, "EmergencyExitEnabled");
     });
   });
 
@@ -394,7 +385,7 @@ describe("BaseStrategy", async () => {
     });
     it("should revert is user is not authorised", async () => {
       await expect(strategy.connect(user).sweep(newToken.address)).to.be.revertedWith("!authorized");
-      await expect(strategy.connect(strategist).sweep(newToken.address)).to.be.revertedWith("!authorized");
+      await expect(strategy.connect(developer).sweep(newToken.address)).to.be.revertedWith("!authorized");
       await expect(strategy.connect(harvester).sweep(newToken.address)).to.be.revertedWith("!authorized");
     });
     it("should revert if the newToken is the address of want token", async () => {

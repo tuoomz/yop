@@ -29,9 +29,9 @@ describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
   let vaultStrategyDataStore: VaultStrategyDataStore;
   let governance: SignerWithAddress;
-  let rewards: SignerWithAddress;
   let convexStrategy: ConvexBtc;
-  let strategist: SignerWithAddress;
+  let proposer: SignerWithAddress;
+  let developer: SignerWithAddress;
   let keeper: SignerWithAddress;
   let user: SignerWithAddress;
   let wbtcContract: ERC20;
@@ -44,14 +44,14 @@ describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
 
   beforeEach(async () => {
     // setup the vault
-    ({ vault, vaultStrategyDataStore, governance, rewards } = await loadFixture(setupWBTCVault));
+    ({ vault, vaultStrategyDataStore, governance } = await loadFixture(setupWBTCVault));
     // deploy the strategy
-    [strategist, keeper, user] = (await ethers.getSigners()).reverse();
+    [proposer, developer, keeper, user] = (await ethers.getSigners()).reverse();
     const strategyFactory = await ethers.getContractFactory("ConvexBtc");
     convexStrategy = (await strategyFactory.deploy(
       vault.address,
-      strategist.address,
-      rewards.address,
+      proposer.address,
+      developer.address,
       keeper.address,
       CURVE_OBTC_ZAP_POOL_ADDRESS,
       CONVEX_BOOSTER_ADDRESS

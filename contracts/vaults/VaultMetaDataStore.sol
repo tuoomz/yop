@@ -9,7 +9,7 @@ import "./VaultDataStorage.sol";
 abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, VaultDataStorage {
   event EmergencyShutdown(bool _active);
   event HealthCheckUpdated(address indexed _healthCheck);
-  event RewardsUpdated(address indexed _rewards);
+  event FeeCollectionUpdated(address indexed _feeCollection);
   event ManagementFeeUpdated(uint256 _managementFee);
   event StrategyDataStoreUpdated(address indexed _strategyDataStore);
   event DepositLimitUpdated(uint256 _limit);
@@ -27,7 +27,7 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
   function __VaultMetaDataStore_init(
     address _governance,
     address _gatekeeper,
-    address _rewards,
+    address _feeCollection,
     address _strategyDataStore,
     address _accessManager,
     address _vaultRewards
@@ -35,27 +35,27 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     __Governable_init(_governance);
     __Gatekeeperable_init(_gatekeeper);
     __VaultDataStorage_init();
-    __VaultMetaDataStore_init_unchained(_rewards, _strategyDataStore, _accessManager, _vaultRewards);
+    __VaultMetaDataStore_init_unchained(_feeCollection, _strategyDataStore, _accessManager, _vaultRewards);
   }
 
   // solhint-disable-next-line func-name-mixedcase
   function __VaultMetaDataStore_init_unchained(
-    address _rewards,
+    address _feeCollection,
     address _strategyDataStore,
     address _accessManager,
     address _vaultRewards
   ) internal {
-    _updateRewards(_rewards);
+    _updateFeeCollection(_feeCollection);
     _updateStrategyDataStore(_strategyDataStore);
     _updateAccessManager(_accessManager);
     _updateVaultRewardsContract(_vaultRewards);
   }
 
-  /// @notice set the wallet address to send the collected fees to. Only can be called by the governance.
-  /// @param _rewards the new wallet address to send the fees to.
-  function setRewards(address _rewards) external {
+  /// @notice set the address to send the collected fees to. Only can be called by the governance.
+  /// @param _feeCollection the new address to send the fees to.
+  function setFeeCollection(address _feeCollection) external {
     _onlyGovernance();
-    _updateRewards(_rewards);
+    _updateFeeCollection(_feeCollection);
   }
 
   /// @notice set the management fee in basis points. 1 basis point is 0.01% and 100% is 10000 basis points.
@@ -108,6 +108,11 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     }
   }
 
+  function setVaultCreator(address _vaultCreator) external {
+    _onlyGovernanceOrGatekeeper(governance);
+    vaultCreator = _vaultCreator;
+  }
+
   function setDepositLimit(uint256 _limit) external {
     _onlyGovernanceOrGatekeeper(governance);
     _updateDepositLimit(_limit);
@@ -118,11 +123,11 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     _updateAccessManager(_accessManager);
   }
 
-  function _updateRewards(address _rewards) internal {
-    require(_rewards != address(0), "!input");
-    if (rewards != _rewards) {
-      rewards = _rewards;
-      emit RewardsUpdated(_rewards);
+  function _updateFeeCollection(address _feeCollection) internal {
+    require(_feeCollection != address(0), "!input");
+    if (feeCollection != _feeCollection) {
+      feeCollection = _feeCollection;
+      emit FeeCollectionUpdated(_feeCollection);
     }
   }
 

@@ -28,10 +28,11 @@ contract VaultDataStorage {
   /// @notice total value borrowed by all the strategies
   uint256 public totalDebt;
 
-  address public rewards;
+  address public feeCollection;
   address public healthCheck;
   address public strategyDataStore;
   address public accessManager;
+  address public vaultCreator;
 
   IERC20Upgradeable public token;
   mapping(address => StrategyInfo) internal strategies;

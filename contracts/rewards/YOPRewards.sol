@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeab
 import "prb-math/contracts/PRBMathUD60x18Typed.sol";
 import "hardhat/console.sol";
 import "../interfaces/IYOPRewards.sol";
-import "../libaries/ConvertUtils.sol";
+import "../libraries/ConvertUtils.sol";
 import "../security/BasePauseableUpgradeable.sol";
 
 interface IStaking {

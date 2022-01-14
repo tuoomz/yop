@@ -13,7 +13,7 @@ const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 
 export async function setupVault(tokenAddress: string) {
   const now = Math.round(new Date().getTime() / 1000);
-  const [, governance, gatekeeper, rewards] = await ethers.getSigners();
+  const [, governance, gatekeeper, rewards, owner] = await ethers.getSigners();
   const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault");
   const vault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVault;
   await vault.deployed();
@@ -37,7 +37,8 @@ export async function setupVault(tokenAddress: string) {
     gatekeeper.address,
     yopRewards.address,
     "https://example.com",
-    "https://example.com"
+    "https://example.com",
+    owner.address
   );
 
   const yopWalletAccount = await impersonate(YOP_WHALE_ADDRESS);

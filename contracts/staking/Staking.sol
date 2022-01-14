@@ -52,6 +52,8 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   string public symbol;
   /// @notice The URL for the storefront-level metadata
   string public contractURI;
+  /// @notice Used by OpenSea for admin access of the collection
+  address public owner;
   // the minimum amount for staking
   uint256 public minStakeAmount;
   // the total supply of "working balance". The "working balance" of each stake is calculated as amount * lockPeriod.
@@ -80,9 +82,10 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     address _gatekeeper,
     address _yopRewards,
     string memory _uri,
-    string memory _contractURI
+    string memory _contractURI,
+    address _owner
   ) external initializer {
-    __Staking_init(_name, _symbol, _governance, _gatekeeper, _yopRewards, _uri, _contractURI);
+    __Staking_init(_name, _symbol, _governance, _gatekeeper, _yopRewards, _uri, _contractURI, _owner);
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -93,11 +96,12 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     address _gatekeeper,
     address _yopRewards,
     string memory _uri,
-    string memory _contractURI
+    string memory _contractURI,
+    address _owner
   ) internal onlyInitializing {
     __ERC1155_init(_uri);
     __BasePauseableUpgradeable_init(_governance, _gatekeeper);
-    __Staking_init_unchained(_name, _symbol, _yopRewards, _contractURI);
+    __Staking_init_unchained(_name, _symbol, _yopRewards, _contractURI, _owner);
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -105,13 +109,16 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     string memory _name,
     string memory _symbol,
     address _yopRewards,
-    string memory _contractURI
+    string memory _contractURI,
+    address _owner
   ) internal onlyInitializing {
     require(_yopRewards != address(0), "!input");
+    require(_owner != address(0), "!input");
     name = _name;
     symbol = _symbol;
     yopRewards = _yopRewards;
     contractURI = _contractURI;
+    owner = _owner;
   }
 
   /// @notice Set the minimum amount of tokens for staking

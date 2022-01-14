@@ -18,35 +18,71 @@ describe("Staking", async () => {
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let user: SignerWithAddress;
+  let owner: SignerWithAddress;
   let stakeToken: MockContract;
   let staking: StakingMock;
   let yopReward: MockContract;
   let StakingContractFactory: ContractFactory;
 
   beforeEach(async () => {
-    [deployer, governance, gatekeeper, user] = await ethers.getSigners();
+    [deployer, governance, gatekeeper, user, owner] = await ethers.getSigners();
     stakeToken = await deployMockContract(deployer, ERC20ABI);
     yopReward = await deployMockContract(deployer, YOPRewardsABI);
     StakingContractFactory = await ethers.getContractFactory("StakingMock");
     staking = (await StakingContractFactory.deploy()) as StakingMock;
     await staking.deployed();
-    await staking.initialize("staking", "sta", governance.address, gatekeeper.address, yopReward.address, "https://example.com", CONTRACT_URI);
+    await staking.initialize(
+      "staking",
+      "sta",
+      governance.address,
+      gatekeeper.address,
+      yopReward.address,
+      "https://example.com",
+      CONTRACT_URI,
+      owner.address
+    );
     await staking.setToken(stakeToken.address);
     await yopReward.mock.calculateStakingRewards.returns();
   });
 
   describe("initialize", async () => {
-    it("should revert is reward contract address is not valid", async () => {
+    it("should revert if reward contract address is not valid", async () => {
       const anotherStaking = (await StakingContractFactory.deploy()) as StakingMock;
       await anotherStaking.deployed();
       await expect(
-        anotherStaking.initialize("staking", "sta", governance.address, gatekeeper.address, ethers.constants.AddressZero, "url", CONTRACT_URI)
+        anotherStaking.initialize(
+          "staking",
+          "sta",
+          governance.address,
+          gatekeeper.address,
+          ethers.constants.AddressZero,
+          "url",
+          CONTRACT_URI,
+          owner.address
+        )
+      ).to.be.revertedWith("!input");
+    });
+
+    it("should revert if owner address is not valid", async () => {
+      const anotherStaking = (await StakingContractFactory.deploy()) as StakingMock;
+      await anotherStaking.deployed();
+      await expect(
+        anotherStaking.initialize(
+          "staking",
+          "sta",
+          governance.address,
+          gatekeeper.address,
+          yopReward.address,
+          "url",
+          CONTRACT_URI,
+          ethers.constants.AddressZero
+        )
       ).to.be.revertedWith("!input");
     });
 
     it("should revert if called more than once", async () => {
       await expect(
-        staking.initialize("staking", "sta", governance.address, gatekeeper.address, yopReward.address, "url", CONTRACT_URI)
+        staking.initialize("staking", "sta", governance.address, gatekeeper.address, yopReward.address, "url", CONTRACT_URI, owner.address)
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
   });
@@ -57,6 +93,9 @@ describe("Staking", async () => {
     });
     it("should return symbol", async () => {
       expect(await staking.symbol()).to.equal("sta");
+    });
+    it("should return owner", async () => {
+      expect(await staking.owner()).to.equal(owner.address);
     });
   });
 

@@ -24,8 +24,8 @@ contract YOPRewardsMock is YOPRewards {
 
   function setInitialRewardsRatios(uint256 _ratioForVaults, uint256 _ratioForStaking) external {
     require((_ratioForVaults + _ratioForStaking) == MAX_BPS, "!input");
-    vaultsRewardsRatio = _ratioForVaults;
-    stakingRewardsRatio = _ratioForStaking;
+    vaultsRewardsWeight = _ratioForVaults;
+    stakingRewardsWeight = _ratioForStaking;
   }
 
   function setInitialVaultWeights(address[] calldata _vaults, uint256[] calldata _weights) external {
@@ -35,7 +35,7 @@ contract YOPRewardsMock is YOPRewards {
       uint256 oldValue = perVaultRewardsWeight[vault];
       if (oldValue != _weights[i]) {
         perVaultRewardsWeight[vault] = _weights[i];
-        totalWeight = totalWeight - oldValue + _weights[i];
+        totalWeightForVaults = totalWeightForVaults - oldValue + _weights[i];
         vaultAddresses.add(vault);
       }
     }

@@ -6,13 +6,13 @@ interface IYOPRewards {
   function rate() external view returns (uint256 _rate, uint256 _epoch);
 
   /// @notice Returns the current ratio of community emissions for vault users
-  function vaultsRewardsRatio() external view returns (uint256);
+  function vaultsRewardsWeight() external view returns (uint256);
 
   /// @notice Returns the current ratio of community emissions for staking users
-  function stakingRewardsRatio() external view returns (uint256);
+  function stakingRewardsWeight() external view returns (uint256);
 
   /// @notice Set the ratios of community emission for vaults and staking respectively. Governance only. Should emit an event.
-  function setRewardsRatios(uint256 _ratioForVaults, uint256 _ratioForStaking) external;
+  function setRewardsAllocationWeights(uint256 _weightForVaults, uint256 _weightForStaking) external;
 
   /// @notice Get the weight of a Vault
   function perVaultRewardsWeight(address vault) external view returns (uint256);

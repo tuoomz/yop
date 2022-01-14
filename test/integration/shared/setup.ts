@@ -57,7 +57,7 @@ export async function setupVault(tokenAddress: string) {
     yopRewards.address
   );
   await yopRewards.connect(governance).setStakingContractAddress(yopStaking.address);
-  await yopRewards.connect(governance).setRewardsRatios(5000, 5000);
+  await yopRewards.connect(governance).setRewardsAllocationWeights(5000, 5000);
   await yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address], [100]);
 
   const yopContract = await ethers.getContractAt(ERC20ABI, YOP_CONTRACT_ADDRESS);

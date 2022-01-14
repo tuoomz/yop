@@ -39,12 +39,12 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   using PRBMathUD60x18Typed for PRBMath.UD60x18;
   using ConvertUtils for *;
 
-  /// @notice Emitted when the ratio of rewards for all vaults is changed
-  event VaultsRewardsRatioUpdated(uint256 indexed _ratio);
-  /// @notice Emitted when the ratio of rewards for staking is changed
-  event StakingRewardsRatioUpdated(uint256 indexed _ratio);
+  /// @notice Emitted when the weight of rewards for all vaults is changed
+  event VaultsRewardsWeightUpdated(uint256 indexed _weight);
+  /// @notice Emitted when the weight of rewards for staking is changed
+  event StakingRewardsWeightUpdated(uint256 indexed _weight);
   /// @notice Emitted when the weight points of a vault is updated
-  event VaultRewardWeightUpdated(address indexed _vault, uint256 indexed _weight);
+  event VaultRewardWeightUpdated(address[] _vaults, uint256[] _weights);
   /// @notice Emitted when rewards is calculated for a user
   event RewardsDistributed(address indexed _vault, bytes32 indexed _to, uint256 indexed _amount);
   /// @notice Emitted when the staking contract is updated
@@ -76,12 +76,12 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   uint256 public constant WEIGHT_AMP = 1000000;
   uint8 public constant YOP_DECIMAL = 8;
 
-  /// @notice The percentage of new YOP emissions that will be allocated to vault users, in BPS. Default to 50%.
-  uint256 public vaultsRewardsRatio;
-  /// @notice The percentage of new YOP emissions that will be allocated to staking users, in BPS. Default to 50%.
-  uint256 public stakingRewardsRatio;
+  /// @notice The weight of new YOP emissions that will be allocated to vault users. Default to 50.
+  uint256 public vaultsRewardsWeight;
+  /// @notice The weight of new YOP emissions that will be allocated to staking users. Default to 50.
+  uint256 public stakingRewardsWeight;
   /// @notice The total weight points of all the vaults combined together
-  uint256 public totalWeight;
+  uint256 public totalWeightForVaults;
   /// @notice The start time of the emission
   uint256 public emissionStartTime;
   /// @notice The end time of the emission
@@ -146,8 +146,8 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     yopContractAddress = _yopContract;
     emissionStartTime = _emissionStartTime;
     emissionEndTime = emissionStartTime + SECONDS_PER_EPOCH * MAX_EPOCH_COUNT;
-    vaultsRewardsRatio = MAX_BPS / 2;
-    stakingRewardsRatio = MAX_BPS / 2;
+    vaultsRewardsWeight = 50;
+    stakingRewardsWeight = 50;
   }
 
   /// @notice Returns the current emission rate of the rewards token (per epoch/month) and the epoch count. The epoch count will start from 1.
@@ -191,25 +191,25 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     emit StakingContractUpdated(_stakingContract);
   }
 
-  /// @notice Set the ratio of the reward emissions that will be allocated to vault and staking users.
-  ///  The total of the ratios need to equal 10000 (100%). Can only be set by governance.
-  /// @param _ratioForVaults The ratio of rewards for vault users in basis points (100 = 1%).
-  /// @param _ratioForStaking The ratio of rewards for staking users in basis points (100 = 1%).
-  function setRewardsRatios(uint256 _ratioForVaults, uint256 _ratioForStaking) external onlyGovernance {
-    require((_ratioForVaults + _ratioForStaking) == MAX_BPS, "invalid ratio");
-    if (vaultsRewardsRatio != _ratioForVaults) {
+  /// @notice Set the weights of community emission allocations for vault LP providers and stakers.
+  ///  The weights can be any positive integers and allocation percentage will be calculated using weight/weightTotal.
+  /// @param _weightForVaults The weight of vault user rewards allocation.
+  /// @param _weightForStaking The weight of staking user rewards allocation.
+  function setRewardsAllocationWeights(uint256 _weightForVaults, uint256 _weightForStaking) external onlyGovernance {
+    require((_weightForVaults + _weightForStaking) > 0, "invalid ratio");
+    if (_weightForVaults != vaultsRewardsWeight) {
       for (uint256 i = 0; i < vaultAddresses.length(); i++) {
         // need to update the vault state with the old value before the rate is changed
         _updatePoolState(vaultAddresses.at(i));
       }
-      vaultsRewardsRatio = _ratioForVaults;
-      emit VaultsRewardsRatioUpdated(_ratioForVaults);
+      vaultsRewardsWeight = _weightForVaults;
+      emit VaultsRewardsWeightUpdated(_weightForVaults);
     }
     if (stakingContract != address(0)) {
-      if (stakingRewardsRatio != _ratioForStaking) {
+      if (_weightForStaking != stakingRewardsWeight) {
         _updatePoolState(stakingContract);
-        stakingRewardsRatio = _ratioForStaking;
-        emit StakingRewardsRatioUpdated(_ratioForStaking);
+        stakingRewardsWeight = _weightForStaking;
+        emit StakingRewardsWeightUpdated(_weightForStaking);
       }
     }
   }
@@ -219,18 +219,25 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   /// @param _vaults The addresses of al the vaults.
   /// @param _weights The corresponding weight values of each vault. The weight values can be any value and percentage for each vault is calculated as (vaultWeight/totalWeight).
   function setPerVaultRewardsWeight(address[] calldata _vaults, uint256[] calldata _weights) external onlyGovernance {
-    require(_vaults.length == _weights.length, "invalid input");
+    require(_vaults.length > 0, "!vaults");
+    require(_vaults.length == _weights.length, "!sameLength");
+    // needs to add a checkpoint for all the existing vaults, because when the weight point is changed for any vault, the percentage value is changed for every vault and they all need to be updated
+    for (uint256 i = 0; i < vaultAddresses.length(); i++) {
+      _updatePoolState(vaultAddresses.at(i));
+    }
     for (uint256 i = 0; i < _vaults.length; i++) {
       address vault = _vaults[i];
       uint256 oldValue = perVaultRewardsWeight[vault];
-      // need to udpate the vault state with the old value before the rate is changed
-      // if any of the weight on a vault is changed, then we need to take a snapshot of all the vaults as their allocation is changed.
-      _updatePoolState(vault);
+      if (!vaultAddresses.contains(_vaults[i])) {
+        // a new vault, add the initial checkpoint
+        _updatePoolState(vault);
+      }
       perVaultRewardsWeight[vault] = _weights[i];
-      totalWeight = totalWeight - oldValue + _weights[i];
+      totalWeightForVaults = totalWeightForVaults - oldValue + _weights[i];
       vaultAddresses.add(vault);
-      emit VaultRewardWeightUpdated(vault, _weights[i]);
     }
+    require(totalWeightForVaults > 0, "!totalWeight");
+    emit VaultRewardWeightUpdated(_vaults, _weights);
   }
 
   /// @notice Calculate rewards the given _user should receive in the given _vault. Can only be invoked by the vault.
@@ -333,9 +340,16 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     return _unclaimedStakingRewards(_stakeIds);
   }
 
-  /// @notice Returns the total of estimated rewards for a pool (either a vault or staking contract) up to the current block time. Can be useful to calculate APY.
-  function totalRewardsForPool(address _pool) external view returns (uint256) {
-    PoolRewardsState memory poolState = _calculatePoolState(_pool);
+  /// @notice Returns the total of rewards for a vault up to the current block time. Can be useful to calculate APY.
+  /// @param _vault the vault address
+  function totalRewardsForVault(address _vault) external view returns (uint256) {
+    PoolRewardsState memory poolState = _calculatePoolState(_vault);
+    return poolState.totalRewards;
+  }
+
+  /// @notice Returns the total of rewards for the staking contract up to the current block time. Can be useful to calculate APY.
+  function totalRewardsForStaking() external view returns (uint256) {
+    PoolRewardsState memory poolState = _calculatePoolState(stakingContract);
     return poolState.totalRewards;
   }
 
@@ -444,10 +458,10 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   }
 
   function _weightForVault(address _vault) internal view returns (uint256) {
-    if (totalWeight > 0) {
-      return (perVaultRewardsWeight[_vault] * WEIGHT_AMP) / totalWeight;
+    if (totalWeightForVaults > 0) {
+      return (perVaultRewardsWeight[_vault] * WEIGHT_AMP) / totalWeightForVaults;
     }
-    return 0;
+    return 0; // totalWeightForVaults should never be 0
   }
 
   function _updateStateForVaults(address[] memory _vaults, bytes32 _account) internal {
@@ -552,9 +566,12 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
 
   function _getCurrentRateForPool(address _pool, uint256 _rate) internal view returns (uint256) {
     if (_pool == stakingContract) {
-      return ((_rate * stakingRewardsRatio) / MAX_BPS);
+      return ((_rate * stakingRewardsWeight) / (stakingRewardsWeight + vaultsRewardsWeight));
     } else {
-      return (_rate * vaultsRewardsRatio * _weightForVault(_pool)) / MAX_BPS / WEIGHT_AMP;
+      return
+        (_rate * vaultsRewardsWeight * _weightForVault(_pool)) /
+        (stakingRewardsWeight + vaultsRewardsWeight) /
+        WEIGHT_AMP;
     }
   }
 }

@@ -5,7 +5,7 @@ import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import IWethABI from "../../../abi/contracts/interfaces/IWeth.sol/IWETH.json";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json";
-import { IWETH } from "../../../types";
+import { AccessControlManager, IWETH, VaultStrategyDataStore } from "../../../types";
 import { YOPRewards } from "../../../types/YOPRewards";
 import { BigNumber } from "ethers";
 import { ERC20 } from "../../../types/ERC20";
@@ -13,6 +13,8 @@ import { Staking } from "../../../types/Staking";
 
 const WETH_ADDRESS = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_WHALE_ADDRESS = "0x2f0b23f53734252bda2277357e97e1517d6b042a";
+const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+const WBTC_WHALE_ADDRESS = "0xbf72da2bd84c5170618fbe5914b0eca9638d5eb5";
 const INITIAL_RATE = 34255400000000;
 const ONE_UNIT = 100000000;
 const SECONDS_PER_MONTH = 2629743;
@@ -26,6 +28,10 @@ const THREE_THOUSAND_YOP = ethers.utils.parseUnits("3000", 8);
 describe("yopRewards [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
   let governance: SignerWithAddress;
+  let gatekeeper: SignerWithAddress;
+  let rewards: SignerWithAddress;
+  let vaultStrategyDataStore: VaultStrategyDataStore;
+  let accessManager: AccessControlManager;
   let yopRewards: YOPRewards;
   let yopStaking: Staking;
   let yopWalletAccount: SignerWithAddress;
@@ -36,7 +42,8 @@ describe("yopRewards [@skip-on-coverage]", async () => {
 
   beforeEach(async () => {
     // setup the vault
-    ({ vault, governance, yopRewards, yopWalletAccount, yopStaking } = await setupVault(WETH_ADDRESS));
+    ({ vault, governance, gatekeeper, yopRewards, yopWalletAccount, yopStaking, rewards, vaultStrategyDataStore, accessManager } =
+      await setupVault(WETH_ADDRESS));
     // deploy the strategy
     [user, user2] = (await ethers.getSigners()).reverse();
     await vault.connect(governance).unpause();
@@ -171,6 +178,56 @@ describe("yopRewards [@skip-on-coverage]", async () => {
           (currentRateForStaking * 60 * 60 * (1000 * 6)) / (1000 * 6 + 3000 * 3) / SECONDS_PER_MONTH
       );
       expect(claimedAmount).to.closeTo(BigNumber.from(expectedAmount), ONE_UNIT);
+    });
+  });
+
+  describe("add new vaults", async () => {
+    let newVault: SingleAssetVault;
+    let wbtcContract: ERC20;
+    beforeEach(async () => {
+      const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault");
+      newVault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVault;
+      await newVault.deployed();
+      await newVault.initialize(
+        "vault2",
+        "v2",
+        governance.address,
+        gatekeeper.address,
+        rewards.address,
+        vaultStrategyDataStore.address,
+        WBTC_ADDRESS,
+        accessManager.address,
+        yopRewards.address
+      );
+      await newVault.connect(governance).unpause();
+      wbtcContract = (await ethers.getContractAt(ERC20ABI, WBTC_ADDRESS)) as ERC20;
+      await setEthBalance(WBTC_WHALE_ADDRESS, ethers.utils.parseEther("10"));
+      const whaleAccount = await impersonate(WBTC_WHALE_ADDRESS);
+      await wbtcContract.connect(whaleAccount).transfer(user.address, ethers.utils.parseUnits("100", 8));
+      await wbtcContract.connect(user).approve(newVault.address, ethers.constants.MaxUint256);
+    });
+
+    it("rewards should start from when the vault is added to the rewards contract", async () => {
+      blockTime += 60;
+      await setNextBlockTimestamp(blockTime);
+      await vault.connect(user).deposit(ethers.utils.parseEther("100"), user.address);
+      blockTime += 60 * 60 * 24 * 7; // 7 days later
+      await setNextBlockTimestamp(blockTime);
+      // add the new vault, set weight to 100, which is the same as the first one. So emission should be split from this point
+      await yopRewards.connect(governance).setPerVaultRewardsWeight([newVault.address], [100]);
+      await newVault.connect(user).deposit(ethers.utils.parseUnits("10", 8), user.address);
+      blockTime += 60 * 60 * 24 * 3; // 3 days later
+      await setNextBlockTimestamp(blockTime);
+      await yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address, newVault.address], [100, 100]); // trigger to add new checkpoints for vaults
+      // check the rewards
+      const newVaultRewards = await yopRewards.totalRewardsForVault(newVault.address);
+      const expectedNewVaultRewards = Math.round((currentRateForVaults * 60 * 60 * 24 * 3 * 0.5) / SECONDS_PER_MONTH);
+      const vaultRewards = await yopRewards.totalRewardsForVault(vault.address);
+      const expectedVaultRewards = Math.round(
+        (currentRateForVaults * 60 * 60 * 24 * 7) / SECONDS_PER_MONTH + (currentRateForVaults * 60 * 60 * 24 * 3 * 0.5) / SECONDS_PER_MONTH
+      );
+      expect(newVaultRewards).to.closeTo(BigNumber.from(expectedNewVaultRewards), ONE_UNIT);
+      expect(vaultRewards).to.closeTo(BigNumber.from(expectedVaultRewards), ONE_UNIT);
     });
   });
 });

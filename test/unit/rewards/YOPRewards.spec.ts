@@ -164,24 +164,31 @@ describe("YOPReward", () => {
       await expect(yopRewardsContract.connect(user1).setPerVaultRewardsWeight(vaults, points)).to.be.revertedWith("governance only");
     });
 
+    it("should revert if vaults array is empty", async () => {
+      await expect(yopRewardsContract.connect(governance).setPerVaultRewardsWeight([], [])).to.be.revertedWith("!vaults");
+    });
+
+    it("should revert if total weight is 0", async () => {
+      // set some initial value
+      await yopRewardsContract.connect(governance).setPerVaultRewardsWeight(vaults, [0, 100]);
+      // reset the weight for one of the vault to make total become 0, and that should not be allowed
+      await expect(yopRewardsContract.connect(governance).setPerVaultRewardsWeight([vaults[1]], [0])).to.be.revertedWith("!totalWeight");
+    });
+
     it("can only be set by governance", async () => {
       const points = [100, 80];
-      expect(await yopRewardsContract.totalWeight()).to.equal(0);
+      expect(await yopRewardsContract.totalWeightForVaults()).to.equal(0);
       await expect(await yopRewardsContract.connect(governance).setPerVaultRewardsWeight(vaults, points))
         .to.emit(yopRewardsContract, "VaultRewardWeightUpdated")
-        .withArgs(vault1.address, points[0])
-        .to.emit(yopRewardsContract, "VaultRewardWeightUpdated")
-        .withArgs(vault2.address, points[1]);
-      expect(await yopRewardsContract.totalWeight()).to.equal(180);
+        .withArgs(vaults, points);
+      expect(await yopRewardsContract.totalWeightForVaults()).to.equal(180);
       expect(await yopRewardsContract.perVaultRewardsWeight(vault1.address)).to.equal(points[0]);
       expect(await yopRewardsContract.perVaultRewardsWeight(vault2.address)).to.equal(points[1]);
     });
 
     it("the length of input arrays should be the same", async () => {
       const points = [100, 80];
-      await expect(yopRewardsContract.connect(governance).setPerVaultRewardsWeight([vault1.address], points)).to.be.revertedWith(
-        "invalid input"
-      );
+      await expect(yopRewardsContract.connect(governance).setPerVaultRewardsWeight([vault1.address], points)).to.be.revertedWith("!sameLength");
     });
 
     it("should have no rewards when vault weights are not set", async () => {
@@ -189,7 +196,7 @@ describe("YOPReward", () => {
     });
   });
 
-  describe("setRewardsRatios", async () => {
+  describe("setRewardsAllocationWeights", async () => {
     let vault1: TokenMock;
     let vault2: TokenMock;
     let vaults: Array<string>;
@@ -210,27 +217,27 @@ describe("YOPReward", () => {
     });
 
     it("can not be set by non-governance", async () => {
-      expect(yopRewardsContract.connect(user1).setRewardsRatios(100, 9900)).to.be.revertedWith("governance only");
+      await expect(yopRewardsContract.connect(user1).setRewardsAllocationWeights(100, 9900)).to.be.revertedWith("governance only");
     });
 
-    it("ratio value can not exceed 100%", async () => {
-      expect(yopRewardsContract.connect(governance).setRewardsRatios(11000, 0)).to.be.revertedWith("invalid ratio");
+    it("total weight can't be 0", async () => {
+      await expect(yopRewardsContract.connect(governance).setRewardsAllocationWeights(0, 0)).to.be.revertedWith("invalid ratio");
     });
 
-    it("should not update ratio is value is the same", async () => {
-      await expect(await yopRewardsContract.connect(governance).setRewardsRatios(5000, 5000)).not.to.emit(
+    it("should not update weight if value is the same", async () => {
+      await expect(await yopRewardsContract.connect(governance).setRewardsAllocationWeights(50, 50)).not.to.emit(
         yopRewardsContract,
-        "VaultsRewardsRatioUpdated"
+        "VaultsRewardsWeightUpdated"
       );
     });
 
     it("can only be set by governance", async () => {
-      expect(await yopRewardsContract.vaultsRewardsRatio()).to.equal(5000);
+      expect(await yopRewardsContract.vaultsRewardsWeight()).to.equal(50);
       const ratio = 10000;
-      await expect(await yopRewardsContract.connect(governance).setRewardsRatios(ratio, 0))
-        .to.emit(yopRewardsContract, "VaultsRewardsRatioUpdated")
+      await expect(await yopRewardsContract.connect(governance).setRewardsAllocationWeights(ratio, 0))
+        .to.emit(yopRewardsContract, "VaultsRewardsWeightUpdated")
         .withArgs(ratio);
-      expect(await yopRewardsContract.vaultsRewardsRatio()).to.equal(ratio);
+      expect(await yopRewardsContract.vaultsRewardsWeight()).to.equal(ratio);
     });
   });
 
@@ -395,7 +402,7 @@ describe("YOPReward", () => {
       await yopRewardsContract.setEpochStartTime(start);
       await yopRewardsContract.setEpochEndTime(end);
       await yopRewardsContract.setBlocktimestamp(blockTimestamp1);
-      await yopRewardsContract.connect(governance).setRewardsRatios(5000, 5000); // 50% of total emission
+      await yopRewardsContract.connect(governance).setRewardsAllocationWeights(5000, 5000); // 50% of total emission
       await yopRewardsContract.setBlocktimestamp(blockTimestamp2);
 
       const secondRate = INITIAL_RATE * 0.99;
@@ -561,9 +568,9 @@ describe("YOPReward", () => {
         .div(2);
       const expectedStakingRewards = BigNumber.from(now).sub(BigNumber.from(start)).mul(INITIAL_RATE).div(SECONDS_PER_MONTH).div(2);
       // check vault total rewards
-      const vaultRewards = await yopRewardsContract.totalRewardsForPool(vault1.address);
+      const vaultRewards = await yopRewardsContract.totalRewardsForVault(vault1.address);
       expect(vaultRewards).to.closeTo(BigNumber.from(expectedVaultRewards), ONE_UNIT);
-      const stakingRewards = await yopRewardsContract.totalRewardsForPool(stakingContract.address);
+      const stakingRewards = await yopRewardsContract.totalRewardsForStaking();
       expect(stakingRewards).to.closeTo(BigNumber.from(expectedStakingRewards), ONE_UNIT);
     });
   });

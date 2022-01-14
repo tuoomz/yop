@@ -30,7 +30,7 @@ describe("Staking", async () => {
     StakingContractFactory = await ethers.getContractFactory("StakingMock");
     staking = (await StakingContractFactory.deploy()) as StakingMock;
     await staking.deployed();
-    await staking.initialize(governance.address, gatekeeper.address, yopReward.address, "https://example.com", CONTRACT_URI);
+    await staking.initialize("staking", "sta", governance.address, gatekeeper.address, yopReward.address, "https://example.com", CONTRACT_URI);
     await staking.setToken(stakeToken.address);
     await yopReward.mock.calculateStakingRewards.returns();
   });
@@ -40,14 +40,23 @@ describe("Staking", async () => {
       const anotherStaking = (await StakingContractFactory.deploy()) as StakingMock;
       await anotherStaking.deployed();
       await expect(
-        anotherStaking.initialize(governance.address, gatekeeper.address, ethers.constants.AddressZero, "url", CONTRACT_URI)
+        anotherStaking.initialize("staking", "sta", governance.address, gatekeeper.address, ethers.constants.AddressZero, "url", CONTRACT_URI)
       ).to.be.revertedWith("!input");
     });
 
     it("should revert if called more than once", async () => {
-      await expect(staking.initialize(governance.address, gatekeeper.address, yopReward.address, "url", CONTRACT_URI)).to.be.revertedWith(
-        "Initializable: contract is already initialized"
-      );
+      await expect(
+        staking.initialize("staking", "sta", governance.address, gatekeeper.address, yopReward.address, "url", CONTRACT_URI)
+      ).to.be.revertedWith("Initializable: contract is already initialized");
+    });
+  });
+
+  describe("base props", async () => {
+    it("should return name", async () => {
+      expect(await staking.name()).to.equal("staking");
+    });
+    it("should return symbol", async () => {
+      expect(await staking.symbol()).to.equal("sta");
     });
   });
 

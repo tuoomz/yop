@@ -46,12 +46,16 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   uint8 public constant MAX_LOCK_PERIOD = 60;
   uint256 public constant SECONDS_PER_MONTH = 2629743; // 1 month/30.44 days
   address public constant YOP_ADDRESS = 0xAE1eaAE3F627AAca434127644371b67B18444051;
+  /// @notice The name of the token
+  string public name;
+  /// @notice The symbol of the token
+  string public symbol;
+  /// @notice The URL for the storefront-level metadata
+  string public contractURI;
   // the minimum amount for staking
   uint256 public minStakeAmount;
   // the total supply of "working balance". The "working balance" of each stake is calculated as amount * lockPeriod.
   uint256 public totalWorkingSupply;
-  /// @notice The URL for the storefront-level metadata
-  string public contractURI;
   // all the stake positions
   Stake[] public stakes;
   // the address of the YOPRewards contract
@@ -70,17 +74,21 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   /// @param _yopRewards the address of the yop rewards contract
   /// @param _uri the base URI for the token
   function initialize(
+    string memory _name,
+    string memory _symbol,
     address _governance,
     address _gatekeeper,
     address _yopRewards,
     string memory _uri,
     string memory _contractURI
   ) external initializer {
-    __Staking_init(_governance, _gatekeeper, _yopRewards, _uri, _contractURI);
+    __Staking_init(_name, _symbol, _governance, _gatekeeper, _yopRewards, _uri, _contractURI);
   }
 
   // solhint-disable-next-line func-name-mixedcase
   function __Staking_init(
+    string memory _name,
+    string memory _symbol,
     address _governance,
     address _gatekeeper,
     address _yopRewards,
@@ -89,12 +97,19 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   ) internal onlyInitializing {
     __ERC1155_init(_uri);
     __BasePauseableUpgradeable_init(_governance, _gatekeeper);
-    __Staking_init_unchained(_yopRewards, _contractURI);
+    __Staking_init_unchained(_name, _symbol, _yopRewards, _contractURI);
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function __Staking_init_unchained(address _yopRewards, string memory _contractURI) internal onlyInitializing {
+  function __Staking_init_unchained(
+    string memory _name,
+    string memory _symbol,
+    address _yopRewards,
+    string memory _contractURI
+  ) internal onlyInitializing {
     require(_yopRewards != address(0), "!input");
+    name = _name;
+    symbol = _symbol;
     yopRewards = _yopRewards;
     contractURI = _contractURI;
   }

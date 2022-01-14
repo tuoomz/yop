@@ -30,7 +30,15 @@ export async function setupVault(tokenAddress: string) {
   const StakingFactory = await ethers.getContractFactory("Staking");
   const yopStaking = (await StakingFactory.deploy()) as Staking;
   await yopStaking.deployed();
-  await yopStaking.initialize(governance.address, gatekeeper.address, yopRewards.address, "https://example.com", "https://example.com");
+  await yopStaking.initialize(
+    "Yop staking",
+    "syop",
+    governance.address,
+    gatekeeper.address,
+    yopRewards.address,
+    "https://example.com",
+    "https://example.com"
+  );
 
   const yopWalletAccount = await impersonate(YOP_WHALE_ADDRESS);
   await setEthBalance(YOP_WHALE_ADDRESS, ethers.utils.parseEther("10"));

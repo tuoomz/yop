@@ -27,6 +27,9 @@ contract Staking is ERC1155, Governable {
     uint256 _startTime
   );
 
+  /// @notice Emitted when the ratio of rewards for all vaults is changed
+  event StakingContractURIUpdated(string _contractURI);
+
   /// @dev represent each stake
   struct Stake {
     // the duration of the stake, in number of months
@@ -46,6 +49,8 @@ contract Staking is ERC1155, Governable {
   uint256 public minStakeAmount;
   // the total supply of "working balance". The "working balance" of each stake is calculated as amount * lockPeriod.
   uint256 public totalWorkingSupply;
+  /// @notice The URL for the storefront-level metadata
+  string public contractURI;
   // all the stake positions
   Stake[] public stakes;
   // stakes for each account
@@ -57,7 +62,14 @@ contract Staking is ERC1155, Governable {
 
   /// @param _governance The address of governance.
   /// @param _url The base url for the metadata file
-  constructor(address _governance, string memory _url) ERC1155(_url) Governable(_governance) {}
+  /// @param _contractURI The url for the contract metadata file
+  constructor(
+    address _governance,
+    string memory _url,
+    string memory _contractURI
+  ) ERC1155(_url) Governable(_governance) {
+    contractURI = _contractURI;
+  }
 
   /// @notice Set the minimum amount of tokens for staking
   /// @param _minAmount The minimum amount of tokens
@@ -172,5 +184,13 @@ contract Staking is ERC1155, Governable {
       _values[i] = _values[i + 1];
     }
     _values.pop();
+  }
+
+  /// @dev Set the contractURI for store front metadata. Can only be called by governance.
+  /// @param _contractURI URL of the metadata
+  function setContractURI(string memory _contractURI) external {
+    _onlyGovernance();
+    contractURI = _contractURI;
+    emit StakingContractURIUpdated(_contractURI);
   }
 }

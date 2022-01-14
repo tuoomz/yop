@@ -8,6 +8,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { monthsInSeconds } from "../utils/time";
 
 const TOKEN_DECIMALS = 8;
+const CONTRACT_URI = "https://yop.finance/"; // random url
 const { deployMockContract } = waffle;
 
 describe("Staking", async () => {
@@ -21,7 +22,7 @@ describe("Staking", async () => {
     [deployer, governance, user] = await ethers.getSigners();
     stakeToken = await deployMockContract(deployer, ERC20ABI);
     const StakingContractFactory = await ethers.getContractFactory("StakingMock");
-    staking = (await StakingContractFactory.deploy(governance.address, stakeToken.address)) as StakingMock;
+    staking = (await StakingContractFactory.deploy(governance.address, stakeToken.address, CONTRACT_URI)) as StakingMock;
   });
 
   describe("setMinStakeAmount", async () => {
@@ -153,6 +154,21 @@ describe("Staking", async () => {
       expect(await staking.balanceOf(user2.address, 0)).to.equal(0);
       expect(await staking.workingBalanceOf(user2.address)).to.equal(amount2.mul(6));
       expect(await staking.stakesFor(user2.address)).to.deep.equal([ethers.constants.Two]);
+    });
+  });
+  describe("contractURI", async () => {
+    it("should return matching contractURI as constructor params", async () => {
+      expect(await staking.contractURI()).to.equal(CONTRACT_URI);
+    });
+
+    it("is updatable by governance", async () => {
+      const newURI = "www.example.com";
+      await expect(staking.connect(user).setContractURI(newURI)).to.be.revertedWith("governance only");
+      expect(await staking.contractURI()).to.equal(CONTRACT_URI);
+      await expect(await staking.connect(governance).setContractURI(newURI))
+        .to.emit(staking, "StakingContractURIUpdated")
+        .withArgs(newURI);
+      expect(await staking.contractURI()).to.equal(newURI);
     });
   });
 });

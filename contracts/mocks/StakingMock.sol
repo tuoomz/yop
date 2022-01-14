@@ -8,7 +8,11 @@ contract StakingMock is Staking {
   address public token;
   uint256 public blocktime;
 
-  constructor(address _governance, address _token) Staking(_governance, DEFAULT_URL) {
+  constructor(
+    address _governance,
+    address _token,
+    string memory _contractURI
+  ) Staking(_governance, DEFAULT_URL, _contractURI) {
     token = _token;
   }
 

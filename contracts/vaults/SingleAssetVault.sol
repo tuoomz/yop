@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IHealthCheck.sol";
 import "../interfaces/IStrategy.sol";
-import "../access/IAccessControl.sol";
+import "../interfaces/IAccessControlManager.sol";
 import "./SingleAssetVaultBase.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
@@ -273,7 +273,7 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
   function _deposit(uint256 _amount, address _recipient) internal returns (uint256) {
     require(_recipient != address(0), "!recipient");
     if (accessManager != address(0)) {
-      require(IAccessControl(accessManager).hasAccess(_msgSender(), address(this)), "!access");
+      require(IAccessControlManager(accessManager).hasAccess(_msgSender(), address(this)), "!access");
     }
     //TODO: do we also want to cap the `_amount` too?
     uint256 amount = _ensureValidDepositAmount(_msgSender(), _amount);

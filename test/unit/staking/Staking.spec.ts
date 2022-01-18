@@ -8,6 +8,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { monthsInSeconds } from "../utils/time";
 import YOPRewardsABI from "../../../abi/contracts/rewards/YOPRewards.sol/YOPRewards.json";
 import { ContractFactory } from "ethers";
+import IAccessManagerABI from "../../../abi/contracts/interfaces/IAccessControlManager.sol/IAccessControlManager.json";
 
 const TOKEN_DECIMALS = 8;
 const CONTRACT_URI = "https://yop.finance/"; // random url
@@ -23,6 +24,7 @@ describe("Staking", async () => {
   let staking: StakingMock;
   let yopReward: MockContract;
   let StakingContractFactory: ContractFactory;
+  let accessManager: MockContract;
 
   beforeEach(async () => {
     [deployer, governance, gatekeeper, user, owner] = await ethers.getSigners();
@@ -39,10 +41,12 @@ describe("Staking", async () => {
       yopReward.address,
       "https://example.com",
       CONTRACT_URI,
-      owner.address
+      owner.address,
+      ethers.constants.AddressZero
     );
     await staking.setToken(stakeToken.address);
     await yopReward.mock.calculateStakingRewards.returns();
+    accessManager = await deployMockContract(deployer, IAccessManagerABI);
   });
 
   describe("initialize", async () => {
@@ -58,7 +62,8 @@ describe("Staking", async () => {
           ethers.constants.AddressZero,
           "url",
           CONTRACT_URI,
-          owner.address
+          owner.address,
+          ethers.constants.AddressZero
         )
       ).to.be.revertedWith("!input");
     });
@@ -75,6 +80,7 @@ describe("Staking", async () => {
           yopReward.address,
           "url",
           CONTRACT_URI,
+          ethers.constants.AddressZero,
           ethers.constants.AddressZero
         )
       ).to.be.revertedWith("!input");
@@ -82,7 +88,17 @@ describe("Staking", async () => {
 
     it("should revert if called more than once", async () => {
       await expect(
-        staking.initialize("staking", "sta", governance.address, gatekeeper.address, yopReward.address, "url", CONTRACT_URI, owner.address)
+        staking.initialize(
+          "staking",
+          "sta",
+          governance.address,
+          gatekeeper.address,
+          yopReward.address,
+          "url",
+          CONTRACT_URI,
+          owner.address,
+          ethers.constants.AddressZero
+        )
       ).to.be.revertedWith("Initializable: contract is already initialized");
     });
   });
@@ -115,6 +131,19 @@ describe("Staking", async () => {
     });
   });
 
+  describe("setAccessManager", async () => {
+    it("only governance can set", async () => {
+      await expect(staking.connect(user).setAccessControlManager(accessManager.address)).to.be.revertedWith("governance only");
+    });
+    it("should update access manager", async () => {
+      expect(await staking.accessControlManager()).to.equal(ethers.constants.AddressZero);
+      await expect(staking.connect(governance).setAccessControlManager(accessManager.address))
+        .to.emit(staking, "AccessControlManagerUpdated")
+        .withArgs(accessManager.address);
+      expect(await staking.accessControlManager()).to.equal(accessManager.address);
+    });
+  });
+
   describe("stake", async () => {
     const minAmount = ethers.utils.parseUnits("1", TOKEN_DECIMALS);
     const stakeAmount = ethers.utils.parseUnits("1.1", TOKEN_DECIMALS);
@@ -141,11 +170,20 @@ describe("Staking", async () => {
       await expect(staking.stake(stakeAmount, 1)).to.be.revertedWith("!balance");
     });
 
+    it("should revert if user does not have access", async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("2", TOKEN_DECIMALS));
+      await staking.connect(governance).setAccessControlManager(accessManager.address);
+      await accessManager.mock.hasAccess.returns(false);
+      await expect(staking.stake(stakeAmount, 1)).to.be.revertedWith("!access");
+    });
+
     it("should be able to stake and get a token back", async () => {
       const blockTime = Math.round(new Date().getTime() / 1000);
       await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("2", TOKEN_DECIMALS));
       await stakeToken.mock.transferFrom.returns(true);
       await staking.setBlocktime(blockTime);
+      await staking.connect(governance).setAccessControlManager(accessManager.address);
+      await accessManager.mock.hasAccess.returns(true);
       expect(await staking.balanceOf(user.address, 0)).to.equal(0);
       expect(await staking.totalWorkingSupply()).to.equal(0);
       expect(await staking.workingBalanceOf(user.address)).to.equal(0);

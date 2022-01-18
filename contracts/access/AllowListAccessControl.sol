@@ -2,7 +2,7 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./IAccessControl.sol";
+import "../interfaces/IAccessControl.sol";
 import "../vaults/roles/Governable.sol";
 import "./PerVaultGatekeeper.sol";
 

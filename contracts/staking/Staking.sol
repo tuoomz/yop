@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../security/BasePauseableUpgradeable.sol";
 import "../interfaces/IYOPRewards.sol";
+import "../interfaces//IAccessControlManager.sol";
 
 /// @notice This contract will stake (lock) YOP tokens for a period of time. While the tokens are locked in this contract, users will be able to claim additional YOP tokens (from the community emission as per YOP tokenomics).
 ///  Users can stake as many times as they want, but each stake can't be modified/extended once it is created.
@@ -28,8 +29,10 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     uint256 _startTime
   );
 
-  /// @notice Emitted when the ratio of rewards for all vaults is changed
+  /// @notice Emitted when the contract URI is updated
   event StakingContractURIUpdated(string _contractURI);
+  /// @notice Emitted when the access control manager is updated
+  event AccessControlManagerUpdated(address indexed _accessControlManager);
 
   /// @dev represent each stake
   struct Stake {
@@ -62,6 +65,8 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   Stake[] public stakes;
   // the address of the YOPRewards contract
   address public yopRewards;
+  // the address of the AccessControlManager contract
+  address public accessControlManager;
   // stakes for each account
   mapping(address => uint256[]) internal stakesForAddress;
   // ownership of the NFTs
@@ -83,9 +88,20 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     address _yopRewards,
     string memory _uri,
     string memory _contractURI,
-    address _owner
+    address _owner,
+    address _accessControlManager
   ) external initializer {
-    __Staking_init(_name, _symbol, _governance, _gatekeeper, _yopRewards, _uri, _contractURI, _owner);
+    __Staking_init(
+      _name,
+      _symbol,
+      _governance,
+      _gatekeeper,
+      _yopRewards,
+      _uri,
+      _contractURI,
+      _owner,
+      _accessControlManager
+    );
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -97,11 +113,12 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     address _yopRewards,
     string memory _uri,
     string memory _contractURI,
-    address _owner
+    address _owner,
+    address _accessControlManager
   ) internal onlyInitializing {
     __ERC1155_init(_uri);
     __BasePauseableUpgradeable_init(_governance, _gatekeeper);
-    __Staking_init_unchained(_name, _symbol, _yopRewards, _contractURI, _owner);
+    __Staking_init_unchained(_name, _symbol, _yopRewards, _contractURI, _owner, _accessControlManager);
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -110,15 +127,17 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     string memory _symbol,
     address _yopRewards,
     string memory _contractURI,
-    address _owner
+    address _owner,
+    address _accessControlManager
   ) internal onlyInitializing {
     require(_yopRewards != address(0), "!input");
     require(_owner != address(0), "!input");
     name = _name;
     symbol = _symbol;
     yopRewards = _yopRewards;
-    contractURI = _contractURI;
     owner = _owner;
+    _updateContractURI(_contractURI);
+    _updateAccessControlManager(_accessControlManager);
   }
 
   /// @notice Set the minimum amount of tokens for staking
@@ -130,8 +149,11 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   /// @dev Set the contractURI for store front metadata. Can only be called by governance.
   /// @param _contractURI URL of the metadata
   function setContractURI(string memory _contractURI) external onlyGovernance {
-    contractURI = _contractURI;
-    emit StakingContractURIUpdated(_contractURI);
+    _updateContractURI(_contractURI);
+  }
+
+  function setAccessControlManager(address _accessControlManager) external onlyGovernance {
+    _updateAccessControlManager(_accessControlManager);
   }
 
   /// @notice Create a new staking position
@@ -142,6 +164,9 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     require(_amount > minStakeAmount, "!amount");
     require(_lockPeriod > 0 && _lockPeriod <= MAX_LOCK_PERIOD, "!lockPeriod");
     require(IERC20Upgradeable(_getYOPAddress()).balanceOf(_msgSender()) >= _amount, "!balance");
+    if (accessControlManager != address(0)) {
+      require(IAccessControlManager(accessControlManager).hasAccess(_msgSender(), address(this)), "!access");
+    }
     // issue token id
     uint256 tokenId = stakes.length;
     // calculate the rewards for the token.
@@ -326,5 +351,18 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
       _values[i] = _values[i + 1];
     }
     _values.pop();
+  }
+
+  function _updateAccessControlManager(address _accessControlManager) internal {
+    // no check on the parameter as it can be address(0)
+    if (accessControlManager != _accessControlManager) {
+      accessControlManager = _accessControlManager;
+      emit AccessControlManagerUpdated(_accessControlManager);
+    }
+  }
+
+  function _updateContractURI(string memory _contractURI) internal {
+    contractURI = _contractURI;
+    emit StakingContractURIUpdated(_contractURI);
   }
 }

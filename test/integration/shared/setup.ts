@@ -6,6 +6,7 @@ import { AccessControlManager } from "../../../types/AccessControlManager";
 import { BigNumber } from "ethers";
 import { Staking } from "../../../types/Staking";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json";
+import { AllowAnyAccessControl } from "../../../types/AllowAnyAccessControl";
 
 export const YOP_WHALE_ADDRESS = "0x2f535f200847d4bc7ee6e2d6de9fcc40011f7214";
 export const YOP_CONTRACT_ADDRESS = "0xae1eaae3f627aaca434127644371b67b18444051";
@@ -27,6 +28,15 @@ export async function setupVault(tokenAddress: string) {
   await yopRewards.deployed();
   await yopRewards.initialize(governance.address, gatekeeper.address, YOP_WHALE_ADDRESS, YOP_CONTRACT_ADDRESS, now);
 
+  const AllowAnyAccessControlFactory = await ethers.getContractFactory("AllowAnyAccessControl");
+  const allowAnyAccessControl = (await AllowAnyAccessControlFactory.deploy(governance.address)) as AllowAnyAccessControl;
+  await allowAnyAccessControl.deployed();
+  await allowAnyAccessControl.connect(governance).setDefault(true);
+
+  const AccessManagerFactory = await ethers.getContractFactory("AccessControlManager");
+  const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address])) as AccessControlManager;
+  await accessManager.deployed();
+
   const StakingFactory = await ethers.getContractFactory("Staking");
   const yopStaking = (await StakingFactory.deploy()) as Staking;
   await yopStaking.deployed();
@@ -38,14 +48,12 @@ export async function setupVault(tokenAddress: string) {
     yopRewards.address,
     "https://example.com",
     "https://example.com",
-    owner.address
+    owner.address,
+    accessManager.address
   );
 
   const yopWalletAccount = await impersonate(YOP_WHALE_ADDRESS);
   await setEthBalance(YOP_WHALE_ADDRESS, ethers.utils.parseEther("10"));
-  const AccessManagerFactory = await ethers.getContractFactory("AccessControlManager");
-  const accessManager = (await AccessManagerFactory.deploy(governance.address)) as AccessControlManager;
-  await accessManager.deployed();
   await vault.initialize(
     "test vault",
     "test",
@@ -73,6 +81,7 @@ export async function setupVault(tokenAddress: string) {
     rewards,
     yopStaking,
     yopWalletAccount,
+    allowAnyAccessControl,
   };
 }
 

@@ -1,9 +1,15 @@
 import { ContractFactory } from "@ethersproject/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { MockContract } from "ethereum-waffle";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, waffle } from "hardhat";
 // eslint-disable-next-line node/no-missing-import
 import { ERC1155AccessControl, YopERC1155Mock } from "../../../types";
+import IGatekeeperableABI from "../../../abi/contracts/interfaces/roles/IGatekeeperable.sol/IGatekeeperable.json";
+import { BigNumber } from "ethers";
+
+const { deployMockContract } = waffle;
+const ADDRESS_ONE = "0x0000000000000000000000000000000000000001";
 
 describe("ERC1155AccessControl", function () {
   let deployer: SignerWithAddress;
@@ -15,8 +21,8 @@ describe("ERC1155AccessControl", function () {
   const address0 = ethers.constants.AddressZero;
   let ERC1155AccessControlFactory: ContractFactory;
   let erc1155AccessControl: ERC1155AccessControl;
-  const vaultA = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const vaultB = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+  let vaultA: MockContract;
+  let vaultB: MockContract;
   const numberOfTokens = 5;
   const nftId1 = 1;
   const nftId2 = 2;
@@ -27,94 +33,193 @@ describe("ERC1155AccessControl", function () {
     const ERC1155 = await ethers.getContractFactory("YopERC1155Mock");
     ERC1155AccessControlFactory = await ethers.getContractFactory("ERC1155AccessControl");
     nft1 = (await ERC1155.deploy(numberOfTokens)) as YopERC1155Mock;
-    erc1155AccessControl = (await ERC1155AccessControlFactory.deploy(nft1.address, owner.address)) as ERC1155AccessControl;
+    erc1155AccessControl = (await ERC1155AccessControlFactory.deploy(owner.address)) as ERC1155AccessControl;
+    vaultA = await deployMockContract(deployer, IGatekeeperableABI);
+    vaultB = await deployMockContract(deployer, IGatekeeperableABI);
+    await vaultA.mock.gatekeeper.returns(gatekeeper1.address);
+    await vaultB.mock.gatekeeper.returns(gatekeeper2.address);
   });
 
   it("Should return false when ERC1155 not held by address", async function () {
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(false);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(false);
   });
 
   it("Should return true when mapping is set and address has correct ERC1155", async function () {
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(false);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(false);
     await nft1.connect(deployer).safeTransferFrom(deployer.address, addr1.address, nftId1, 1, []);
-    await erc1155AccessControl.connect(owner).addVaultToNftMapping([vaultA], [nftId1]);
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(true);
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultB)).to.equal(false);
+    await erc1155AccessControl.connect(owner).addNftAccessToVaults([vaultA.address], [nft1.address], [[nftId1]]);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(true);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultB.address)).to.equal(false);
   });
 
   it("Should return false when ERC1155 is added then removed", async function () {
     await nft1.connect(deployer).safeTransferFrom(deployer.address, addr1.address, nftId1, 1, []);
-    await erc1155AccessControl.connect(owner).addVaultToNftMapping([vaultA], [nftId1]);
+    await erc1155AccessControl.connect(owner).addNftAccessToVaults([vaultA.address], [nft1.address], [[nftId1]]);
     /// connect to address to addr1 to allow you to transfer the token again
     await nft1.connect(addr1).safeTransferFrom(addr1.address, addr2.address, nftId1, 1, []);
-    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA)).to.equal(true);
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(false);
+    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA.address)).to.equal(true);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(false);
   });
 
   it("Should return false when vault mapping is removed", async function () {
     await nft1.connect(deployer).safeTransferFrom(deployer.address, addr1.address, nftId1, 1, []);
-    await erc1155AccessControl.connect(owner).addVaultToNftMapping([vaultA], [nftId1]);
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(true);
-    await erc1155AccessControl.connect(owner).removeVaultToNftMapping([vaultA], [nftId1]);
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(false);
+    await erc1155AccessControl.connect(owner).addNftAccessToVaults([vaultA.address], [nft1.address], [[nftId1]]);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(true);
+    await erc1155AccessControl.connect(owner).removeNftAccessToVaults([vaultA.address], [nft1.address], [[nftId1]]);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(false);
   });
 
   it("Should revert when calling calling with 0 address", async function () {
-    expect(erc1155AccessControl.hasAccess(address0, vaultA)).to.be.revertedWith("invalid user address");
-    expect(erc1155AccessControl.hasAccess(addr1.address, address0)).to.be.revertedWith("invalid vault address");
-    expect(erc1155AccessControl.connect(owner).addVaultToNftMapping([address0], [1])).to.be.revertedWith("invalid vault address");
-    expect(erc1155AccessControl.connect(owner).removeVaultToNftMapping([address0], [1])).to.be.revertedWith("invalid vault address");
-    expect(ERC1155AccessControlFactory.deploy(address0, owner.address)).to.be.revertedWith("invalid nft address");
+    await expect(erc1155AccessControl.hasAccess(address0, vaultA.address)).to.be.revertedWith("!user");
+    await expect(erc1155AccessControl.hasAccess(addr1.address, address0)).to.be.revertedWith("!vault");
+    await expect(erc1155AccessControl.connect(owner).addNftAccessToVaults([address0], [nft1.address], [[1]])).to.be.revertedWith("!address");
+    await expect(erc1155AccessControl.connect(owner).removeNftAccessToVaults([address0], [nft1.address], [[1]])).to.be.revertedWith("!address");
   });
 
   it("Should revert when adding mappings with differnt length inputs", async function () {
-    expect(erc1155AccessControl.connect(owner).addVaultToNftMapping([address0, address0], [1, 2, 3])).to.be.revertedWith("invalid input");
-    expect(erc1155AccessControl.connect(owner).removeVaultToNftMapping([addr1.address, addr1.address], [1])).to.be.revertedWith("invalid input");
-    expect(ERC1155AccessControlFactory.deploy(address0, owner.address)).to.be.revertedWith("invalid nft address");
+    await expect(erc1155AccessControl.connect(owner).addNftAccessToVaults([], [], [])).to.be.revertedWith("!vaults");
+    await expect(
+      erc1155AccessControl.connect(owner).addNftAccessToVaults([address0], [nft1.address, nft1.address], [[1], [2], [3]])
+    ).to.be.revertedWith("!input");
+    await expect(
+      erc1155AccessControl.connect(owner).addNftAccessToVaults([address0, address0], [nft1.address, nft1.address], [[1], [2], [3]])
+    ).to.be.revertedWith("!input");
+    await expect(
+      erc1155AccessControl.connect(owner).removeNftAccessToVaults([addr1.address, addr1.address], [nft1.address, nft1.address], [[1]])
+    ).to.be.revertedWith("!input");
   });
 
   it("Should revert when being called by a non governer or gatekeeper", async function () {
-    expect(erc1155AccessControl.connect(addr1).addVaultToNftMapping([addr1.address], [1])).to.be.revertedWith("not authorised");
+    await expect(erc1155AccessControl.connect(addr1).addNftAccessToVaults([vaultA.address], [nft1.address], [[1]])).to.be.revertedWith(
+      "not authorised"
+    );
   });
 
   it("Should be able to allow multiple nft ids to have access to vaults", async function () {
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(false);
-    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA)).to.equal(false);
-    await erc1155AccessControl.connect(owner).addVaultToNftMapping([vaultA, vaultA], [nftId1, nftId2]);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(false);
+    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA.address)).to.equal(false);
+    await erc1155AccessControl.connect(owner).addNftAccessToVaults([vaultA.address], [nft1.address], [[nftId1, nftId2]]);
     await nft1.connect(deployer).safeTransferFrom(deployer.address, addr1.address, nftId1, 1, []);
     await nft1.connect(deployer).safeTransferFrom(deployer.address, addr2.address, nftId2, 1, []);
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(true);
-    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA)).to.equal(true);
-    await erc1155AccessControl.connect(owner).removeVaultToNftMapping([vaultA], [nftId1]);
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(false);
-    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA)).to.equal(true);
-    await erc1155AccessControl.connect(owner).removeVaultToNftMapping([vaultA], [nftId2]);
-    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA)).to.equal(false);
-    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA)).to.equal(false);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(true);
+    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA.address)).to.equal(true);
+    await erc1155AccessControl.connect(owner).removeNftAccessToVaults([vaultA.address], [nft1.address], [[nftId1]]);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(false);
+    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA.address)).to.equal(true);
+    await erc1155AccessControl.connect(owner).removeNftAccessToVaults([vaultA.address], [nft1.address], [[nftId2]]);
+    expect(await erc1155AccessControl.hasAccess(addr1.address, vaultA.address)).to.equal(false);
+    expect(await erc1155AccessControl.hasAccess(addr2.address, vaultA.address)).to.equal(false);
   });
 
   it("only the gatekeeper of a vault can update config for the vault", async () => {
-    await erc1155AccessControl.connect(owner).setVaultGatekeeper(vaultA, gatekeeper1.address);
-    await erc1155AccessControl.connect(owner).setVaultGatekeeper(vaultB, gatekeeper2.address);
+    await vaultA.mock.gatekeeper.returns(gatekeeper1.address);
+    await vaultB.mock.gatekeeper.returns(gatekeeper2.address);
 
-    expect(erc1155AccessControl.connect(gatekeeper1).addVaultToNftMapping([vaultB], [nftId1])).to.be.revertedWith("not authorised");
-    expect(await erc1155AccessControl.connect(gatekeeper1).addVaultToNftMapping([vaultA], [nftId1]))
+    await expect(
+      erc1155AccessControl.connect(gatekeeper1).addNftAccessToVaults([vaultB.address], [nft1.address], [[nftId1]])
+    ).to.be.revertedWith("not authorised");
+    await expect(await erc1155AccessControl.connect(gatekeeper1).addNftAccessToVaults([vaultA.address], [nft1.address], [[nftId1]]))
       .to.emit(erc1155AccessControl, "VaultAccessGranted")
-      .withArgs(vaultA, nftId1);
+      .withArgs(vaultA.address, nft1.address, [nftId1]);
 
-    expect(erc1155AccessControl.connect(gatekeeper2).addVaultToNftMapping([vaultA], [nftId2])).to.be.revertedWith("not authorised");
-    expect(await erc1155AccessControl.connect(gatekeeper2).addVaultToNftMapping([vaultB], [nftId2]))
+    await expect(
+      erc1155AccessControl.connect(gatekeeper2).addNftAccessToVaults([vaultA.address], [nft1.address], [[nftId2]])
+    ).to.be.revertedWith("not authorised");
+    await expect(await erc1155AccessControl.connect(gatekeeper2).addNftAccessToVaults([vaultB.address], [nft1.address], [[nftId2]]))
       .to.emit(erc1155AccessControl, "VaultAccessGranted")
-      .withArgs(vaultB, nftId2);
+      .withArgs(vaultB.address, nft1.address, [nftId2]);
 
-    expect(erc1155AccessControl.connect(gatekeeper1).removeVaultToNftMapping([vaultB], [nftId1])).to.be.revertedWith("not authorised");
-    expect(await erc1155AccessControl.connect(gatekeeper1).removeVaultToNftMapping([vaultA], [nftId1]))
+    await expect(
+      erc1155AccessControl.connect(gatekeeper1).removeNftAccessToVaults([vaultB.address], [nft1.address], [[nftId1]])
+    ).to.be.revertedWith("not authorised");
+    await expect(await erc1155AccessControl.connect(gatekeeper1).removeNftAccessToVaults([vaultA.address], [nft1.address], [[nftId1]]))
       .to.emit(erc1155AccessControl, "VaultAccessRemoved")
-      .withArgs(vaultA, nftId1);
+      .withArgs(vaultA.address, nft1.address, [nftId1]);
 
-    expect(erc1155AccessControl.connect(gatekeeper2).removeVaultToNftMapping([vaultA], [nftId2])).to.be.revertedWith("not authorised");
-    expect(await erc1155AccessControl.connect(gatekeeper2).removeVaultToNftMapping([vaultB], [nftId2]))
+    await expect(
+      erc1155AccessControl.connect(gatekeeper2).removeNftAccessToVaults([vaultA.address], [nft1.address], [[nftId2]])
+    ).to.be.revertedWith("not authorised");
+    await expect(await erc1155AccessControl.connect(gatekeeper2).removeNftAccessToVaults([vaultB.address], [nft1.address], [[nftId2]]))
       .to.emit(erc1155AccessControl, "VaultAccessRemoved")
-      .withArgs(vaultB, nftId2);
+      .withArgs(vaultB.address, nft1.address, [nftId2]);
+  });
+
+  describe("global access", async () => {
+    beforeEach(async () => {
+      await nft1.connect(deployer).safeTransferFrom(deployer.address, addr1.address, nftId1, 1, []);
+      await nft1.connect(deployer).safeTransferFrom(deployer.address, addr2.address, nftId2, 1, []);
+    });
+
+    describe("addGlobalNftAccess", async () => {
+      it("only governance can call", async () => {
+        await expect(erc1155AccessControl.connect(gatekeeper1).addGlobalNftAccess([nft1.address], [[nftId1]])).to.be.revertedWith(
+          "governance only"
+        );
+      });
+
+      it("should revert if no contracts", async () => {
+        await expect(erc1155AccessControl.connect(owner).addGlobalNftAccess([], [[nftId1]])).to.be.revertedWith("!contracts");
+      });
+
+      it("should revert if input is not valid", async () => {
+        await expect(erc1155AccessControl.connect(owner).addGlobalNftAccess([nft1.address], [])).to.be.revertedWith("!input");
+      });
+
+      it("should revert if contract is not ERC1155", async () => {
+        await expect(
+          erc1155AccessControl.connect(owner).addGlobalNftAccess([nft1.address, vaultA.address], [[nftId1], [nftId2]])
+        ).to.be.revertedWith("!ERC1155");
+      });
+
+      it("should allow access if NFT is granted global access", async () => {
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr1.address, vaultA.address)).to.equal(false);
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr2.address, vaultB.address)).to.equal(false);
+        await expect(await erc1155AccessControl.connect(owner).addGlobalNftAccess([nft1.address], [[nftId1, nftId2]]))
+          .to.emit(erc1155AccessControl, "VaultAccessGranted")
+          .withArgs(ADDRESS_ONE, nft1.address, [nftId1, nftId2]);
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr1.address, vaultA.address)).to.equal(true);
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr2.address, vaultB.address)).to.equal(true);
+        expect(await erc1155AccessControl.getGlobalNftAccess(nft1.address)).to.deep.equal([BigNumber.from(nftId1), BigNumber.from(nftId2)]);
+      });
+
+      it("should use vault level configuration if it's set", async () => {
+        // allow nft id 1 to access all vaults
+        await erc1155AccessControl.connect(owner).addGlobalNftAccess([nft1.address], [[nftId1]]);
+        // addr1 should have access to vault B as there is no vault level config so global default should work
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr1.address, vaultB.address)).to.equal(true);
+        // add vault level config for vault B to only allow nft id 2
+        await erc1155AccessControl.connect(owner).addNftAccessToVaults([vaultB.address], [nft1.address], [[nftId2]]);
+        // addr1 should not be able to access to it anymore as the account doesn't have nft id 2 tokens
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr1.address, vaultB.address)).to.equal(false);
+        expect(await erc1155AccessControl.getVaultNftAccess(vaultB.address, nft1.address)).to.deep.equal([BigNumber.from(nftId2)]);
+      });
+    });
+
+    describe("removeGlobalNftAccess", async () => {
+      it("only governance can call", async () => {
+        await expect(erc1155AccessControl.connect(gatekeeper1).removeGlobalNftAccess([nft1.address], [[nftId1]])).to.be.revertedWith(
+          "governance only"
+        );
+      });
+
+      it("should revert if no contracts", async () => {
+        await expect(erc1155AccessControl.connect(owner).removeGlobalNftAccess([], [[nftId1]])).to.be.revertedWith("!contracts");
+      });
+
+      it("should revert if input is not valid", async () => {
+        await expect(erc1155AccessControl.connect(owner).removeGlobalNftAccess([nft1.address], [])).to.be.revertedWith("!input");
+      });
+
+      it("should remove access", async () => {
+        await erc1155AccessControl.connect(owner).addGlobalNftAccess([nft1.address], [[nftId1, nftId2]]);
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr1.address, vaultA.address)).to.equal(true);
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr2.address, vaultA.address)).to.equal(true);
+        await expect(await erc1155AccessControl.connect(owner).removeGlobalNftAccess([nft1.address], [[nftId2]]))
+          .to.emit(erc1155AccessControl, "VaultAccessRemoved")
+          .withArgs(ADDRESS_ONE, nft1.address, [nftId2]);
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr1.address, vaultA.address)).to.equal(true);
+        expect(await erc1155AccessControl.connect(addr1).hasAccess(addr2.address, vaultA.address)).to.equal(false);
+      });
+    });
   });
 });

@@ -32,7 +32,7 @@ contract VaultDataStorage {
   address public healthCheck;
   address public strategyDataStore;
   address public accessManager;
-  address public vaultCreator;
+  address public creator;
 
   IERC20Upgradeable public token;
   mapping(address => StrategyInfo) internal strategies;

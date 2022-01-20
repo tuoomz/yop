@@ -16,6 +16,7 @@ import "hardhat-contract-sizer";
 import "@rumblefishdev/hardhat-kms-signer";
 import "@openzeppelin/hardhat-upgrades";
 import "hardhat-tracer";
+import "hardhat-storage-layout";
 
 import { NetworkUserConfig, HardhatUserConfig } from "hardhat/types";
 
@@ -92,6 +93,11 @@ const config: HardhatUserConfig = {
           optimizer: {
             enabled: true,
             runs: 120,
+          },
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"],
+            },
           },
         },
       },

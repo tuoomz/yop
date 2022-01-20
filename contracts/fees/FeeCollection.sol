@@ -7,6 +7,7 @@ import "../interfaces/IVaultStrategyDataStore.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../security/BasePauseableUpgradeable.sol";
+import "hardhat/console.sol";
 
 /// @notice This contract is used to distribute the fees to various participants
 /// @dev Given the token emission rate for a vault R, and f
@@ -26,7 +27,7 @@ contract FeeCollection is BasePauseableUpgradeable {
     uint256 vaultCreatorFees,
     uint256 protocolFees
   );
-  event PerformaceFeesCollected(
+  event PerformanceFeesCollected(
     address indexed strategy,
     address indexed token,
     uint256 proposer,
@@ -50,6 +51,11 @@ contract FeeCollection is BasePauseableUpgradeable {
   uint16 public defaultStrategyProposerFeeRatio;
   /// @notice Strategy developer gets 25% of the the performance fees
   uint16 public defaultStrategyDeveloperFeeRatio;
+
+  modifier onlyVault() {
+    require(IVaultStrategyDataStore(vaultStrategyDataStore).vaultStrategies(msg.sender).length > 0, "!vault");
+    _;
+  }
 
   struct StrategyFeeRatio {
     uint16 proposerRatio;
@@ -179,9 +185,7 @@ contract FeeCollection is BasePauseableUpgradeable {
   /// @notice Collect the manage fees from the vault. This is called from from the vault. The vault will approve this contract to collect the required fees
   /// @param _amount The amount of fees (in vault tokens) to be send from the vault to the FeeCollector contract.
 
-  function collectManageFee(uint256 _amount) external {
-    require(IVaultStrategyDataStore(vaultStrategyDataStore).vaultStrategies(msg.sender).length > 0, "!vault");
-
+  function collectManageFee(uint256 _amount) external onlyVault {
     address token = IVault(msg.sender).token();
 
     // Will add the token to the tokens if it doesn't exist all ready
@@ -200,11 +204,13 @@ contract FeeCollection is BasePauseableUpgradeable {
   /// @notice Collect the performance fees from the strategies. This is called from from the vault. The vault will approve this contract to collect the required fees
   /// @param _strategy The strategy form where the fees are collected
   /// @param _amount The amount of fees (in vault tokens) to be send from the vault to the FeeCollector contract.
-  function collectPerformanceFee(address _strategy, uint256 _amount) external {
+  function collectPerformanceFee(address _strategy, uint256 _amount) external onlyVault {
     require(_strategy != address(0), "invalid strategy");
-    require(IStrategy(_strategy).vault() == msg.sender, "!vault");
     address vault = IStrategy(_strategy).vault();
     address token = IVault(vault).token();
+
+    // Will add the token to the tokens if it doesn't exist all ready
+    tokens.add(token);
 
     IERC20(token).safeTransferFrom(vault, address(this), _amount);
 
@@ -218,7 +224,7 @@ contract FeeCollection is BasePauseableUpgradeable {
     _allocateFees(IStrategy(_strategy).strategyProposer(), token, proposerFees);
     _allocateFees(IStrategy(_strategy).strategyDeveloper(), token, developerFees);
     _allocateFees(protocolWallet, token, protocolFees);
-    emit PerformaceFeesCollected(_strategy, token, proposerFees, developerFees, protocolFees);
+    emit PerformanceFeesCollected(_strategy, token, proposerFees, developerFees, protocolFees);
   }
 
   /// @notice Claim any fees that a user is due
@@ -248,6 +254,18 @@ contract FeeCollection is BasePauseableUpgradeable {
   /// @param _token The token you address to calculate fees available for.
   function feesAvailableForToken(address _token) external view returns (uint256) {
     return _feesAvailable(_token);
+  }
+
+  function getVaultCreatorFeeRatio(address _vault) external view returns (uint16) {
+    return _getVaultCreatorFeeRatio(_vault);
+  }
+
+  function getStrategyProposerFeeRatio(address _strategy) external view returns (uint16) {
+    return _getStrategyProposerFeeRatio(_strategy);
+  }
+
+  function getStrategyDeveloperFeeRatio(address _strategy) external view returns (uint16) {
+    return _getStrategyDeveloperFeeRatio(_strategy);
   }
 
   function _claimFeesForToken(address _token) internal {

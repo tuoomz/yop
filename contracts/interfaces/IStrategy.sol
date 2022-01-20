@@ -41,6 +41,10 @@ interface IStrategy {
 
   function harvester() external view returns (address);
 
+  function strategyProposer() external view returns (address);
+
+  function strategyDeveloper() external view returns (address);
+
   function tendTrigger(uint256 _callCost) external view returns (bool);
 
   function harvestTrigger(uint256 _callCost) external view returns (bool);
@@ -51,9 +55,6 @@ interface IStrategy {
   function harvest() external;
 
   // *** write functions that can be called by the governance or the strategist ***//
-  function strategyProposer() external view returns (address);
-
-  function strategyDeveloper() external view returns (address);
 
   function setHarvester(address _havester) external;
 

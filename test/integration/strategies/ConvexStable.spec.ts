@@ -12,14 +12,12 @@ import ConvexRewardsABI from "../../abis/convexBaseRewards.json";
 import ConvexBoosterABI from "../../abis/convexBooster.json";
 import { ICurveDeposit } from "../../../types/ICurveDeposit";
 import { BigNumber } from "ethers";
+import { CONST } from "../../constants";
 
-const USDC_ADDRESS = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
-const USDC_WHALE_ADDRESS = "0x0a59649758aa4d66e25f08dd01271e891fe52199";
 const CURVE_3POOL_ADDRESS = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
 const CURVE_3POOL_TOKEN_ADDRESS = "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490";
 const CONVEX_BOOSTER_ADDRESS = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const CONVEX_REWARD_CONTRACT_ADDRESS = "0x4a2631d090e8b40bBDe245e687BF09e5e534A239";
-const USDC_DECIMALS = 6;
 
 describe("ConvexStable [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
@@ -40,7 +38,7 @@ describe("ConvexStable [@skip-on-coverage]", async () => {
 
   beforeEach(async () => {
     // setup the vault
-    ({ vault, vaultStrategyDataStore, governance } = await setupVault(USDC_ADDRESS));
+    ({ vault, vaultStrategyDataStore, governance } = await setupVault(CONST.USDC_ADDRESS));
     // deploy the strategy
     [proposer, developer, keeper, user] = (await ethers.getSigners()).reverse();
     const ConvexStableStrategyFactory = await ethers.getContractFactory("ConvexStable");
@@ -59,12 +57,12 @@ describe("ConvexStable [@skip-on-coverage]", async () => {
     await vault.connect(governance).unpause();
 
     // send some usdc to the user
-    depositAmount = ethers.utils.parseUnits("1000", USDC_DECIMALS);
-    allocatedFund = ethers.utils.parseUnits("900", USDC_DECIMALS); // 90% ratio
-    usdcContract = (await ethers.getContractAt(usdcABI, USDC_ADDRESS)) as ERC20;
+    depositAmount = ethers.utils.parseUnits("1000", CONST.USDC_DECIMALS);
+    allocatedFund = ethers.utils.parseUnits("900", CONST.USDC_DECIMALS); // 90% ratio
+    usdcContract = (await ethers.getContractAt(usdcABI, CONST.USDC_ADDRESS)) as ERC20;
     curve3PoolTokenContract = (await ethers.getContractAt(usdcABI, CURVE_3POOL_TOKEN_ADDRESS)) as ERC20;
-    await setEthBalance(USDC_WHALE_ADDRESS, ethers.utils.parseEther("10"));
-    await usdcContract.connect(await impersonate(USDC_WHALE_ADDRESS)).transfer(user.address, depositAmount);
+    await setEthBalance(CONST.USDC_WHALE_ADDRESS, ethers.utils.parseEther("10"));
+    await usdcContract.connect(await impersonate(CONST.USDC_WHALE_ADDRESS)).transfer(user.address, depositAmount);
     await usdcContract.connect(user).approve(vault.address, ethers.constants.MaxUint256);
 
     // get an instance of the pool contract
@@ -98,9 +96,9 @@ describe("ConvexStable [@skip-on-coverage]", async () => {
       expect(await convexRewards.balanceOf(convexStableStrategy.address)).to.gt(ethers.constants.Zero);
       await jumpForward(60 * 60 * 24); // 1 day
       await convexStableStrategy.connect(governance).harvest();
-      const estimatedTotal = ethers.utils.formatUnits(await convexStableStrategy.estimatedTotalAssets(), USDC_DECIMALS);
+      const estimatedTotal = ethers.utils.formatUnits(await convexStableStrategy.estimatedTotalAssets(), CONST.USDC_DECIMALS);
       // it's not going to make any profit as there is fee charged by Curve, so just check it is within certain range.
-      expect(parseFloat(estimatedTotal)).to.be.closeTo(parseFloat(ethers.utils.formatUnits(allocatedFund, USDC_DECIMALS)), 1);
+      expect(parseFloat(estimatedTotal)).to.be.closeTo(parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.USDC_DECIMALS)), 1);
     });
 
     it("emergency withdraw", async () => {
@@ -112,8 +110,8 @@ describe("ConvexStable [@skip-on-coverage]", async () => {
       await convexStableStrategy.connect(governance).harvest();
       const afterBalance = await usdcContract.balanceOf(vault.address);
       const diff = afterBalance.sub(beforeBalance);
-      expect(parseFloat(ethers.utils.formatUnits(diff, USDC_DECIMALS))).to.be.closeTo(
-        parseFloat(ethers.utils.formatUnits(allocatedFund, USDC_DECIMALS)),
+      expect(parseFloat(ethers.utils.formatUnits(diff, CONST.USDC_DECIMALS))).to.be.closeTo(
+        parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.USDC_DECIMALS)),
         1
       );
     });

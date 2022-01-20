@@ -108,9 +108,9 @@ abstract contract VaultMetaDataStore is GovernableUpgradeable, Gatekeeperable, V
     }
   }
 
-  function setVaultCreator(address _vaultCreator) external {
+  function setVaultCreator(address _creator) external {
     _onlyGovernanceOrGatekeeper(governance);
-    vaultCreator = _vaultCreator;
+    creator = _creator;
   }
 
   function setDepositLimit(uint256 _limit) external {

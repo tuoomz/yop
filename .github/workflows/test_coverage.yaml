@@ -41,7 +41,9 @@ jobs:
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
 
       - name: Run coverage
-        run: npx hardhat coverage
+        run: |
+          export NODE_OPTIONS="--max_old_space_size=6144"
+          npx hardhat coverage
 
       # may enable this again when the repo becomes open
       # - name: Coveralls

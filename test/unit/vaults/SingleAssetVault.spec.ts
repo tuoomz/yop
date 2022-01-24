@@ -481,7 +481,7 @@ describe("SingleAssetVault", async () => {
           );
       });
 
-      it.only("report debt payment", async () => {
+      it("report debt payment", async () => {
         const debtPayment = ethers.utils.parseEther("0.45");
         await mockStrategy.callVault(); // allocate some funds to the strategy first
         await strategyDataStore

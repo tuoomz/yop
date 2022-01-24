@@ -12,21 +12,20 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-and-coverage:
-    name: Test & Coverage
+  unit-tests:
+    name: unit tests
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v1
+      - uses: actions/setup-node@v2
         with:
-          node-version: 14
+          node-version: "14"
           cache: "npm"
 
       - name: Installing dependencies
-        run: npm ci
+        run: npm ci --cache
 
       - name: Generate Types
         run: npx hardhat typechain
@@ -34,16 +33,52 @@ jobs:
       - name: Run unit test
         run: npx hardhat test ./test/unit/**/*.ts
 
-      - name: Run integration test
-        run: npx hardhat test ./test/integration/**/*.ts
-        env:
-          ENABLE_FORKING: true
-          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+          cache: "npm"
+
+      - name: Installing dependencies
+        run: npm ci --cache
+
+      - name: Generate Types
+        run: npx hardhat typechain
 
       - name: Run coverage
         run: |
           export NODE_OPTIONS="--max_old_space_size=6144"
           npx hardhat coverage
+
+  integration-test:
+    name: integration tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+          cache: "npm"
+
+      - name: Installing dependencies
+        run: npm ci --cache
+
+      - name: Generate Types
+        run: npx hardhat typechain
+
+      - name: Run integration test
+        run: npx hardhat test ./test/integration/**/*.ts
+        env:
+          ENABLE_FORKING: true
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
 
       # may enable this again when the repo becomes open
       # - name: Coveralls

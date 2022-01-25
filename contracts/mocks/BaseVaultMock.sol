@@ -11,7 +11,7 @@ contract BaseVaultMock is Initializable, BaseVault, UUPSUpgradeable {
     string memory _symbol,
     address _governance,
     address _gatekeeper,
-    address _rewards,
+    address _feeCollection,
     address _strategyDataStoreAddress
   ) public virtual initializer {
     __BaseVault__init(
@@ -19,7 +19,7 @@ contract BaseVaultMock is Initializable, BaseVault, UUPSUpgradeable {
       _symbol,
       _governance,
       _gatekeeper,
-      _rewards,
+      _feeCollection,
       _strategyDataStoreAddress,
       address(0),
       address(0)
@@ -45,7 +45,7 @@ contract BaseVaultMock2 is BaseVaultMock {
     string memory _symbol,
     address _governance,
     address _gatekeeper,
-    address _rewards,
+    address _feeCollection,
     address _strategyDataStoreAddress
   ) public override initializer {
     __BaseVault__init(
@@ -53,7 +53,7 @@ contract BaseVaultMock2 is BaseVaultMock {
       _symbol,
       _governance,
       _gatekeeper,
-      _rewards,
+      _feeCollection,
       _strategyDataStoreAddress,
       address(0),
       address(0)

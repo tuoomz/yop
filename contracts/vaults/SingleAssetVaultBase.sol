@@ -27,7 +27,7 @@ abstract contract SingleAssetVaultBase is BaseVault {
     string memory _symbol,
     address _governance,
     address _gatekeeper,
-    address _rewards,
+    address _feeCollection,
     address _strategyDataStoreAddress,
     address _token,
     address _accessManager,
@@ -38,7 +38,7 @@ abstract contract SingleAssetVaultBase is BaseVault {
       _symbol,
       _governance,
       _gatekeeper,
-      _rewards,
+      _feeCollection,
       _strategyDataStoreAddress,
       _accessManager,
       _vaultRewards

@@ -4,8 +4,16 @@ import hre, { ethers } from "hardhat";
 import { fetchConstant } from "../constants";
 
 import { SingleAssetVault } from "../types/SingleAssetVault";
-import { YOPVaultRewards } from "../types/YOPVaultRewards";
-import { VaultStrategyDataStore, BaseStrategy, CurveEth } from "../types";
+import { YOPRewards } from "../types/YOPRewards";
+import {
+  AllowlistAccessControl,
+  AllowAnyAccessControl,
+  FeeCollection,
+  VaultStrategyDataStore,
+  BaseStrategy,
+  CurveEth,
+  ERC1155AccessControl,
+} from "../types";
 import { AccessControlManager } from "../types/AccessControlManager";
 
 import { readDeploymentFile, verifyEnvVar, spaces, address, isDevelopmentNetwork } from "./util";
@@ -14,7 +22,7 @@ import { deployContract } from "./deploy-contract";
 import { VAULTS } from "../deployment-config/vaults";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-const requireEnvVar = ["ETHERSCAN_API_KEY", "ALCHEMY_API_KEY", "REWARDS_ADDRESS", "YOP_WALLET_ADDRESS"];
+const requireEnvVar = ["ETHERSCAN_API_KEY", "ALCHEMY_API_KEY", "PROTOCOL_WALLET", "YOP_WALLET_ADDRESS"];
 verifyEnvVar(requireEnvVar);
 
 const CHAIN_ID = hre.network.config.chainId;
@@ -63,6 +71,10 @@ interface DeployedInfra {
   strategies: {
     CurveEth: CurveEth;
   };
+  payments: {
+    YOPRewards: YOPRewards;
+    feeCollection: FeeCollection;
+  };
 }
 // async function main(): Promise<Record<string, Contract | Record<string, BaseStrategy | SingleAssetVault>>> {
 async function main(): Promise<DeployedInfra> {
@@ -72,13 +84,27 @@ async function main(): Promise<DeployedInfra> {
   console.log("\nStarting contract deployments\n");
 
   // Start AllowListAccessControl Contract Deploy
-  await deployContract("AllowlistAccess", "AllowlistAccessControl", false, address(GOVERNANCE));
+  const allowListAccess = await deployContract<AllowlistAccessControl>("AllowlistAccess", "AllowlistAccessControl", false, address(GOVERNANCE));
 
   // Start ERC1155AccessControl Contract Deploy
-  await deployContract("ERC1155Access", "ERC1155AccessControl", false, address(YOP_NFT_CONTRACT), address(GOVERNANCE));
+  const erc1155Access = await deployContract<ERC1155AccessControl>("ERC1155Access", "ERC1155AccessControl", false, address(GOVERNANCE));
+
+  const anyAccessControl = await deployContract<AllowAnyAccessControl>(
+    "AllowAnyAccessControl",
+    "AllowAnyAccessControl",
+    false,
+    address(GOVERNANCE)
+  );
+
+  // Allows anyone to access the vault
+  await anyAccessControl.connect(GOVERNANCE).setDefault(true);
 
   // Start AccessControlManager Contract Deploy
-  const accessControlManager = await deployContract<AccessControlManager>("AccessControl", "AccessControlManager", false, address(GOVERNANCE));
+  const accessControlManager = await deployContract<AccessControlManager>("AccessControl", "AccessControlManager", false, address(GOVERNANCE), [
+    allowListAccess.address,
+    erc1155Access.address,
+    anyAccessControl.address,
+  ]);
   deployedArtifacts.accessControlManager = accessControlManager.address;
 
   // Start VaultStrategyDataStore Contract Deploy
@@ -90,25 +116,54 @@ async function main(): Promise<DeployedInfra> {
   );
   deployedArtifacts.vaultStrategyDataStore = vaultStrategyDataStore.address;
 
-  const YOPVaultRewards = await deployContract<YOPVaultRewards>("YOPVaultRewards", "YOPVaultRewards", true, [
+  const YOPRewards = await deployContract<YOPRewards>("YOPRewards", "YOPRewards", true, [
     address(GOVERNANCE),
+    address(GATEKEEPER),
     process.env.YOP_WALLET_ADDRESS,
     address(YOP),
     EMISSION_START_TIME,
   ]);
-  deployedArtifacts.YOPVaultRewards = YOPVaultRewards.address;
+  deployedArtifacts.YOPRewards = YOPRewards.address;
   deployedArtifacts[`${spaces(2)}hint`] = `Please run 
   "npx hardhat rewards:set-yop-allowance \\
   --yop ${address(YOP)} \\
-  --reward ${YOPVaultRewards.address} \\
+  --reward ${YOPRewards.address} \\
   --allowance <ALLOWANCE_VALUE>" 
   to set the allowance.`;
 
   console.log(`
     Please run "npx hardhat rewards:set-yop-allowance --yop ${address(YOP)} --reward ${
-    YOPVaultRewards.address
+    YOPRewards.address
   } --allowance <ALLOWANCE_VALUE>" to set the allowance.
     `);
+
+  console.log("\nStarting Staking Deployments\n");
+  const Staking = await deployContract<YOPRewards>("Staking", "Staking", true, [
+    "Yop",
+    "yop",
+    address(GOVERNANCE),
+    address(GATEKEEPER),
+    YOPRewards.address,
+    "",
+    "",
+    address(GOVERNANCE),
+    accessControlManager.address,
+  ]);
+
+  deployedArtifacts.Staking = Staking.address;
+
+  console.log("\nStarting Fee Collection\n");
+
+  const FeeCollection = await deployContract<FeeCollection>("FeeCollection", "FeeCollection", true, [
+    address(GOVERNANCE),
+    address(GATEKEEPER),
+    process.env.PROTOCOL_WALLET,
+    vaultStrategyDataStore.address,
+    2000,
+    3000,
+    4000,
+  ]);
+  deployedArtifacts.FeeCollection = FeeCollection.address;
 
   console.log("\nStarting Vault and Strategies Deployments\n");
   deployedArtifacts.vaults = "";
@@ -127,12 +182,11 @@ async function main(): Promise<DeployedInfra> {
       vaultSymbol,
       address(GOVERNANCE),
       address(GATEKEEPER),
-      // todo move to constant once known
-      process.env.REWARDS_ADDRESS,
+      FeeCollection.address,
       vaultStrategyDataStore.address,
       vaultToken,
       accessControlManager.address,
-      YOPVaultRewards.address,
+      YOPRewards.address,
     ]);
     deployedVaults[vaultName] = vault;
     deployedArtifacts[`${spaces(2)}${vaultName}`] = vault.address;
@@ -152,7 +206,7 @@ async function main(): Promise<DeployedInfra> {
         false,
         vault.address,
         address(STRATEGIST),
-        process.env.REWARDS_ADDRESS,
+        FeeCollection.address,
         address(HARVESTER),
         ...strategyParams
       );
@@ -175,12 +229,16 @@ async function main(): Promise<DeployedInfra> {
     strategies: {
       CurveEth: deployedStrategies.CurveEth as CurveEth,
     },
+    payments: {
+      YOPRewards: YOPRewards,
+      feeCollection: FeeCollection,
+    },
   };
 }
 
 async function activateEnvironment(deployedContracts: DeployedInfra): Promise<void> {
   console.log(">>>>>activateEnvironment");
-  const { accounts, vaultStrategyDataStores, vaults, strategies } = deployedContracts;
+  const { accounts, vaultStrategyDataStores, vaults, strategies, payments } = deployedContracts;
   const GOVERNANCE = accounts.GOVERNANCE;
   const vaultStrategyDataStore = vaultStrategyDataStores.VaultStrategyDataStore;
   const ethVault = vaults.ETH;

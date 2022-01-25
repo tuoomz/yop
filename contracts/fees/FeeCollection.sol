@@ -4,7 +4,7 @@ import "../vaults/roles/Governable.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../security/BasePauseableUpgradeable.sol";
 import "hardhat/console.sol";
@@ -12,7 +12,7 @@ import "hardhat/console.sol";
 /// @notice This contract is used to distribute the fees to various participants
 /// @dev Given the token emission rate for a vault R, and f
 contract FeeCollection is BasePauseableUpgradeable {
-  using SafeERC20 for IERC20;
+  using SafeERC20Upgradeable for IERC20Upgradeable;
   using EnumerableSet for EnumerableSet.AddressSet;
 
   uint256 public constant MAX_BPS = 10000;
@@ -191,7 +191,7 @@ contract FeeCollection is BasePauseableUpgradeable {
     // Will add the token to the tokens if it doesn't exist all ready
     tokens.add(token);
 
-    IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+    IERC20Upgradeable(token).transferFrom(msg.sender, address(this), _amount);
 
     uint256 vaultCreatorFees = _calculateFees(_amount, _getVaultCreatorFeeRatio(msg.sender));
     uint256 protocolFees = _amount - vaultCreatorFees;
@@ -212,7 +212,7 @@ contract FeeCollection is BasePauseableUpgradeable {
     // Will add the token to the tokens if it doesn't exist all ready
     tokens.add(token);
 
-    IERC20(token).safeTransferFrom(vault, address(this), _amount);
+    IERC20Upgradeable(token).transferFrom(vault, address(this), _amount);
 
     uint16 proposerRatio = _getStrategyProposerFeeRatio(_strategy);
     uint16 developerRatio = _getStrategyDeveloperFeeRatio(_strategy);
@@ -273,7 +273,7 @@ contract FeeCollection is BasePauseableUpgradeable {
     uint256 balance = _feesAvailable(_token);
     if (balance > 0) {
       feesClaimedMap[msg.sender][_token] += balance;
-      IERC20(_token).safeTransfer(msg.sender, balance);
+      IERC20Upgradeable(_token).transfer(msg.sender, balance);
       emit FeesClaimed(msg.sender, _token, balance);
     }
   }

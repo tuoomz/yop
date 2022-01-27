@@ -191,7 +191,7 @@ contract FeeCollection is BasePauseableUpgradeable {
     // Will add the token to the tokens if it doesn't exist all ready
     tokens.add(token);
 
-    IERC20Upgradeable(token).transferFrom(msg.sender, address(this), _amount);
+    IERC20Upgradeable(token).safeTransferFrom(msg.sender, address(this), _amount);
 
     uint256 vaultCreatorFees = _calculateFees(_amount, _getVaultCreatorFeeRatio(msg.sender));
     uint256 protocolFees = _amount - vaultCreatorFees;
@@ -212,7 +212,7 @@ contract FeeCollection is BasePauseableUpgradeable {
     // Will add the token to the tokens if it doesn't exist all ready
     tokens.add(token);
 
-    IERC20Upgradeable(token).transferFrom(vault, address(this), _amount);
+    IERC20Upgradeable(token).safeTransferFrom(vault, address(this), _amount);
 
     uint16 proposerRatio = _getStrategyProposerFeeRatio(_strategy);
     uint16 developerRatio = _getStrategyDeveloperFeeRatio(_strategy);
@@ -273,7 +273,7 @@ contract FeeCollection is BasePauseableUpgradeable {
     uint256 balance = _feesAvailable(_token);
     if (balance > 0) {
       feesClaimedMap[msg.sender][_token] += balance;
-      IERC20Upgradeable(_token).transfer(msg.sender, balance);
+      IERC20Upgradeable(_token).safeTransfer(msg.sender, balance);
       emit FeesClaimed(msg.sender, _token, balance);
     }
   }

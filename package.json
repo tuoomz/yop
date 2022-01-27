@@ -29,7 +29,9 @@
     "@openzeppelin/contracts-upgradeable": "^4.3.3",
     "hardhat-contract-sizer": "^2.1.1",
     "hardhat-storage-layout": "^0.1.6",
-    "prb-math": "^2.4.1"
+    "js-yaml": "^4.1.0",
+    "prb-math": "^2.4.1",
+    "yargs": "^17.3.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^13.2.1",
@@ -50,8 +52,10 @@
     "@typechain/hardhat": "^3.0.0",
     "@types/chai": "^4.2.22",
     "@types/fs-extra": "^9.0.13",
+    "@types/js-yaml": "^4.0.5",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.11.6",
+    "@types/yargs": "^17.0.8",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "aws-kms-signer": "^0.4.0",

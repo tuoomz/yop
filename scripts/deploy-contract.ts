@@ -1,14 +1,22 @@
 import hre from "hardhat";
 import { readDeploymentFile, writeDeploymentFile, getTxn } from "./util";
 
-export async function deployContract<Type>(name: string, contractFactory: string, upgradeable: boolean, ...contractParams: any): Promise<Type> {
+const NETWORK_NAME = hre.network.name;
+
+export async function deployContract<Type>(
+  env: string = NETWORK_NAME,
+  name: string,
+  contractFactory: string,
+  upgradeable: boolean,
+  ...contractParams: any
+): Promise<Type> {
   const { ethers } = hre;
   const [deployer] = await ethers.getSigners();
   const deployerAddress = await deployer.getAddress();
 
   console.log(`Deploying contracts as ${deployerAddress}`);
 
-  let deployRecord = await readDeploymentFile();
+  let deployRecord = await readDeploymentFile(env);
 
   const deploymentRecordName = name;
   console.log(`Preparing ${deploymentRecordName} contract with params: ${contractParams}`);
@@ -17,7 +25,7 @@ export async function deployContract<Type>(name: string, contractFactory: string
   let contract;
   if (upgradeable) {
     console.log(`Deploy ${deploymentRecordName} as upgradeable contract`);
-    contract = await hre.upgrades.deployProxy(factory, ...contractParams, {
+    contract = await hre.upgrades.deployProxy(factory, contractParams, {
       kind: "uups",
     });
   } else {
@@ -43,7 +51,7 @@ export async function deployContract<Type>(name: string, contractFactory: string
     console.log("Contract implementation is:", implementationAddress);
     deployRecord[deploymentRecordName].implementationAddress = implementationAddress;
   }
-  await writeDeploymentFile(deployRecord);
+  await writeDeploymentFile(env, deployRecord);
   console.log(`${deploymentRecordName} deployed - txHash: ${contract.deployTransaction.hash} - address: ${contract.address} \n\n`);
 
   // return contract;

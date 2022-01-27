@@ -1,8 +1,9 @@
-import hre from "hardhat";
+import hre, { ethers } from "hardhat";
 import fsExtra from "fs-extra";
 import path from "path";
 import { promises as fs } from "fs";
 import assert from "assert";
+import { fetchConstant } from "../constants";
 
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { Contract } from "ethers";
@@ -23,11 +24,11 @@ export function isDevelopmentNetwork(): boolean {
   return ["hardhat", "localhost"].includes(hre.network.name);
 }
 
-export async function readDeploymentFile(): Promise<any> {
-  const deploymentsFile = await getDeploymentFile();
+export async function readDeploymentFile(env: string = NETWORK_NAME): Promise<any> {
+  const deploymentsFile = await getDeploymentFile(env);
 
   try {
-    return JSON.parse(await fs.readFile(deploymentsFile, "utf8"));
+    return Promise.resolve(JSON.parse(await fs.readFile(deploymentsFile, "utf8")));
   } catch (e: any) {
     if (e.code === "ENOENT") {
       return {};
@@ -38,8 +39,8 @@ export async function readDeploymentFile(): Promise<any> {
 }
 
 // Write the latest deployment details to a deployment file
-export async function writeDeploymentFile(data: any): Promise<void> {
-  const deploymentsFile = await getDeploymentFile();
+export async function writeDeploymentFile(env: string, data: any): Promise<void> {
+  const deploymentsFile = await getDeploymentFile(env);
   await fsExtra.ensureFile(deploymentsFile);
   await fs.writeFile(deploymentsFile, JSON.stringify(data, null, 2) + "\n");
 }
@@ -50,8 +51,8 @@ export async function verifyEnvVar(required: Array<string>): Promise<void> {
 }
 
 // Deployment file per network
-async function getDeploymentFile() {
-  return path.join(`deployments/${NETWORK_NAME}.json`);
+async function getDeploymentFile(env: string = NETWORK_NAME) {
+  return path.join(`deployments/${env}.json`);
 }
 
 export async function getTxn(transactionResponse: TransactionResponse) {
@@ -64,5 +65,34 @@ export async function getTxn(transactionResponse: TransactionResponse) {
     value: transactionResponse.value.toString(),
     gasUsed: txn.gasUsed.toString(),
     cumulativeGasUsed: txn.cumulativeGasUsed.toString(),
+  };
+}
+
+export async function getRolesAddresses(): Promise<Record<string, SignerWithAddress | string>> {
+  let GOVERNANCE;
+  let GATEKEEPER;
+  let STRATEGIST;
+  let HARVESTER;
+
+  if (isDevelopmentNetwork()) {
+    [, GOVERNANCE, GATEKEEPER, STRATEGIST, HARVESTER] = await ethers.getSigners();
+  }
+  if (hre.network.name === "mainnet") {
+    // These are our MULTISIG gnosis-safe wallets. Env Var can be used to override for development
+    GOVERNANCE = fetchConstant("multisig", "yopGovernance");
+    GATEKEEPER = fetchConstant("multisig", "yopGatekeeper");
+    STRATEGIST = fetchConstant("multisig", "yopStrategist");
+    HARVESTER = fetchConstant("multisig", "yopHarvester");
+  }
+  const YOP = fetchConstant("addresses", "yop_address");
+  const YOP_NFT_CONTRACT = fetchConstant("addresses", "yop_nft_contract_address");
+
+  return {
+    GOVERNANCE,
+    GATEKEEPER,
+    STRATEGIST,
+    HARVESTER,
+    YOP,
+    YOP_NFT_CONTRACT,
   };
 }

@@ -14,3 +14,6 @@ build
 coverage
 coverage.json
 .openzeppelin/unknown*
+deployments/hardhat.json
+deployments/localhost.json
+deployments/dev.json

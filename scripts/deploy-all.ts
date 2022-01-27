@@ -27,6 +27,7 @@ verifyEnvVar(requireEnvVar);
 
 const CHAIN_ID = hre.network.config.chainId;
 const EMISSION_START_TIME = 1640995200; // 2022-1-1-00:00:00 GMT
+const NETWORK_NAME = hre.network.name;
 
 const deployedArtifacts: Record<string, string> = {};
 deployedArtifacts[">>>>> DEPLOYED ARTIFACTS <<<<<"] = "";
@@ -84,12 +85,25 @@ async function main(): Promise<DeployedInfra> {
   console.log("\nStarting contract deployments\n");
 
   // Start AllowListAccessControl Contract Deploy
-  const allowListAccess = await deployContract<AllowlistAccessControl>("AllowlistAccess", "AllowlistAccessControl", false, address(GOVERNANCE));
+  const allowListAccess = await deployContract<AllowlistAccessControl>(
+    NETWORK_NAME,
+    "AllowlistAccess",
+    "AllowlistAccessControl",
+    false,
+    address(GOVERNANCE)
+  );
 
   // Start ERC1155AccessControl Contract Deploy
-  const erc1155Access = await deployContract<ERC1155AccessControl>("ERC1155Access", "ERC1155AccessControl", false, address(GOVERNANCE));
+  const erc1155Access = await deployContract<ERC1155AccessControl>(
+    NETWORK_NAME,
+    "ERC1155Access",
+    "ERC1155AccessControl",
+    false,
+    address(GOVERNANCE)
+  );
 
   const anyAccessControl = await deployContract<AllowAnyAccessControl>(
+    NETWORK_NAME,
     "AllowAnyAccessControl",
     "AllowAnyAccessControl",
     false,
@@ -100,15 +114,21 @@ async function main(): Promise<DeployedInfra> {
   await anyAccessControl.connect(GOVERNANCE).setDefault(true);
 
   // Start AccessControlManager Contract Deploy
-  const accessControlManager = await deployContract<AccessControlManager>("AccessControl", "AccessControlManager", false, address(GOVERNANCE), [
+  const accessControlManager = await deployContract<AccessControlManager>(
+    NETWORK_NAME,
+    "AccessControl",
+    "AccessControlManager",
+    false,
+    address(GOVERNANCE),
     allowListAccess.address,
     erc1155Access.address,
-    anyAccessControl.address,
-  ]);
+    anyAccessControl.address
+  );
   deployedArtifacts.accessControlManager = accessControlManager.address;
 
   // Start VaultStrategyDataStore Contract Deploy
   const vaultStrategyDataStore = await deployContract<VaultStrategyDataStore>(
+    undefined,
     "VaultStrategyDataStore",
     "VaultStrategyDataStore",
     false,
@@ -116,7 +136,7 @@ async function main(): Promise<DeployedInfra> {
   );
   deployedArtifacts.vaultStrategyDataStore = vaultStrategyDataStore.address;
 
-  const YOPRewards = await deployContract<YOPRewards>("YOPRewards", "YOPRewards", true, [
+  const YOPRewards = await deployContract<YOPRewards>(NETWORK_NAME, "YOPRewards", "YOPRewards", true, [
     address(GOVERNANCE),
     address(GATEKEEPER),
     process.env.YOP_WALLET_ADDRESS,
@@ -138,7 +158,7 @@ async function main(): Promise<DeployedInfra> {
     `);
 
   console.log("\nStarting Staking Deployments\n");
-  const Staking = await deployContract<YOPRewards>("Staking", "Staking", true, [
+  const Staking = await deployContract<YOPRewards>(NETWORK_NAME, "Staking", "Staking", true, [
     "Yop",
     "yop",
     address(GOVERNANCE),
@@ -154,7 +174,7 @@ async function main(): Promise<DeployedInfra> {
 
   console.log("\nStarting Fee Collection\n");
 
-  const FeeCollection = await deployContract<FeeCollection>("FeeCollection", "FeeCollection", true, [
+  const FeeCollection = await deployContract<FeeCollection>(NETWORK_NAME, "FeeCollection", "FeeCollection", true, [
     address(GOVERNANCE),
     address(GATEKEEPER),
     process.env.PROTOCOL_WALLET,
@@ -177,7 +197,7 @@ async function main(): Promise<DeployedInfra> {
     const vaultToken = VAULTS[key].vault_token;
     const vaultType = VAULTS[key].vault_type;
     // Start Vault Contract Deploy
-    const vault = await deployContract<SingleAssetVault>(key, vaultType, true, [
+    const vault = await deployContract<SingleAssetVault>(undefined, key, vaultType, true, [
       vaultName,
       vaultSymbol,
       address(GOVERNANCE),
@@ -201,6 +221,7 @@ async function main(): Promise<DeployedInfra> {
       // This is assuming a certain order for strategy constructor params
       // vault address, strategist, rewards address, harvester and any other params that are passed via the config file
       const strategyContract = await deployContract<BaseStrategy>(
+        undefined,
         strategyName,
         strategyName,
         false,

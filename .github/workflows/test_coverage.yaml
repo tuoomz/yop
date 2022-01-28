@@ -75,7 +75,9 @@ jobs:
         run: npx hardhat typechain
 
       - name: Run integration test
-        run: npx hardhat test ./test/integration/**/*.ts
+        run: |
+          export NODE_OPTIONS="--max_old_space_size=6144" 
+          npx hardhat test ./test/integration/**/*.ts
         env:
           ENABLE_FORKING: true
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}

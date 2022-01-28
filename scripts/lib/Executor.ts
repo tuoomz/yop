@@ -1,9 +1,10 @@
-import { BigNumber, constants } from "ethers";
-import { ethers } from "hardhat";
+import { BigNumber } from "ethers";
+import hre, { ethers } from "hardhat";
 import { readDeploymentFile } from "../util";
-import { ContractDeploymentCall, DeploymentRecord, ContractFunctionCall, Wallet, DefaultWallet } from "./ContractDeployment";
+import { ContractDeploymentCall, DeploymentRecord, ContractFunctionCall, Wallet, DefaultWallet, MultisigWallet } from "./ContractDeployment";
 import { deployContract } from "../deploy-contract";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { proposeTxn } from "../gnosis/propose-txn";
 export class Executor {
   dryRun: boolean;
   env: string;
@@ -155,6 +156,8 @@ export class Executor {
   }
 
   private async proposeMultisigTx(call: ContractFunctionCall) {
-    console.log(`propose multisig transaction`);
+    const multisigWallet = call.signer as MultisigWallet;
+    const safeAddress = multisigWallet.address;
+    await proposeTxn(safeAddress, call.address, call.methodName, JSON.stringify(call.params), "", hre, call.abi);
   }
 }

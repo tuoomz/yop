@@ -3,6 +3,8 @@ import hre from "hardhat";
 import { readDeploymentFile, writeDeploymentFile, verifyEnvVar } from "./util";
 const requireEnvVar = ["ETHERSCAN_API_KEY", "ALCHEMY_API_KEY", "CURRENT_CONTRACT_FACTORY_NAME", "NEW_CONTRACT_FACTORY_NAME"];
 verifyEnvVar(requireEnvVar);
+const NETWORK_NAME = hre.network.name;
+
 async function main(): Promise<void> {
   const { ethers } = hre;
   const [deployer] = await ethers.getSigners();
@@ -33,7 +35,7 @@ async function main(): Promise<void> {
     },
   };
 
-  await writeDeploymentFile(deployRecord);
+  await writeDeploymentFile(NETWORK_NAME, deployRecord);
 
   console.log(`
       NOTE: Upgrade is not deployed. Just prepared. 

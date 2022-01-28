@@ -121,17 +121,9 @@ npm run reset-fork
 
 More detail information on forking can be found [here](docs/dev_forking_mainnet.md).
 
-### Testnets
+### Deploy To Mainnet Fork
 
-#### Rinkeby
-
-```bash
-# Deploy to rinkeby
-npx hardhat run --network rinkeby scripts/deploy-all.ts
-
-# Verify with Etherscan (rinkeby) contract verification service.
-npx hardhat run --network rinkeby scripts/deploy-all.ts
-```
+See [deployment by config](./scripts/README.md).
 
 #### More Coming Soon
 

@@ -30,7 +30,8 @@ export async function proposeTxn(
   contractMethod: string,
   contractParams: string,
   implementationAddress: string,
-  hre: HardhatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment,
+  abi?: any
 ): Promise<AxiosResponse | undefined> {
   // Assign global
   globalHRE = hre;
@@ -58,8 +59,10 @@ export async function proposeTxn(
   });
 
   // Step 2 - Begin building our transaction. Encodes the intended contract interaction
-  const abiAddress = implementationAddress || contractAddress;
-  const abi = await (await fetchContractABI(abiAddress)).data.result;
+  if (!abi) {
+    const abiAddress = implementationAddress || contractAddress;
+    abi = await (await fetchContractABI(abiAddress)).data.result;
+  }
   const contract = new ethers.Contract(safeAddress, new ethers.utils.Interface(abi), ethers.provider);
 
   const encode = contract.interface.encodeFunctionData(contractMethod, contractParams ? JSON.parse(contractParams) : undefined);

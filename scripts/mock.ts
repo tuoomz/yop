@@ -4,6 +4,8 @@ import { readDeploymentFile, writeDeploymentFile } from "./util";
 
 import { YopERC1155Mock, TokenMock } from "../types";
 
+const NETWORK_NAME = hre.network.name;
+
 export async function deployMockNFTContract() {
   const { ethers } = hre;
   const [deployer] = await ethers.getSigners();
@@ -34,7 +36,7 @@ export async function deployMockNFTContract() {
       proxy: false,
     },
   };
-  await writeDeploymentFile(deployRecord);
+  await writeDeploymentFile(NETWORK_NAME, deployRecord);
   console.log(
     `YopERC1155Mock deployed - txHash: ${YopERC1155MockContract.deployTransaction.hash} - address: ${YopERC1155MockContract.address} \n\n`
   );
@@ -60,7 +62,7 @@ export async function deployMockYOPContract(wallet: string | undefined) {
       proxy: false,
     },
   };
-  await writeDeploymentFile(deployRecord);
+  await writeDeploymentFile(NETWORK_NAME, deployRecord);
   console.log(`YOP mock token deployed - txHash: ${mockYopToken.deployTransaction.hash} - address: ${mockYopToken.address} \n\n`);
   if (wallet != null && wallet !== "") {
     console.log(`Mint 88,888,888 tokens to wallet address ${wallet}`);

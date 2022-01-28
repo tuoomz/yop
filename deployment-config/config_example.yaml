@@ -2,6 +2,7 @@ wallets:
   governance_multisig: &governance_multisig
     type: multisig
     address: "0x457a60065050050B3e64Fcd96cFb973123D38338"
+    safe: ""
   governance: &governance
     type: default # use the accounts provided by Hardhat/Ganache
     index: 1

@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
-import { readDeploymentFile, getRolesAddresses, address } from "../util";
+import { readDeploymentFile } from "../util";
 import { randomBytes } from "crypto";
 
 export type DefaultWallet = {
@@ -11,6 +11,7 @@ export type DefaultWallet = {
 export type MultisigWallet = {
   type: string;
   address: string;
+  safe: string;
 };
 
 // TODO: can add another type to load private & public key

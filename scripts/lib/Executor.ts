@@ -4,7 +4,7 @@ import { readDeploymentFile } from "../util";
 import { ContractDeploymentCall, DeploymentRecord, ContractFunctionCall, Wallet, DefaultWallet, MultisigWallet } from "./ContractDeployment";
 import { deployContract } from "../deploy-contract";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { proposeTxn } from "../gnosis/propose-txn";
+import { proposeTxn, proposeTxns } from "../gnosis/propose-txn";
 export class Executor {
   dryRun: boolean;
   env: string;
@@ -73,6 +73,8 @@ export class Executor {
       console.log(`Total calls: ${calls.length}`);
       console.log(`Total estimated gas: ${ethers.utils.formatUnits(totalEstimatedGas, "gwei")}`);
     } else {
+      const multisigTrans: Record<string, ContractFunctionCall[]> = {};
+      let multisigCounters = 0;
       for (const c of calls) {
         console.log(`>>>>>> Call Contract Function Start <<<<<<`);
         console.log(`address      : ${c.address}`);
@@ -80,8 +82,21 @@ export class Executor {
         const params = this.processParams(deploymentRecords, c.params);
         c.params = params;
         console.log(`params       : ${JSON.stringify(params)}`);
-        await this.doContractCall(c);
-        console.log(`>>>>>> Call Contract Function Complete <<<<<<`);
+        if (!this.isMultisigWallet(c.signer)) {
+          await this.doContractCall(c);
+          console.log(`>>>>>> Call Contract Function Complete <<<<<<`);
+        } else {
+          multisigCounters++;
+          const multisig = c.signer as MultisigWallet;
+          if (multisigTrans[multisig.address]) {
+            multisigTrans[multisig.address].push(c);
+          } else {
+            multisigTrans[multisig.address] = [c];
+          }
+        }
+      }
+      if (multisigCounters > 0) {
+        await this.proposeMultiSendTx(multisigTrans);
       }
     }
   }
@@ -159,5 +174,13 @@ export class Executor {
     const multisigWallet = call.signer as MultisigWallet;
     const safeAddress = multisigWallet.address;
     await proposeTxn(safeAddress, call.address, call.methodName, JSON.stringify(call.params), "", hre, call.abi);
+  }
+
+  private async proposeMultiSendTx(calls: Record<string, ContractFunctionCall[]>) {
+    const safes = Object.keys(calls);
+    for (const safe of safes) {
+      const trans = calls[safe];
+      await proposeTxns(safe, trans, hre);
+    }
   }
 }

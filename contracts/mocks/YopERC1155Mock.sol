@@ -9,4 +9,12 @@ contract YopERC1155Mock is ERC1155 {
     _mint(msg.sender, 1, _numberOfTokens, "");
     _mint(msg.sender, 2, _numberOfTokens, "");
   }
+
+  function mint(
+    address _to,
+    uint256 _tokenId,
+    uint256 _numberOfTokens
+  ) external {
+    _mint(_to, _tokenId, _numberOfTokens, "");
+  }
 }

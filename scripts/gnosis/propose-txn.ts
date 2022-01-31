@@ -1,9 +1,10 @@
 // import hre from "hardhat";
 import EthersSafe, { EthersAdapter } from "@gnosis.pm/safe-core-sdk";
-import { SafeTransactionDataPartial } from "@gnosis.pm/safe-core-sdk-types";
+import { SafeTransactionDataPartial, MetaTransactionData } from "@gnosis.pm/safe-core-sdk-types";
 import * as EthUtil from "ethereumjs-util";
 import axios, { AxiosResponse } from "axios";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { ContractFunctionCall } from "../lib/ContractDeployment";
 
 import { KmsSigner } from "aws-kms-signer";
 
@@ -76,6 +77,72 @@ export async function proposeTxn(
   ];
 
   // Step 3 - Create a "Safe" transaction ready to be signed and get its hash
+  const safeTransaction = await safeSdk.createTransaction(transactions);
+  const hash = await safeSdk.getTransactionHash(safeTransaction);
+
+  const awsSig = await signer.sign(EthUtil.toBuffer(hash));
+  const finalSignature = EthUtil.toRpcSig(awsSig.v, awsSig.r, awsSig.s).toString();
+
+  // Expand the playload for the safe-transaction API
+  const payload: GnosisSafeTransaction = {
+    safe: safeAddress,
+    contractTransactionHash: hash,
+    sender: EthUtil.addHexPrefix(signerAddress.toString()),
+    signature: finalSignature,
+    origin: "automation",
+    ...safeTransaction.data,
+  };
+
+  const propose = await gnosisProposeTx(safeAddress, payload);
+  return propose;
+}
+
+export async function proposeTxns(
+  safeAddress: string,
+  calls: ContractFunctionCall[],
+  hre: HardhatRuntimeEnvironment
+): Promise<AxiosResponse | undefined> {
+  // Assign global
+  globalHRE = hre;
+  const { ethers } = hre;
+  const [deployer] = await ethers.getSigners();
+
+  // Allows for an override keyid or use the hardhat configured deployer key
+  const keyId = process.env.GNOSIS_SIGNER_KMSID || hre.network.config.kmsKeyId || "";
+  const signer: KmsSigner = new KmsSigner(keyId);
+
+  const signerAddress = await signer.getAddress();
+  console.log(`Proposing with KMS Key ${keyId} ; Address: ${signerAddress}`);
+
+  // Step 1 - Create an instance of the Safe Core SDK using the ethAdapter method
+  // Note this is not using KMS signer. We are only using EthersSafe to build the transaction not to send/sign
+  const ethAdapter = new EthersAdapter({
+    ethers: ethers,
+    signer: deployer,
+  });
+
+  const safeSdk: EthersSafe = await EthersSafe.create({
+    ethAdapter: ethAdapter,
+    safeAddress: safeAddress,
+    contractNetworks: {},
+  });
+  const transactions: MetaTransactionData[] = [];
+  for (let i = 0; i < calls.length; i++) {
+    console.log(`>>>>>> multisend transaction #${i + 1} <<<<<<`);
+    console.log(`contract address: ${calls[i].address}`);
+    console.log(`contract method: ${calls[i].methodName}`);
+    console.log(`contract params: ${JSON.stringify(calls[i].params)}`);
+    const contract = new ethers.Contract(safeAddress, new ethers.utils.Interface(calls[i].abi), ethers.provider);
+    const encode = contract.interface.encodeFunctionData(calls[i].methodName, calls[i].params);
+    transactions.push({
+      to: calls[i].address,
+      value: "0",
+      data: encode,
+    });
+  }
+
+  // Step 3 - Create a "Safe" transaction ready to be signed and get its hash
+  console.log("Proposing a MultiSend transaction");
   const safeTransaction = await safeSdk.createTransaction(transactions);
   const hash = await safeSdk.getTransactionHash(safeTransaction);
 

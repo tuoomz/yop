@@ -1,0 +1,220 @@
+wallets:
+  governance: &governance
+    type: multisig
+    address: "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+    safe: "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+  gatekeeper: &gatekeeper
+    type: multisig
+    address: "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+    safe: "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+  manager: &manager
+    type: multisig
+    address: "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+    safe: "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+addresses:
+  yop_token_contract: &yopContract "0x7d02b6121acdd46a564542b5f1867208fd6f3cad"
+  yop_nft: &yopNFT "0x24d1Caaf83AD4B680dcB621D10Ed320315938059"
+  rewards_wallet: &rewardsWallet "0x20D11fF430469a6b04f68913DbfE7D480daBe0aA"
+  protocol_wallet_address: &protocolWalletAddress "0x20D11fF430469a6b04f68913DbfE7D480daBe0aA"
+  harvester_address: &harvester_address "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+  # for managing the YOP staking NFT collections on OpenSea
+  yop_staking_nft_opensea_admin: &yopStakingNFTAdmin "0x20D11fF430469a6b04f68913DbfE7D480daBe0aA"
+  weth_token_address: &weth_token_address "0xc778417e063141139fce010982780140aa0cd5ab"
+  wbtc_token_address: &wbtc_token_address "0x577d296678535e4903d59a4c929b718e1d575e0a"
+  usdc_token_address: &usdc_token_address "0xeb8f08a975ab53e34d8a0330e0d34de942c95926"
+  dai_token_address: &dai_token_address "0x95b58a6bff3d14b7db2f5cb5f0ad413dc2940658"
+  usdt_token_address: &usdt_token_address "0x3b00ef435fa4fcff5c209a37d1f3dcff37c705ad"
+constants:
+  vault_management_fee: &vault_management_fee 200 # 2%
+  strategy_performance_fee: &strategy_performance_fee 1000 # 10%
+  vault_max_debt_ratio: &vault_max_debt_ratio 9500 # 95%
+
+access_control:
+  governance: *governance
+  allowlist:
+    # can be changed
+    enabled: true
+    governance: *governance
+    # can be changed
+    global: []
+  erc1155:
+    # can be changed
+    enabled: true
+    governance: *governance
+    # can be changed
+    global:
+      - contract_address: *yopNFT
+        token_ids: ["134"]
+  allowany:
+    # can be changed
+    enabled: true
+    governance: *governance
+    # can be changed
+    global: true
+vault_strategy_data_store:
+  governance: *governance
+fee_collection:
+  governance: *governance
+  gatekeeper: *gatekeeper
+  # can be changed
+  protocol_wallet: *protocolWalletAddress
+  # can be changed
+  default_vault_creator_fee_ratio: 0
+  # can be changed
+  default_strategy_proposer_fee_ratio: 0
+  # can be changed
+  default_strategy_developer_fee_ratio: 0
+  # can be changed
+  paused: false
+rewards:
+  governance: *governance
+  gatekeeper: *gatekeeper
+  wallet: *rewardsWallet
+  yop_contract: *yopContract
+  emission_start_time: 1640995200 # 2022-1-1-00:00:00 GMT
+  # can be changed
+  total_allocation_weight:
+    vaults: 100
+    staking: 100
+  # can be changed
+  vaults_allocation_weight:
+    # never remove vaults for here.
+    # Set the value to 0 if a vault should not receive emission anymore
+    # Name needs to match the name of the vaults
+    "Ethereum Genesis": 100
+    "Bitcoin Genesis": 100
+    "USDC Genesis": 100
+    "DAI Genesis": 100
+    "USDT Genesis": 100
+  # can be changed
+  paused: false
+staking:
+  name: "YOP Staking"
+  symbol: "sYOP"
+  governance: *governance
+  gatekeeper: *gatekeeper
+  uri: ""
+  # can be changed
+  contract_uri: ""
+  owner: *yopStakingNFTAdmin
+  # can be changed. Ignore the decimals.
+  min_stake_amount: 100
+  # can be changed
+  paused: false
+vaults:
+  - name: Ethereum Genesis
+    symbol: "yopETH"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *weth_token_address
+    # can be changed
+    management_fee: *vault_management_fee
+    # can be changed
+    # if this value is reduced, check the allocations for strategies and make sure
+    # the total of the allocations won't exceed the max value
+    max_debt_ratio: *vault_max_debt_ratio
+    # can be changed
+    paused: false
+    # can be changed
+    emergency_shutdown: false
+    # can add new strategies, but don't remove, and don't change orders here
+    # change the allocation to 0 if the strategy is not used anymore
+    strategies:
+      - name: "MockEth1"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        # can be changed
+        performance_fee: *strategy_performance_fee
+        # can be changed
+        allocation: 2850 #28.5%
+      - name: "MockEth2"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 6650 #66.5%
+  - name: Bitcoin Genesis
+    symbol: "yopBTC"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *wbtc_token_address
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: false
+    emergency_shutdown: false
+    strategies:
+      - name: "MockBtc1"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 2850 #28.5%
+      - name: "MockBtc2"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 6650 #66.5%
+  - name: USDC Genesis
+    symbol: "yopUSDC"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *usdc_token_address
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: false
+    emergency_shutdown: false
+    strategies:
+      - name: "MockUSDC1"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 2850 #28.5%
+      - name: "MockUSDC2"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 6650 #66.5%
+  - name: DAI Genesis
+    symbol: "yopDAI"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *dai_token_address
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: false
+    emergency_shutdown: false
+    strategies:
+      - name: "MockDAI1"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 2850 #28.5%
+      - name: "MockDAI2"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 6650 #66.5%
+  - name: USDT Genesis
+    symbol: "yopUSDT"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *usdt_token_address
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: false
+    emergency_shutdown: false
+    strategies:
+      - name: "MockUSDT1"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 2850 #28.5%
+      - name: "MockUSDT2"
+        contract: "TestnetStrategyMock"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: 6650 #66.5%
+

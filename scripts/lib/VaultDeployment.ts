@@ -7,6 +7,7 @@ import { VaultStrategyDataStoreDeployment } from "./VaultStrategyDataStoreDeploy
 import { ConvexStrategyDeploymentConfig, ConvexStrategyDeployment } from "./ConvexStrategyDeployment";
 import { SingleAssetVault } from "../../types/SingleAssetVault";
 import { BigNumber } from "ethers";
+import { MockStrategyDeploymentConfig, MockStrategyDeployment } from "./MockStrategyDeployment";
 
 export type VaultDeploymentConfig = {
   name: string;
@@ -102,6 +103,16 @@ export class VaultDeployment extends ContractDeploymentUpdate {
           convexStrategyConfig
         );
         results = results.concat(await convexStrategy.deploy());
+      } else if (strategyContract.startsWith("Testnet")) {
+        const mockStrategyConfig = s as MockStrategyDeploymentConfig;
+        const mockStrategy = new MockStrategyDeployment(
+          this.env,
+          vaultAddress,
+          this.config.manager,
+          this.vaultStrategyDataStoreDeployment,
+          mockStrategyConfig
+        );
+        results = results.concat(await mockStrategy.deploy());
       } else {
         throw new Error("unsupported strategy contract " + strategyContract);
       }

@@ -93,24 +93,8 @@ export async function deployMockYOPContract(wallet: string | undefined = TARGET_
 }
 
 async function main() {
-  // await deployMockYOPContract(undefined);
-  // await deployMockNFTContract();
-  const { ethers } = hre;
-  const [deployer] = await ethers.getSigners();
-  // Receiver Address which receives Ether
-  const receiverAddress = "0x20D11fF430469a6b04f68913DbfE7D480daBe0aA";
-  // Ether amount to send
-  const amountInEther = "0.04";
-  // Create a transaction object
-  const tx = {
-    to: receiverAddress,
-    // Convert currency unit from ether to wei
-    value: ethers.utils.parseEther(amountInEther),
-  };
-  // Send a transaction
-  deployer.sendTransaction(tx).then((txObj) => {
-    console.log("txHash", txObj.hash);
-  });
+  await deployMockYOPContract(undefined);
+  await deployMockNFTContract();
 }
 
 main();

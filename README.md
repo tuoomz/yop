@@ -167,6 +167,13 @@ For more information, please checkout [Hardhat docs](https://hardhat.org/getting
 
 ### Rinkeby Testnet
 
+#### Mocks
+
+- MockYOPToken - [0x7d02b6121acdd46a564542b5f1867208fd6f3cad](https://rinkeby.etherscan.io/address/0x7d02b6121acdd46a564542b5f1867208fd6f3cad)
+  - It has a `mint` function that anyone can call to mint new YOP tokens. Max supply is set to 88,888,888 which is the same as the real one.
+- MockYOPNFT - [0x24d1Caaf83AD4B680dcB621D10Ed320315938059](https://rinkeby.etherscan.io/address/0x24d1Caaf83AD4B680dcB621D10Ed320315938059)
+  - It has a `mint` function that anyone can call to mint a new NFT for testing purpose. Currently token id `134` is allowed access to vaults.
+
 #### Access Control
 
 - AllowlistAccessControl - [0xd3e4955B464c758385c72C95f981711D39CC9215](https://rinkeby.etherscan.io/address/0xd3e4955B464c758385c72C95f981711D39CC9215)

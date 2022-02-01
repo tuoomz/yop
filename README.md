@@ -123,23 +123,13 @@ More detail information on forking can be found [here](docs/dev_forking_mainnet.
 
 ### Deploy To Mainnet Fork
 
-See [deployment by config](./scripts/README.md).
+See [deployment by config](./scripts/README.md#deploy-smart-contracts).
 
 #### More Coming Soon
 
-### Upgrade
-To upgrade a contract you need to provide the current contract name and the new contract name. The script will look up the previous deployment to find the proxy address.
+### Upgrade
 
-```bash
-export CURRENT_CONTRACT_FACTORY_NAME=Vault
-export NEW_CONTRACT_FACTORY_NAME=VaultV2
-# Upgrade on rinkeby
-npx hardhat run --network rinkeby scripts/propose-upgrade.ts
-```
-
-**NOTE:** This will only prepare an upgrade. The upgrade still needs to be signed off by the governor address. In the case of a https://gnosis-safe.io/ multisig, an owner needs to create a Contract interaction against the proxy address. The ABI must be provided due to an issue with hardhat verifying implementation contracts.
-
-The owner must choose the upgradeTo method providing the new implementation contract address that is provided in the deploy script output. Once the transaction is approved by the required number of owners the upgrade will complete.
+See [upgrade instructions](./scripts/README.md#upgrade-smart-contracts).
 
 ## Other available commands
 

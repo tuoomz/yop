@@ -1,24 +1,31 @@
 import hre from "hardhat";
 import { expect } from "chai";
+import yargs from "yargs/yargs";
 
 import { readDeploymentFile, verifyEnvVar } from "./util";
 
 const requireEnvVar = ["ETHERSCAN_API_KEY"];
 verifyEnvVar(requireEnvVar);
 
+const argv = yargs(process.argv.slice(2))
+  .options({
+    env: { type: "string", default: "", describe: "the environment id" },
+  })
+  .parseSync();
+
 async function main(): Promise<void> {
-  const deployRecord = await readDeploymentFile();
+  const env = argv.env;
+  if (!env) {
+    throw new Error("no environment");
+  }
+  const deployRecord = await readDeploymentFile(env);
 
   for (const key in deployRecord) {
-    if (!key.match(/Mock/i)) {
-      console.log(`VERIFY :: ${key}`);
-      const deployAddress = deployRecord[key].proxy ? deployRecord[key].implementationAddress : deployRecord[key].address;
-      const deployArgs = deployRecord[key].proxy ? [] : deployRecord[key].contractParams;
-      await verify(deployAddress, deployArgs);
-      console.log(`VERIFIED :: ${key}`);
-    } else {
-      console.log("Skipping MOCK", key);
-    }
+    console.log(`VERIFY :: ${key}`);
+    const deployAddress = deployRecord[key].proxy ? deployRecord[key].implementationAddress : deployRecord[key].address;
+    const deployArgs = deployRecord[key].proxy ? [] : deployRecord[key].contractParams;
+    await verify(deployAddress, deployArgs);
+    console.log(`VERIFIED :: ${key}`);
   }
 }
 

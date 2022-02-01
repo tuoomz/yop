@@ -978,7 +978,7 @@
       "0x20D11fF430469a6b04f68913DbfE7D480daBe0aA",
       "0x838Aaf65Dde430A41455F1f287D947D3754419bb"
     ],
-    "implementationAddress": "0x750c562C0a3147146D150f4c4142f7fa9d9E5afA"
+    "implementationAddress": "0x8F2EaEddF48D7e38c3F121c7d2F216c92FeD2Dfe"
   },
   "Ethereum Genesis": {
     "address": "0xC17B83b33af998ab782E74fD271e354cf4aee2AB",
@@ -3124,5 +3124,10 @@
       "0x0000000000000000000000000000000000000000",
       "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
     ]
+  },
+  "StakingV1Mock": {
+    "address": "0xeD3B3A4aC33A3861DcA995A31A161ddB9F809b68",
+    "implementationAddress": "0x8F2EaEddF48D7e38c3F121c7d2F216c92FeD2Dfe",
+    "proposedUpgrade": true
   }
 }

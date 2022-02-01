@@ -13,11 +13,11 @@ import { VaultDeployment } from "./lib/VaultDeployment";
 
 const argv = yargs(process.argv.slice(2))
   .options({
-    config: { type: "string", default: "" },
-    deploy: { type: "boolean", default: true },
-    update: { type: "boolean", default: true },
-    dryrun: { type: "boolean", default: true },
-    env: { type: "string", default: "dev" },
+    config: { type: "string", default: "", describe: "the path to the configuration YAML file" },
+    deploy: { type: "boolean", default: true, describe: "set to true to deploy new contracts" },
+    update: { type: "boolean", default: true, describe: "set to true to configure the deployed contracts" },
+    dryrun: { type: "boolean", default: true, describe: "set to true to only print out the changes without executing them" },
+    env: { type: "string", default: "", describe: "the environment id" },
   })
   .parseSync();
 

@@ -83,7 +83,7 @@ contract AccessControlManager is IAccessControlManager, Governable {
     }
     bool userHasAccess = false;
     for (uint256 i = 0; i < accessControlPolicies.length(); i++) {
-      if (IAccessControl(accessControlPolicies.at(i)).hasAccess(_user, _vault)) {
+      if (IAccessControlPolicy(accessControlPolicies.at(i)).hasAccess(_user, _vault)) {
         userHasAccess = true;
         break;
       }

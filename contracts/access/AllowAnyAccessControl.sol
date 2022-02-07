@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "../interfaces/IAccessControl.sol";
+import "../interfaces/IAccessControlPolicy.sol";
 import "./PerVaultGatekeeper.sol";
 
 /// @notice This contract will allow enable/disable open access to vaults (or the staking contract).
-contract AllowAnyAccessControl is IAccessControl, PerVaultGatekeeper {
+contract AllowAnyAccessControl is IAccessControlPolicy, PerVaultGatekeeper {
   /// @notice Emitted when AllowAny configure is updated for a vault
   event AllowAnyUpdated(address indexed _vault, bool indexed _allow);
 

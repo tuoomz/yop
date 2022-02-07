@@ -4,7 +4,7 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "../interfaces/IAccessControl.sol";
+import "../interfaces/IAccessControlPolicy.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./PerVaultGatekeeper.sol";
 
@@ -14,7 +14,7 @@ import "./PerVaultGatekeeper.sol";
 ///  An owner of any of the NFTs will be able to access a vault if the NFTs are granted access to the vault.
 ///  The `vault` here can either be the vaults are defined in the `SingleAssetVault` smart contract, or the staking contract.
 ///  NOTE the NFT contract has to implement the ERC1155 standard and can pass the check using ERC165 standard. ERC721 standard is not supported.
-contract ERC1155AccessControl is IAccessControl, PerVaultGatekeeper {
+contract ERC1155AccessControl is IAccessControlPolicy, PerVaultGatekeeper {
   using EnumerableSet for EnumerableSet.UintSet;
   using EnumerableSet for EnumerableSet.AddressSet;
   using ERC165Checker for address;

@@ -2,11 +2,11 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../interfaces/IAccessControl.sol";
+import "../interfaces/IAccessControlPolicy.sol";
 import "../vaults/roles/Governable.sol";
 import "./PerVaultGatekeeper.sol";
 
-contract AllowlistAccessControl is IAccessControl, PerVaultGatekeeper {
+contract AllowlistAccessControl is IAccessControlPolicy, PerVaultGatekeeper {
   mapping(address => bool) public globalAccessMap;
   mapping(address => mapping(address => bool)) public vaultAccessMap;
 

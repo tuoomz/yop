@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
-import { readDeploymentFile } from "../util";
+import { readDeploymentFile, writeDeploymentFile } from "../util";
 import { randomBytes } from "crypto";
 
 export type DefaultWallet = {
@@ -53,8 +53,12 @@ export abstract class ContractDeploymentUpdate implements IContractDeployment, I
   abstract name: string;
   abstract upgradeable: boolean;
   env: string;
-  constructor(env: string) {
+  dryrun = false;
+  constructor(env: string, dryrun?: boolean) {
     this.env = env;
+    if (dryrun !== undefined) {
+      this.dryrun = dryrun;
+    }
   }
 
   abstract deployParams(): Promise<Array<any>>;
@@ -88,6 +92,10 @@ export abstract class ContractDeploymentUpdate implements IContractDeployment, I
 
   async deploymentRecords(): Promise<Record<string, DeploymentRecord>> {
     return await readDeploymentFile(this.env);
+  }
+
+  async writeDeploymentRecords(records: Record<string, DeploymentRecord>) {
+    return await writeDeploymentFile(this.env, records);
   }
 
   async currentAddress(): Promise<string | undefined> {

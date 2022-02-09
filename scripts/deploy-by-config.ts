@@ -37,7 +37,7 @@ async function main() {
   let deploymentsCalls = new Array<ContractDeploymentCall>();
   let updateCalls = new Array<ContractFunctionCall>();
   if (parsed.access_control) {
-    deployments.push(new AccessControlManagerDeployment(env, parsed.access_control));
+    deployments.push(new AccessControlManagerDeployment(env, argv.dryrun, parsed.access_control));
   }
   const vaultStrategyDataStoreDeployment = new VaultStrategyDataStoreDeployment(env, parsed.vault_strategy_data_store);
   deployments.push(vaultStrategyDataStoreDeployment);

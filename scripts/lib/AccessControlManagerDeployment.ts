@@ -22,12 +22,12 @@ export class AccessControlManagerDeployment extends ContractDeploymentUpdate {
   allowlistAccessDeployment: AllowlistAccessControlDeployment;
   erc1155AccessDeployment: ERC1155AccessControlDeployment;
   allowanyAccessDeployment: AllowAnyAccessControlDeployment;
-  constructor(env: string, args: AccessManagerConfig) {
-    super(env);
+  constructor(env: string, dryrun: boolean, args: AccessManagerConfig) {
+    super(env, dryrun);
     this.governance = args.governance;
     this.allowlistAccessDeployment = new AllowlistAccessControlDeployment(env, args.allowlist);
-    this.erc1155AccessDeployment = new ERC1155AccessControlDeployment(env, args.erc1155);
-    this.allowanyAccessDeployment = new AllowAnyAccessControlDeployment(env, args.allowany);
+    this.erc1155AccessDeployment = new ERC1155AccessControlDeployment(env, dryrun, args.erc1155);
+    this.allowanyAccessDeployment = new AllowAnyAccessControlDeployment(env, dryrun, args.allowany);
   }
 
   deployParams(): Promise<Array<any>> {

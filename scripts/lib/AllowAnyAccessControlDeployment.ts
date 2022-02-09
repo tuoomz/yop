@@ -13,8 +13,8 @@ export class AllowAnyAccessControlDeployment extends ContractDeploymentUpdate {
   contractName = "AllowAnyAccessControl";
   upgradeable = false;
   config: AllowAnyAccessConfig;
-  constructor(env: string, args: AllowAnyAccessConfig) {
-    super(env);
+  constructor(env: string, dryrun: boolean, args: AllowAnyAccessConfig) {
+    super(env, dryrun);
     this.config = args;
   }
 
@@ -25,12 +25,16 @@ export class AllowAnyAccessControlDeployment extends ContractDeploymentUpdate {
   async getCurrentState(address: string): Promise<any> {
     // TODO: should fetch the current state from the contract, need to update the contract to do this.
     // save it locally to a file doesn't really work ver well as we don't know if the change will be applied (especially for multisig transactions)
+    const deploymentConfig = await this.deploymentRecords();
+    if (deploymentConfig[this.name] && deploymentConfig[this.name].configuration) {
+      return deploymentConfig[this.name].configuration;
+    }
     return Promise.resolve({});
   }
 
-  async updateState(address: string, currentState: any): Promise<Array<ContractFunctionCall>> {
+  async updateState(address: string, currentState: AllowAnyAccessConfig): Promise<Array<ContractFunctionCall>> {
     const results = new Array<ContractFunctionCall>();
-    if (this.config.enabled) {
+    if (this.config.enabled && this.config.global !== currentState.global) {
       results.push({
         abi: AllowAnyAccessControlABI,
         address: address,
@@ -38,6 +42,11 @@ export class AllowAnyAccessControlDeployment extends ContractDeploymentUpdate {
         params: [this.config.global],
         signer: this.config.governance,
       });
+    }
+    if (!this.dryrun) {
+      const deploymentConfig = await this.deploymentRecords();
+      deploymentConfig[this.name].configuration = this.config;
+      await this.writeDeploymentRecords(deploymentConfig);
     }
     return Promise.resolve(results);
   }

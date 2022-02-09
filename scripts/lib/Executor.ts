@@ -56,6 +56,9 @@ export class Executor {
           console.log(`>>>>>> Call Contract Function <<<<<<`);
           console.log(`address      : ${c.address}`);
           console.log(`method       : ${c.methodName}`);
+          const params = this.processParams(deploymentRecords, c.params);
+          c.params = params;
+          console.log(`params       : ${JSON.stringify(params)}`);
           console.log(`message      : can not estimate gas cost for calls with a multisig wallet`);
         } else {
           console.log(`>>>>>> Call Contract Function <<<<<<`);

@@ -24,6 +24,8 @@ export type VaultDeploymentConfig = {
   paused: boolean;
   // eslint-disable-next-line camelcase
   emergency_shutdown: boolean;
+  // eslint-disable-next-line camelcase
+  deposit_limit: number;
   strategies: Record<string, any>[];
 };
 
@@ -33,6 +35,9 @@ type VaultCurrentState = {
   paused: boolean;
   // eslint-disable-next-line camelcase
   emergency_shutdown: boolean;
+  // eslint-disable-next-line camelcase
+  deposit_limit: number;
+  decimals: number;
 };
 
 export class VaultDeployment extends ContractDeploymentUpdate {
@@ -126,10 +131,14 @@ export class VaultDeployment extends ContractDeploymentUpdate {
       const paused = await contract.paused();
       const managementFee = await contract.managementFee();
       const emergencyShutdown = await contract.emergencyShutdown();
+      const depositLimit = await contract.depositLimit();
+      const decimals = await contract.decimals();
       return {
         paused: paused,
         management_fee: managementFee.toNumber(),
         emergency_shutdown: emergencyShutdown,
+        deposit_limit: depositLimit,
+        decimals,
       };
     }
     return undefined;
@@ -140,11 +149,15 @@ export class VaultDeployment extends ContractDeploymentUpdate {
     let currentPaused;
     let currentManagementFee;
     let currentEmergencyShutdown;
+    let currentDepositLimit;
+    let vaultDecimals;
     if (currentState) {
       const s = currentState as VaultCurrentState;
       currentPaused = s.paused;
       currentManagementFee = s.management_fee;
       currentEmergencyShutdown = s.emergency_shutdown;
+      vaultDecimals = s.decimals;
+      currentDepositLimit = parseFloat(ethers.utils.formatUnits(s.deposit_limit, vaultDecimals));
     }
     if (currentManagementFee !== this.config.management_fee) {
       results.push({
@@ -161,6 +174,15 @@ export class VaultDeployment extends ContractDeploymentUpdate {
         abi: VaultABI,
         methodName: "setVaultEmergencyShutdown",
         params: [this.config.emergency_shutdown],
+        signer: this.config.governance,
+      });
+    }
+    if (currentDepositLimit !== this.config.deposit_limit) {
+      results.push({
+        address: address,
+        abi: VaultABI,
+        methodName: "setDepositLimit",
+        params: [ethers.utils.parseUnits(this.config.deposit_limit.toString(), vaultDecimals)],
         signer: this.config.governance,
       });
     }

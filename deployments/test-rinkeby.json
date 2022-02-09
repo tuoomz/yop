@@ -149,7 +149,21 @@
         }
       ]
     },
-    "contractParams": ["0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"]
+    "contractParams": ["0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"],
+    "configuration": {
+      "enabled": true,
+      "governance": {
+        "type": "multisig",
+        "address": "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA",
+        "safe": "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+      },
+      "global": [
+        {
+          "contract_address": "0x24d1Caaf83AD4B680dcB621D10Ed320315938059",
+          "token_ids": ["134"]
+        }
+      ]
+    }
   },
   "AllowAnyAccessControl": {
     "address": "0x35738b461D85cB013460F0E4FE9631bD533bbe86",
@@ -225,7 +239,16 @@
         }
       ]
     },
-    "contractParams": ["0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"]
+    "contractParams": ["0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"],
+    "configuration": {
+      "enabled": true,
+      "governance": {
+        "type": "multisig",
+        "address": "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA",
+        "safe": "0x02319D11BAe6b7027efbfED51163a8c51ec3d6FA"
+      },
+      "global": true
+    }
   },
   "AccessControlManager": {
     "address": "0x838Aaf65Dde430A41455F1f287D947D3754419bb",

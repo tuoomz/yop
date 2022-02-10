@@ -92,7 +92,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 120,
+            runs: 100,
           },
           outputSelection: {
             "*": {

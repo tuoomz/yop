@@ -194,6 +194,12 @@ describe("YOPReward", () => {
     it("should have no rewards when vault weights are not set", async () => {
       expect(await yopRewardsContract.connect(user1).unclaimedVaultRewards(user1.address, [vault1.address, vault2.address])).to.equal(0);
     });
+
+    it("should revert if a vault doesn't implement the IVault interface", async () => {
+      await expect(
+        yopRewardsContract.connect(governance).setPerVaultRewardsWeight([vault1.address, user1.address], [100, 80])
+      ).to.be.revertedWith("!vault interface");
+    });
   });
 
   describe("setRewardsAllocationWeights", async () => {

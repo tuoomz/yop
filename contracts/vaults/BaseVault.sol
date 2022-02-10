@@ -9,7 +9,7 @@ import "../interfaces/IVaultStrategyDataStore.sol";
 import "../interfaces/IYOPRewards.sol";
 import "./VaultMetaDataStore.sol";
 
-import {StrategyInfo} from "../interfaces/IVault.sol";
+import "../interfaces/IVault.sol";
 
 /// @dev This contract is marked abstract to avoid being used directly.
 ///  NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
@@ -90,6 +90,13 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
 
   function strategyDebtRatio(address _strategy) external view returns (uint256) {
     return _strategyDataStore().strategyDebtRatio(address(this), _strategy);
+  }
+
+  /// @dev It doesn't inherit openzepplin's ERC165 implementation to save on contract size
+  ///  but it is compatible with ERC165
+  function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
+    // 0x01ffc9a7 is the interfaceId of IERC165 itself
+    return _interfaceId == type(IVault).interfaceId || _interfaceId == 0x01ffc9a7;
   }
 
   /// @dev This is called when tokens are minted, transferred or burned by the ERC20 implementation from openzeppelin

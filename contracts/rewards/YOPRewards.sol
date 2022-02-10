@@ -5,9 +5,11 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol";
 import "prb-math/contracts/PRBMathUD60x18Typed.sol";
 import "hardhat/console.sol";
 import "../interfaces/IYOPRewards.sol";
+import "../interfaces/IVault.sol";
 import "../libraries/ConvertUtils.sol";
 import "../security/BasePauseableUpgradeable.sol";
 
@@ -38,6 +40,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using PRBMathUD60x18Typed for PRBMath.UD60x18;
   using ConvertUtils for *;
+  using ERC165CheckerUpgradeable for address;
 
   /// @notice Emitted when the weight of rewards for all vaults is changed
   event VaultsRewardsWeightUpdated(uint256 indexed _weight);
@@ -227,6 +230,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     }
     for (uint256 i = 0; i < _vaults.length; i++) {
       address vault = _vaults[i];
+      require(vault.supportsInterface(type(IVault).interfaceId), "!vault interface");
       uint256 oldValue = perVaultRewardsWeight[vault];
       if (!vaultAddresses.contains(_vaults[i])) {
         // a new vault, add the initial checkpoint

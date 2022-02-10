@@ -39,6 +39,8 @@ abstract contract CurveBase is BaseStrategy {
   ICurveGauge public curveGauge;
   // Dex address for token swaps.
   address public dex;
+  // Store dex approval status to avoid excessive approvals
+  mapping(address => bool) internal dexApprovals;
 
   /// @param _vault The address of the vault. The underlying token should match the `want` token of the strategy.
   /// @param _proposer The address of the strategy proposer
@@ -350,7 +352,10 @@ abstract contract CurveBase is BaseStrategy {
 
   /// @dev Approves dex to access tokens in the strategy for swaps
   function _approveDex() internal virtual {
-    IERC20(_getCurveTokenAddress()).safeApprove(dex, type(uint256).max);
+    if (!dexApprovals[dex]) {
+      dexApprovals[dex] = true;
+      IERC20(_getCurveTokenAddress()).safeApprove(dex, type(uint256).max);
+    }
   }
 
   // does not deal with over/under flow

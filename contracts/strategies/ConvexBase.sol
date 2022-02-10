@@ -19,6 +19,8 @@ contract ConvexBase {
   address public cvxRewards;
   // The address of the LP token that the booster contract will accept for a pool
   address public lpToken;
+  // Store dex approval status to avoid excessive approvals
+  mapping(address => bool) internal cvxDexApprovals;
 
   /// @param _pooId the id of the pool
   /// @param _booster the address of the booster contract
@@ -37,7 +39,10 @@ contract ConvexBase {
 
   // Need to allow dex to access the Convex tokens for swaps
   function _approveDexExtra(address _dex) internal {
-    IERC20(_getConvexTokenAddress()).safeApprove(_dex, type(uint256).max);
+    if (!cvxDexApprovals[_dex]) {
+      cvxDexApprovals[_dex] = true;
+      IERC20(_getConvexTokenAddress()).safeApprove(_dex, type(uint256).max);
+    }
   }
 
   // Keep CRV, CVX and the pool lp tokens in the strategy. Everything else can be sent to somewhere else.

@@ -199,7 +199,7 @@ describe("ConvexBtc strategy", async () => {
     });
   });
 
-  describe("approveDex", async () => {
+  describe.only("approveDex", async () => {
     const tokenAmount = ethers.utils.parseEther("10");
     beforeEach(async () => {
       await curveToken.mock.approve.returns(true);
@@ -209,6 +209,9 @@ describe("ConvexBtc strategy", async () => {
     });
 
     it("should approve the dex", async () => {
+      await expect(convexBtcStrategy.testApproveDex()).not.to.be.reverted;
+      await convexToken.mock.allowance.returns(1000);
+      // this will fail if the token approval is called again
       await expect(convexBtcStrategy.testApproveDex()).not.to.be.reverted;
     });
   });

@@ -91,6 +91,10 @@ describe("CurveBtc strategy", async () => {
       expect(await curveStrategy.dex()).to.equal(UNISWAP_DEX_ADDRESS);
       await curveStrategy.connect(governance).switchDex(false);
       expect(await curveStrategy.dex()).to.equal(SUSHISWAP_DEX_ADDRESS);
+      // this will fail if the strategy asks for token approval for the same dex again
+      await curveToken.mock.allowance.returns(1000);
+      await curveStrategy.connect(governance).switchDex(true);
+      expect(await curveStrategy.dex()).to.equal(UNISWAP_DEX_ADDRESS);
     });
   });
 

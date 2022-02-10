@@ -86,7 +86,7 @@ abstract contract CurveBase is BaseStrategy {
   }
 
   /// @dev Before migration, we will claim all rewards and remove all liquidity.
-  function prepareMigration(address _newStrategy) internal override {
+  function prepareMigration(address) internal override {
     // mint all the CRV tokens
     _claimRewards();
     _removeLiquidity(_getLpTokenBalance());
@@ -95,7 +95,7 @@ abstract contract CurveBase is BaseStrategy {
   // solhint-disable-next-line no-unused-vars
   /// @dev This will perform the actual invest steps.
   ///   For both Curve & Convex, it will add liquidity to Curve pool(s) first, and then deposit the LP tokens to either Curve gauges or Convex booster.
-  function adjustPosition(uint256 _debtOutstanding) internal virtual override {
+  function adjustPosition(uint256) internal virtual override {
     if (emergencyExit) {
       return;
     }

@@ -104,7 +104,7 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
   function _beforeTokenTransfer(
     address _from,
     address _to,
-    uint256 _amount
+    uint256
   ) internal override {
     if (vaultRewards != address(0)) {
       if (_from != address(0)) {

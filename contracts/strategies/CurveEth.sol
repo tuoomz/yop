@@ -39,11 +39,11 @@ contract CurveEth is CurveBase {
     require(address(want) == _getWETHTokenAddress(), "wrong vault token");
   }
 
-  function _getWantTokenIndex() internal view override returns (uint256) {
+  function _getWantTokenIndex() internal pure override returns (uint256) {
     return ETH_TOKEN_INDEX;
   }
 
-  function _getCoinsCount() internal view override returns (uint256) {
+  function _getCoinsCount() internal pure override returns (uint256) {
     return NUMBER_OF_COINS;
   }
 

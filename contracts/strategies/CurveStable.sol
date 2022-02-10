@@ -35,8 +35,8 @@ contract CurveStable is CurveBase {
   ICurveDeposit internal usdnMetaPool;
   IERC20 internal triPoolLpToken;
   // the index of the want token in the 3Crv pool
-  int128 internal wantThreepoolIndex;
-  uint256 internal N_POOL_COINS = 3;
+  int128 internal immutable wantThreepoolIndex;
+  uint256 internal constant N_POOL_COINS = 3;
 
   constructor(
     address _vault,
@@ -76,7 +76,7 @@ contract CurveStable is CurveBase {
     return uint128(wantThreepoolIndex);
   }
 
-  function _getCoinsCount() internal view override returns (uint256) {
+  function _getCoinsCount() internal pure override returns (uint256) {
     return N_POOL_COINS;
   }
 
@@ -134,7 +134,7 @@ contract CurveStable is CurveBase {
     if (_usdn3crvLPs > 0) {
       // add usdn3crvLp tokens to curvegauge, this allow to call mint to receive CRV tokens
       curveGauge.deposit(_usdn3crvLPs);
-      uint256 balance = curveGauge.balanceOf(address(this));
+      curveGauge.balanceOf(address(this));
     }
   }
 

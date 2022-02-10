@@ -57,11 +57,11 @@ contract CurveBtc is CurveBase {
     return WBTC_TOKEN_ADDRESS;
   }
 
-  function _getWantTokenIndex() internal view override returns (uint256) {
+  function _getWantTokenIndex() internal pure override returns (uint256) {
     return WBTC_TOKEN_INDEX;
   }
 
-  function _getCoinsCount() internal view override returns (uint256) {
+  function _getCoinsCount() internal pure override returns (uint256) {
     return NUMBER_OF_COINS;
   }
 

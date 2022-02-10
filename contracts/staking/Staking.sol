@@ -313,12 +313,12 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   /// @dev This function is invoked by the ERC1155 implementation. It will be called everytime when tokens are minted, transferred and burned.
   ///  We add implementation for this function to perform the common bookkeeping tasks, like update the working balance, update ownership mapping etc.
   function _beforeTokenTransfer(
-    address _operator,
+    address,
     address _from,
     address _to,
     uint256[] memory _ids,
-    uint256[] memory _amounts,
-    bytes memory _data
+    uint256[] memory,
+    bytes memory
   ) internal override {
     for (uint256 i = 0; i < _ids.length; i++) {
       uint256 tokenId = _ids[i];

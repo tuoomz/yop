@@ -441,11 +441,10 @@ abstract contract BaseStrategy is IStrategy, ERC165 {
    *
    *  This call and `harvestTrigger()` should never return `true` at the same
    *  time.
-   * @param callCost The keeper's estimated cast cost to call `tend()`.
    * @return `true` if `tend()` should be called, `false` otherwise.
    */
   // solhint-disable-next-line no-unused-vars
-  function tendTrigger(uint256 callCost) public view virtual returns (bool) {
+  function tendTrigger(uint256) public view virtual returns (bool) {
     // We usually don't need tend, but if there are positions that need
     // active maintenance, overriding this function is how you would
     // signal for that.

@@ -40,8 +40,11 @@ describe("VaultStrategyDataStore", function () {
     VaultStrategyDataStoreFactory = await ethers.getContractFactory("VaultStrategyDataStore");
     BaseVaultMockFactroy = await ethers.getContractFactory("BaseVaultMock2");
     strategyA = (await StrategyMockFactory.deploy(constants.AddressZero)) as StrategyMock;
+    await strategyA.deployed();
     strategyB = (await StrategyMockFactory.deploy(constants.AddressZero)) as StrategyMock;
+    await strategyB.deployed();
     vaultStrategyDS = (await VaultStrategyDataStoreFactory.deploy(governer.address)) as VaultStrategyDataStore;
+    await vaultStrategyDS.deployed();
     vaultMock = (await BaseVaultMockFactroy.deploy()) as BaseVaultMock2;
     await vaultMock.deployed();
     await vaultMock.initialize(name, symbol, governer.address, gatekeeper.address, rewards.address, vaultStrategyDS.address);
@@ -140,6 +143,14 @@ describe("VaultStrategyDataStore", function () {
           .connect(governer)
           .addStrategy(vaultMock.address, strategyB.address, debtRatio, minDebtPerHarvest, maxDebtPerHarvest, performanceFee)
       ).to.be.revertedWith("vault error");
+    });
+
+    it("should revert if strategy did not implement the IStrategy interface", async () => {
+      await expect(
+        vaultStrategyDS
+          .connect(governer)
+          .addStrategy(vaultMock.address, vaultMock.address, debtRatio, minDebtPerHarvest, maxDebtPerHarvest, performanceFee)
+      ).to.be.revertedWith("!strategy");
     });
   });
 
@@ -424,6 +435,12 @@ describe("VaultStrategyDataStore", function () {
       await expect(
         vaultStrategyDS.connect(governer).migrateStrategy(vaultMock.address, strategyA.address, strategyB.address)
       ).to.be.revertedWith("vault error");
+    });
+
+    it("should be reverted if the new strategy does not implement the strategy interface", async () => {
+      await expect(
+        vaultStrategyDS.connect(governer).migrateStrategy(vaultMock.address, strategyA.address, vaultMock.address)
+      ).to.be.revertedWith("!strategy");
     });
   });
 

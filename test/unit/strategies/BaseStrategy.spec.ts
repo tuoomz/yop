@@ -45,6 +45,13 @@ describe("BaseStrategy", async () => {
     it("should return delegated assets", async () => {
       expect(await strategy.delegatedAssets()).to.equal(ethers.constants.Zero);
     });
+
+    it("should support ERC165 spec", async () => {
+      // a random interface id so this should fail
+      expect(await strategy.supportsInterface("0x1f6e3a4b")).to.equal(false);
+      // 0x01ffc9a7 = bytes4(keccak256('supportsInterface(bytes4)'))
+      expect(await strategy.supportsInterface("0x01ffc9a7")).to.equal(true);
+    });
   });
 
   describe("setStrategyProposer & setStrategyDeveloper", async () => {

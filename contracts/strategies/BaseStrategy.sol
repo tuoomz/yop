@@ -3,6 +3,7 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IStrategy.sol";
 import "hardhat/console.sol";
@@ -23,7 +24,7 @@ import "hardhat/console.sol";
  *  `harvest()`, and `harvestTrigger()` for further details.
  */
 
-abstract contract BaseStrategy is IStrategy {
+abstract contract BaseStrategy is IStrategy, ERC165 {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
   string public metadataURI;
@@ -351,6 +352,14 @@ abstract contract BaseStrategy is IStrategy {
    */
   function isActive() public view returns (bool) {
     return IVault(vault).strategyDebtRatio(address(this)) > 0 || estimatedTotalAssets() > 0;
+  }
+
+  /*
+   * @notice
+   *  Support ERC165 spec to allow other contracts to query if a strategy has implemented IStrategy interface
+   */
+  function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
+    return _interfaceId == type(IStrategy).interfaceId || super.supportsInterface(_interfaceId);
   }
 
   /// @notice check the want token to make sure it is the token that the strategy is expecting

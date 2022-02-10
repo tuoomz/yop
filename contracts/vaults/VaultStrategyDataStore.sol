@@ -2,6 +2,7 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
 import "../interfaces/IVault.sol";
@@ -11,6 +12,8 @@ import "./roles/Governable.sol";
 ///  This contract should be deployed first, and then the address of this contract should be used to deploy a vault.
 ///  Once the vaults & strategies are deployed, call `addStrategy` function to assign a strategy to a vault.
 contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable {
+  using ERC165Checker for address;
+
   /// @notice parameters associated with a strategy
   struct StrategyParams {
     uint256 performanceFee;
@@ -238,6 +241,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
   ) external {
     _onlyGovernanceOrVaultManager(_vault);
     require(_strategy != address(0), "strategy address is not valid");
+    require(_strategy.supportsInterface(type(IStrategy).interfaceId), "!strategy");
     _initConfigsIfNeeded(_vault);
     require(configs[_vault].withdrawQueue.length < MAX_STRATEGIES_PER_VAULT, "too many strategies");
     require(strategies[_vault][_strategy].activation == 0, "strategy already added");
@@ -431,6 +435,7 @@ contract VaultStrategyDataStore is IVaultStrategyDataStore, Context, Governable 
     _validateStrategy(_vault, _oldStrategy);
     require(_newStrategy != address(0), "invalid new strategy");
     require(strategies[_vault][_newStrategy].activation == 0, "new strategy already exists");
+    require(_newStrategy.supportsInterface(type(IStrategy).interfaceId), "!strategy");
 
     StrategyParams memory params = strategies[_vault][_oldStrategy];
     _revokeStrategy(_vault, _oldStrategy);

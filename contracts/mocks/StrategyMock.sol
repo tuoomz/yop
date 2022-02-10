@@ -70,4 +70,11 @@ contract StrategyMock {
   function isActive() external view returns (bool) {
     return true;
   }
+
+  function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
+    if (_interfaceId == 0xffffffff) {
+      return false;
+    }
+    return true;
+  }
 }

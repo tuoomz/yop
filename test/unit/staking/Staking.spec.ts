@@ -355,4 +355,24 @@ describe("Staking", async () => {
       expect(await staking.totalWorkingSupply()).to.equal(amount2.mul(4));
     });
   });
+
+  describe("stakingLimit", async () => {
+    it("limit is set to max uint256 by default", async () => {
+      expect(await staking.connect(user).stakingLimit()).to.equal(ethers.constants.MaxUint256);
+    });
+    it("only governance can set staking limit", async () => {
+      const limit = BigNumber.from("5000000000000");
+      await expect(staking.connect(user).setStakingLimit(limit)).to.be.revertedWith("governance only");
+      await expect(await staking.connect(governance).setStakingLimit(limit))
+        .to.emit(staking, "StakingLimitUpdated")
+        .withArgs(limit);
+      expect(await staking.connect(user).stakingLimit()).to.equal(limit);
+    });
+    it("should fail to staking if limit will be reached", async () => {
+      const limit = ethers.utils.parseUnits("1", TOKEN_DECIMALS).mul(6); // 1 YOP for 6 months
+      await expect(await staking.connect(governance).setStakingLimit(limit));
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("2", TOKEN_DECIMALS));
+      await expect(staking.connect(user).stake(ethers.utils.parseUnits("1", TOKEN_DECIMALS), 7)).to.be.revertedWith("limit reached");
+    });
+  });
 });

@@ -33,6 +33,8 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   event StakingContractURIUpdated(string _contractURI);
   /// @notice Emitted when the access control manager is updated
   event AccessControlManagerUpdated(address indexed _accessControlManager);
+  /// @notice Emitted when staking limit is updated
+  event StakingLimitUpdated(uint256 indexed _newLimit);
 
   /// @dev represent each stake
   struct Stake {
@@ -71,6 +73,8 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   mapping(address => uint256[]) internal stakesForAddress;
   // ownership of the NFTs
   mapping(uint256 => address) public owners;
+  // cap for staking
+  uint256 public stakingLimit;
 
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
@@ -136,6 +140,7 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     symbol = _symbol;
     yopRewards = _yopRewards;
     owner = _owner;
+    stakingLimit = type(uint256).max;
     _updateContractURI(_contractURI);
     _updateAccessControlManager(_accessControlManager);
   }
@@ -144,6 +149,15 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   /// @param _minAmount The minimum amount of tokens
   function setMinStakeAmount(uint256 _minAmount) external onlyGovernance {
     minStakeAmount = _minAmount;
+  }
+
+  /// @notice Set the limit of staking.
+  /// @param _limit The limit value. It is the limit of the total working balance (combined value of number of tokens and stake duration)
+  function setStakingLimit(uint256 _limit) external onlyGovernance {
+    if (stakingLimit != _limit) {
+      stakingLimit = _limit;
+      emit StakingLimitUpdated(_limit);
+    }
   }
 
   /// @dev Set the contractURI for store front metadata. Can only be called by governance.
@@ -164,6 +178,7 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     require(_amount > minStakeAmount, "!amount");
     require(_lockPeriod > 0 && _lockPeriod <= MAX_LOCK_PERIOD, "!lockPeriod");
     require(IERC20Upgradeable(_getYOPAddress()).balanceOf(_msgSender()) >= _amount, "!balance");
+    require((totalWorkingSupply + _amount * _lockPeriod) <= stakingLimit, "limit reached");
     if (accessControlManager != address(0)) {
       require(IAccessControlManager(accessControlManager).hasAccess(_msgSender(), address(this)), "!access");
     }

@@ -199,7 +199,7 @@ describe("ConvexBtc strategy", async () => {
     });
   });
 
-  describe.only("approveDex", async () => {
+  describe("approveDex", async () => {
     const tokenAmount = ethers.utils.parseEther("10");
     beforeEach(async () => {
       await curveToken.mock.approve.returns(true);

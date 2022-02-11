@@ -753,6 +753,54 @@ describe("SingleAssetVault", async () => {
       expect(await vault.version()).to.equal("0.1.0");
     });
   });
+
+  describe("flash loan", async () => {
+    beforeEach(async () => {
+      await vault.connect(governance).unpause();
+      await token.mint(user.address, ethers.utils.parseEther("2"));
+      await token.connect(user).approve(vault.address, ethers.constants.MaxUint256);
+    });
+
+    afterEach(async () => {
+      await network.provider.send("evm_setAutomine", [true]);
+    });
+
+    it("should not allow deposit and withdraw in the same block", async () => {
+      // this will disable auto/interval mining, and only allow manual mining
+      await network.provider.send("evm_setAutomine", [false]);
+      await network.provider.send("evm_setIntervalMining", [0]);
+      await vault.connect(user).deposit(ethers.utils.parseEther("2"), user.address);
+      await vault.connect(user).withdraw(ethers.constants.MaxUint256, user.address, 10000);
+      const pendingBlock = await network.provider.send("eth_getBlockByNumber", ["pending", false]);
+      expect(pendingBlock.transactions.length).to.equal(2);
+      const depositTranHash = pendingBlock.transactions[0];
+      const withdraTransHash = pendingBlock.transactions[1];
+      await network.provider.send("evm_mine");
+      const t1 = await ethers.provider.getTransaction(depositTranHash);
+      let t1Result = false;
+      try {
+        await t1.wait();
+        t1Result = true;
+      } catch (e) {
+        t1Result = false;
+      }
+      const t2 = await ethers.provider.getTransaction(withdraTransHash);
+      let t2Result = false;
+      try {
+        await t2.wait();
+        t2Result = true;
+      } catch (e) {
+        t2Result = false;
+      }
+      // deposit should success
+      expect(t1Result).to.equal(true);
+      // withdraw should fail because of in the same block
+      expect(t2Result).to.equal(false);
+      await network.provider.send("evm_setAutomine", [true]);
+      await vault.connect(user).withdraw(ethers.constants.MaxUint256, user.address, 10000);
+      expect(await vault.balanceOf(user.address)).to.equal(0);
+    });
+  });
 });
 
 // the tests are skipped during coverage because the coverage tool will generate constructors which are not allowed by the upgrades library.

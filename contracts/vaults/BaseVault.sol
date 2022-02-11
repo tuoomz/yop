@@ -106,6 +106,15 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
     address _to,
     uint256
   ) internal override {
+    if (_from == address(0)) {
+      // this is a mint event, track block time for the account
+      dt[_to] = block.number;
+    } else {
+      // this is a transfer or burn event, make sure it is at least 1 block later from deposit to prevent flash loan
+      // this will cause a small issue that if a user minted some tokens before, and then mint some more and withdraw (burn) or transfer previously minted tokens in the same block, this will fail.
+      // But it should not be a issue for majority of users and it does prevent flash loan
+      require(block.number > dt[_from], "!block");
+    }
     if (vaultRewards != address(0)) {
       if (_from != address(0)) {
         IYOPRewards(vaultRewards).calculateVaultRewards(_from);

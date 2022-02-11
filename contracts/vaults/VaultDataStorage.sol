@@ -39,6 +39,9 @@ contract VaultDataStorage {
 
   uint256 internal constant DEGRADATION_COEFFICIENT = 10**18;
   address public vaultRewards;
+  /// @dev This is used to track the last deposit time of a user.
+  ///  It will be checked before the vault receipt token is transferred and they can only happen at least 1 block later to prevent flash loan attacks
+  mapping(address => uint256) internal dt;
 
   /// @dev set the default values for the state variables here
   // solhint-disable-next-line func-name-mixedcase

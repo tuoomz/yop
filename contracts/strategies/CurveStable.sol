@@ -6,10 +6,7 @@ import "../interfaces/curve/ICurveDeposit.sol";
 import "../interfaces/curve/ICurveGauge.sol";
 import "../interfaces/curve/ICurveMinter.sol";
 import "../interfaces/sushiswap/IUniswapV2Router.sol";
-
 import "./CurveBase.sol";
-
-import "hardhat/console.sol";
 
 /// @notice Implements the strategy using the usdn/3Crv(DAI/USDC/USDT) pool.
 ///  There is a zap depositor available, however, we came across an error when we tried to use it, and can't figure out a fix, that's why it's not used.

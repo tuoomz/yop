@@ -9,7 +9,7 @@ import BaseStrategyABI from "../../../abi/contracts/strategies/BaseStrategy.sol/
 import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 const { loadFixture, deployMockContract } = waffle;
 
-describe.only("BaseStrategy", async () => {
+describe("BaseStrategy", async () => {
   let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let proposer: SignerWithAddress;

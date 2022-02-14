@@ -31,8 +31,6 @@ contract CurveStableStrategyMock is CurveStable {
     _removeLiquidity(super.estimatedTotalAssets());
   }
 
-  function _approveCurveExtra() internal override {}
-
   function _approveBasic() internal override {}
 
   function setMockCurveGauge(address _mockCurveGauge) public {
@@ -123,5 +121,31 @@ contract CurveStableStrategyMock is CurveStable {
 
   function _getCurveTokenAddress() internal view override returns (address) {
     return curveTokenAddress;
+  }
+
+  function getCoinsCount() external pure returns (uint256) {
+    return super._getCoinsCount();
+  }
+
+  function getWantTokenIndex() external view returns (uint256) {
+    super._getWantTokenIndex();
+  }
+
+  function depositLPTokens() external {
+    super._depositLPTokens();
+  }
+
+  function _approveCurveExtra() internal override {}
+
+  function approveCurveExtra() external {
+    super._approveCurveExtra();
+  }
+
+  function initCurvePool(address _pool) external {
+    super._initCurvePool(_pool);
+  }
+
+  function getCurvePoolGaugeAddress() external view returns (address) {
+    return super._getCurvePoolGaugeAddress();
   }
 }

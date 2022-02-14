@@ -5,7 +5,7 @@ import { SingleAssetVault, VaultStrategyDataStore } from "../../../types";
 import { CurveStableStrategyMock } from "../../../types/CurveStableStrategyMock";
 import { TokenMock } from "../../../types/TokenMock";
 import { MockContract, solidity } from "ethereum-waffle";
-
+import { BigNumber } from "ethers";
 import { setupVaultAndCurveTrio } from "../fixtures/setup";
 
 import { near } from "../utils/near";
@@ -95,6 +95,10 @@ describe("CurveStable strategy", async () => {
     it("should return the correct name", async () => {
       await expect(await curveStableUsdcStrategy.name()).to.be.equal(`CurveStable_${await vaultToken.symbol()}`);
     });
+    it("should return the correct information on pool tokens", async () => {
+      await expect(await curveStableUsdcStrategy.getCoinsCount()).to.be.equal(BigNumber.from(3));
+      await expect(await curveStableUsdcStrategy.getWantTokenIndex()).to.be.equal(BigNumber.from(0));
+    });
 
     it("should return the correct metaPool address", async () => {
       const metaPoolAddress = "0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1";
@@ -123,6 +127,12 @@ describe("CurveStable strategy", async () => {
       await expect(curveStableUsdcStrategy.mockGetWantIndexInCurvePool(mockCurvePool.address)).to.be.revertedWith(
         "Want token doesnt match any tokens in the curve pool"
       );
+    });
+
+    it("should return curve gauge address", async () => {
+      const address = await curveStableUsdcStrategy.getCurvePoolGaugeAddress();
+      const CURVE_GAUGE_ADDR = "0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4";
+      expect(address).to.equal(CURVE_GAUGE_ADDR);
     });
   });
 
@@ -250,6 +260,35 @@ describe("CurveStable strategy", async () => {
 
     it("should not revert", async () => {
       await curveStableUsdcStrategy.mockRemoveAllLiquidity();
+    });
+  });
+
+  describe("depositLPTokens", async () => {
+    it("should not revert", async () => {
+      await curveStableUsdcStrategy.depositLPTokens();
+    });
+    it("should not revert", async () => {
+      const metaLpBalance = ethers.utils.parseEther("2");
+      await mockMetaPoolLpToken.mint(curveStableUsdcStrategy.address, metaLpBalance);
+      await mockCurveGauge.mock.deposit.withArgs(metaLpBalance).returns();
+      await mockCurveGauge.mock.balanceOf.returns(metaLpBalance);
+
+      await curveStableUsdcStrategy.depositLPTokens();
+    });
+  });
+
+  describe("approveCurveExtra", async () => {
+    it("should not revert", async () => {
+      await curveStableUsdcStrategy.initCurvePool(mockCurvePool.address);
+      await curveStableUsdcStrategy.approveCurveExtra();
+    });
+
+    it("should not revert", async () => {
+      const metaLpBalance = ethers.utils.parseEther("2");
+      await mockMetaPoolLpToken.mint(curveStableUsdcStrategy.address, metaLpBalance);
+      await mockCurveGauge.mock.deposit.withArgs(metaLpBalance).returns();
+      await mockCurveGauge.mock.balanceOf.returns(metaLpBalance);
+      await curveStableUsdcStrategy.depositLPTokens();
     });
   });
 });

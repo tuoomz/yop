@@ -200,6 +200,16 @@ describe("YOPReward", () => {
         yopRewardsContract.connect(governance).setPerVaultRewardsWeight([vault1.address, user1.address], [100, 80])
       ).to.be.revertedWith("!vault interface");
     });
+
+    it("should be able to setPerVaultRewardsWeight on new yop rewards contract", async () => {
+      const newYopRewards = (await YOPRewards.deploy()) as YOPRewardsMock;
+      await newYopRewards.deployed();
+      await newYopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+      await expect(await newYopRewards.connect(governance).setPerVaultRewardsWeight(vaults, [100, 80])).to.emit(
+        newYopRewards,
+        "VaultRewardWeightUpdated"
+      );
+    });
   });
 
   describe("setRewardsAllocationWeights", async () => {

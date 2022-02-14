@@ -90,4 +90,15 @@ contract BaseStrategyMock is BaseStrategy {
     super.timestamp(); // improve code coverage
     return blockTimestamp;
   }
+
+  function testOnlyStrategist() external view onlyStrategist {}
+
+  function initialize(
+    address _vault,
+    address _proposer,
+    address _developer,
+    address _harvester
+  ) external {
+    _initialize(_vault, _proposer, _developer, _harvester);
+  }
 }

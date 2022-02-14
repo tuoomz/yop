@@ -9,7 +9,7 @@ import BaseStrategyABI from "../../../abi/contracts/strategies/BaseStrategy.sol/
 import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 const { loadFixture, deployMockContract } = waffle;
 
-describe("BaseStrategy", async () => {
+describe.only("BaseStrategy", async () => {
   let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
   let proposer: SignerWithAddress;
@@ -33,6 +33,12 @@ describe("BaseStrategy", async () => {
     await mockVaultToken.mock.approve.returns(true);
     const StrategyBaseFactory = await ethers.getContractFactory("BaseStrategyMock");
     strategy = (await StrategyBaseFactory.deploy(mockVault.address, proposer.address, developer.address, harvester.address)) as BaseStrategyMock;
+  });
+
+  it("can not init more than once", async () => {
+    await expect(strategy.initialize(mockVault.address, proposer.address, developer.address, harvester.address)).to.be.revertedWith(
+      "Strategy already initialized"
+    );
   });
 
   describe("basic properties", async () => {
@@ -73,6 +79,15 @@ describe("BaseStrategy", async () => {
         .to.emit(strategy, "UpdatedStrategyDeveloper")
         .withArgs(user.address);
       await expect(await strategy.strategyDeveloper()).to.equal(user.address);
+    });
+
+    it("revert if not strategist", async () => {
+      await expect(strategy.connect(user).testOnlyStrategist()).to.be.revertedWith("!strategist");
+    });
+
+    it("strategist can call", async () => {
+      await expect(strategy.connect(proposer).testOnlyStrategist()).not.to.be.reverted;
+      await expect(strategy.connect(developer).testOnlyStrategist()).not.to.be.reverted;
     });
   });
 
@@ -301,10 +316,28 @@ describe("BaseStrategy", async () => {
       // profitFactor * callcost = 1 * 400
       await expect(await strategy.harvestTrigger(400)).to.equal(false);
     });
+
+    it("should return false if gas cost is higher than the credit", async () => {
+      const currentTime = 100;
+      const lastReport = 90;
+      strategyParams.lastReport = lastReport;
+      strategyParams.activation = 1;
+      strategyParams.totalDebt = 300;
+      await mockVault.mock.strategy.returns(strategyParams);
+      await strategy.setBlockTimestamp(currentTime);
+      await strategy.setTotalAssetValue(300);
+      await mockVault.mock.debtOutstanding.returns(100);
+      await strategy.connect(developer).setDebtThreshold(200);
+      await mockVault.mock.creditAvailable.returns(100);
+      await strategy.connect(developer).setProfitFactor(1);
+      // credit + profit = 100 + 0 = 100
+      // profitFactor * callcost = 1 * 400
+      await expect(await strategy.harvestTrigger(400)).to.equal(false);
+    });
   });
 
   describe("harvest", async () => {
-    it("should liquidate position in emergency exit", async () => {
+    it("should liquidate position and paid all the debt in emergency exit", async () => {
       await mockVault.mock.revokeStrategy.returns();
       await strategy.connect(governance).setEmergencyExit();
       await mockVault.mock.debtOutstanding.returns(100);
@@ -319,6 +352,26 @@ describe("BaseStrategy", async () => {
       const debtPayment = 100;
       // debtOutstanding: 0 (no more debt outstanding reported by the vault)
       const debtOutstanding = 0;
+      await expect(await strategy.connect(developer).harvest())
+        .to.emit(strategy, "Harvested")
+        .withArgs(profit, loss, debtPayment, debtOutstanding);
+    });
+
+    it("should liquidate position and not pay all the debt in emergency exit", async () => {
+      await mockVault.mock.revokeStrategy.returns();
+      await strategy.connect(governance).setEmergencyExit();
+      await mockVault.mock.debtOutstanding.returns(200);
+      await strategy.setTotalAssetValue(200);
+      await strategy.setLiquidateResult(150, 50);
+      await mockVault.mock.report.returns(50);
+      // no profit as debtOutstanding (200) is greater than debtPayment(150)
+      const profit = 0;
+      // loss: 50 (from liquidation)
+      const loss = 50;
+      // debtPayment: 150
+      const debtPayment = 150;
+      // debtOutstanding: 50
+      const debtOutstanding = 50;
       await expect(await strategy.connect(developer).harvest())
         .to.emit(strategy, "Harvested")
         .withArgs(profit, loss, debtPayment, debtOutstanding);
@@ -410,6 +463,7 @@ describe("BaseStrategy", async () => {
     it("should success if token is not protected", async () => {
       await newToken.mock.transfer.returns(true);
       await newToken.mock.balanceOf.returns(100);
+      await strategy.setProtectedTokens([mockVaultToken.address]);
       await expect(strategy.connect(governance).sweep(newToken.address)).not.to.be.reverted;
     });
   });

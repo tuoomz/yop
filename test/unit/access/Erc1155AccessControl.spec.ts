@@ -87,6 +87,10 @@ describe("ERC1155AccessControl", function () {
     await expect(
       erc1155AccessControl.connect(owner).removeNftAccessToVaults([addr1.address, addr1.address], [nft1.address, nft1.address], [[1]])
     ).to.be.revertedWith("!input");
+    await expect(erc1155AccessControl.connect(owner).removeNftAccessToVaults([], [], [])).to.be.revertedWith("!vaults");
+    await expect(
+      erc1155AccessControl.connect(owner).removeNftAccessToVaults([addr1.address, addr1.address], [nft1.address], [[1]])
+    ).to.be.revertedWith("!input");
   });
 
   it("Should revert when being called by a non governer or gatekeeper", async function () {
@@ -142,6 +146,18 @@ describe("ERC1155AccessControl", function () {
     await expect(await erc1155AccessControl.connect(gatekeeper2).removeNftAccessToVaults([vaultB.address], [nft1.address], [[nftId2]]))
       .to.emit(erc1155AccessControl, "VaultAccessRemoved")
       .withArgs(vaultB.address, nft1.address, [nftId2]);
+  });
+
+  it("should revert if NFT address is not valid", async () => {
+    await expect(erc1155AccessControl.connect(owner).addNftAccessToVaults([vaultA.address], [vaultA.address], [[1]])).to.be.revertedWith(
+      "!ERC1155"
+    );
+  });
+
+  it("should revert if parameters are not valid when get access info", async () => {
+    expect(erc1155AccessControl.connect(owner).getGlobalNftAccess(ethers.constants.AddressZero)).to.be.revertedWith("!contract");
+    expect(erc1155AccessControl.connect(owner).getVaultNftAccess(ethers.constants.AddressZero, nft1.address)).to.be.revertedWith("!vault");
+    expect(erc1155AccessControl.connect(owner).getVaultNftAccess(vaultA.address, ethers.constants.AddressZero)).to.be.revertedWith("!contract");
   });
 
   describe("global access", async () => {

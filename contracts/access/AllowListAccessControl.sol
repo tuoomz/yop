@@ -67,7 +67,6 @@ contract AllowlistAccessControl is IAccessControlPolicy, PerVaultGatekeeper {
     address _vault,
     bool _permission
   ) internal {
-    require(_vault != address(0), "invalid vault address");
     for (uint256 i = 0; i < _users.length; i++) {
       require(_users[i] != address(0), "invalid user address");
       if (vaultAccessMap[_users[i]][_vault] != _permission) {

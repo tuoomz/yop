@@ -367,6 +367,7 @@ describe("Staking", async () => {
         .to.emit(staking, "StakingLimitUpdated")
         .withArgs(limit);
       expect(await staking.connect(user).stakingLimit()).to.equal(limit);
+      await expect(await staking.connect(governance).setStakingLimit(limit)).not.to.emit(staking, "StakingLimitUpdated");
     });
     it("should fail to staking if limit will be reached", async () => {
       const limit = ethers.utils.parseUnits("1", TOKEN_DECIMALS).mul(6); // 1 YOP for 6 months

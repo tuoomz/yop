@@ -13,7 +13,6 @@ import {
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import chai, { expect } from "chai";
 import { impersonate } from "../utils/Impersonate";
-import { address } from "../../../scripts/util";
 import { CONST } from "../../constants";
 
 chai.use(smock.matchers);
@@ -107,6 +106,38 @@ describe("FeeCollection", () => {
       expect(await feeCollection.defaultStrategyDeveloperFeeRatio()).to.be.equal(defaultDeveloperFeeRatio);
       expect(await feeCollection.defaultStrategyProposerFeeRatio()).to.be.equal(defaultProposerFeeRatio);
     });
+    it("should fail to initialize if protocol wallet is address 0", async () => {
+      const FeeCollectionFactory = await ethers.getContractFactory("FeeCollection");
+      const feeCollectionContract = (await FeeCollectionFactory.deploy()) as FeeCollection;
+      await feeCollectionContract.deployed();
+      await expect(
+        feeCollectionContract.initialize(
+          governance.address,
+          gatekeeper.address,
+          ethers.constants.AddressZero,
+          strategyDataStore.address,
+          defaultVaultCreatorFeeRatio,
+          defaultProposerFeeRatio,
+          defaultDeveloperFeeRatio
+        )
+      ).to.be.revertedWith("invalid wallet address");
+    });
+    it("should fail to initialize if strategy datastore is address 0", async () => {
+      const FeeCollectionFactory = await ethers.getContractFactory("FeeCollection");
+      const feeCollectionContract = (await FeeCollectionFactory.deploy()) as FeeCollection;
+      await feeCollectionContract.deployed();
+      await expect(
+        feeCollectionContract.initialize(
+          governance.address,
+          gatekeeper.address,
+          protocolWallet.address,
+          ethers.constants.AddressZero,
+          defaultVaultCreatorFeeRatio,
+          defaultProposerFeeRatio,
+          defaultDeveloperFeeRatio
+        )
+      ).to.be.revertedWith("invalid DataStore address");
+    });
   });
 
   describe("Set Correct Values", () => {
@@ -140,6 +171,13 @@ describe("FeeCollection", () => {
       await expect(feeCollection.setVaultCreatorFeeRatio(vault.address, defaultVaultCreatorFeeRatio)).to.be.revertedWith("governance only");
       await expect(feeCollection.setStrategyFeeRatio(strategy.address, defaultProposerFeeRatio, defaultDeveloperFeeRatio)).to.be.revertedWith(
         "governance only"
+      );
+    });
+
+    it("should revert if vault address is not valid", async () => {
+      const vaultCreatorFeeRatio = 500;
+      expect(feeCollection.connect(governance).setVaultCreatorFeeRatio(ethers.constants.AddressZero, vaultCreatorFeeRatio)).to.be.revertedWith(
+        "!vault"
       );
     });
 
@@ -195,7 +233,12 @@ describe("FeeCollection", () => {
     const fees = ethers.utils.parseEther("1");
     const vaultFees = fees.mul(defaultVaultCreatorFeeRatio).div(CONST.MAX_BPS);
     const prototcolFees = fees.sub(vaultFees);
-
+    it("should no creator fee if creator is not set", async () => {
+      vault.creator.returns(ethers.constants.AddressZero);
+      expect(await feeCollection.connect(await impersonate(vault.address)).collectManageFee(fees))
+        .to.emit(feeCollection, "ManageFeesCollected")
+        .withArgs(vault.address, token.address, ethers.constants.Zero, fees);
+    });
     it("Should transfer fund from the vault", async () => {
       expect(await feeCollection.connect(await impersonate(vault.address)).collectManageFee(fees))
         .to.emit(feeCollection, "ManageFeesCollected")
@@ -215,6 +258,18 @@ describe("FeeCollection", () => {
     const proposerFees = fees.mul(defaultProposerFeeRatio).div(CONST.MAX_BPS);
     const developerFees = fees.mul(defaultDeveloperFeeRatio).div(CONST.MAX_BPS);
     const prototcolFees = fees.sub(proposerFees.add(developerFees));
+    it("should revert if strategy address is not valid", async () => {
+      expect(
+        feeCollection.connect(await impersonate(vault.address)).collectPerformanceFee(ethers.constants.AddressZero, fees)
+      ).to.be.revertedWith("invalid strategy");
+    });
+    it("should no proposer or developer fees if they are not set", async () => {
+      strategy.strategyProposer.returns(ethers.constants.AddressZero);
+      strategy.strategyDeveloper.returns(ethers.constants.AddressZero);
+      expect(await feeCollection.connect(await impersonate(vault.address)).collectPerformanceFee(strategy.address, fees))
+        .to.emit(feeCollection, "PerformanceFeesCollected")
+        .withArgs(strategy.address, token.address, ethers.constants.Zero, ethers.constants.Zero, fees);
+    });
 
     it("Should transfer fund from the vault", async () => {
       expect(await feeCollection.connect(await impersonate(vault.address)).collectPerformanceFee(strategy.address, fees))
@@ -234,6 +289,9 @@ describe("FeeCollection", () => {
   });
 
   describe("Claim Fees", () => {
+    it("should no transfer if there is no fees to claim", async () => {
+      expect(await feeCollection.connect(developer).claimFeesForToken(token.address)).not.to.emit(feeCollection, "FeesClaimed");
+    });
     it("claim fees for token", async () => {
       const fees = ethers.utils.parseEther("1");
       const developerFees = fees.mul(defaultDeveloperFeeRatio).div(CONST.MAX_BPS);

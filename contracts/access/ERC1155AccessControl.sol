@@ -123,7 +123,6 @@ contract ERC1155AccessControl is IAccessControlPolicy, PerVaultGatekeeper {
     require(_nftContracts.length == _nftIds.length, "!input");
     for (uint256 i = 0; i < _vaults.length; i++) {
       _onlyGovernanceOrGatekeeper(_vaults[i]);
-      require(_vaults[i] != address(0), "invalid vault address");
       require(_nftContracts[i].supportsInterface(type(IERC1155).interfaceId), "!ERC1155");
       allContracts.add(_nftContracts[i]);
       vaultNftMapping[_vaults[i]].isSet = true;
@@ -147,7 +146,6 @@ contract ERC1155AccessControl is IAccessControlPolicy, PerVaultGatekeeper {
     require(_nftContracts.length == _nftIds.length, "!input");
     for (uint256 i = 0; i < _vaults.length; i++) {
       _onlyGovernanceOrGatekeeper(_vaults[i]);
-      require(_vaults[i] != address(0), "invalid vault address");
       _removeTokenIds(_vaults[i], _nftContracts[i], _nftIds[i]);
       emit VaultAccessRemoved(_vaults[i], _nftContracts[i], _nftIds[i]);
     }

@@ -462,10 +462,9 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   }
 
   function _weightForVault(address _vault) internal view returns (uint256) {
-    if (totalWeightForVaults > 0) {
-      return (perVaultRewardsWeight[_vault] * WEIGHT_AMP) / totalWeightForVaults;
-    }
-    return 0; // totalWeightForVaults should never be 0
+    // totalWeightForVaults can not be zero when this function is called, as the weight for the _vault has to be set
+    // and in setPerVaultRewardsWeight it checks totalWeightForVaults is greater than 0
+    return (perVaultRewardsWeight[_vault] * WEIGHT_AMP) / totalWeightForVaults;
   }
 
   function _updateStateForVaults(address[] memory _vaults, bytes32 _account) internal {

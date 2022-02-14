@@ -245,6 +245,16 @@ describe("YOPReward", () => {
         .withArgs(ratio);
       expect(await yopRewardsContract.vaultsRewardsWeight()).to.equal(ratio);
     });
+
+    it("can set even if staking contract is not set", async () => {
+      const newYopRewards = (await YOPRewards.deploy()) as YOPRewardsMock;
+      await newYopRewards.deployed();
+      await newYopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+      await expect(await newYopRewards.connect(governance).setRewardsAllocationWeights(1000, 0)).not.to.emit(
+        newYopRewards,
+        "StakingRewardsWeightUpdated"
+      );
+    });
   });
 
   describe("calculateVaultRewards", async () => {
@@ -750,6 +760,13 @@ describe("YOPReward", () => {
         expect(balance).to.equal(totalRewards);
         expect(balance).to.be.closeTo(user1StakingRewards, ONE_UNIT);
       });
+
+      it("can call if staking contract is not set", async () => {
+        const newYopRewards = (await YOPRewards.deploy()) as YOPRewardsMock;
+        await newYopRewards.deployed();
+        await newYopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+        expect(newYopRewards.connect(user2).claimStakingRewards(user2.address)).to.be.revertedWith("nothing to claim");
+      });
     });
 
     describe("claim all", async () => {
@@ -769,12 +786,26 @@ describe("YOPReward", () => {
         expect(balance).to.equal(totalRewards);
         expect(balance).to.be.closeTo(user2TotalRewards, ONE_UNIT);
       });
+      it("can call claimAll if staking contract is not set", async () => {
+        const newYopRewards = (await YOPRewards.deploy()) as YOPRewardsMock;
+        await newYopRewards.deployed();
+        await newYopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+        expect(newYopRewards.connect(user2).claimAll(user2.address)).to.be.revertedWith("nothing to claim");
+      });
     });
 
     describe("unclaimedVaultRewards", async () => {
       it("should return the right amount", async () => {
         const unclaimed = await yopRewardsContract.connect(user2).unclaimedVaultRewards(user2.address, [vault1.address, vault2.address]);
         expect(unclaimed).to.be.closeTo(user2VaultRewards, ONE_UNIT);
+      });
+      it("should revert if user address is not valid", async () => {
+        expect(yopRewardsContract.connect(user2).unclaimedVaultRewards(ethers.constants.AddressZero, [vault1.address])).to.be.revertedWith(
+          "!input"
+        );
+      });
+      it("should revert if vaults are empty", async () => {
+        expect(yopRewardsContract.connect(user2).unclaimedVaultRewards(user2.address, [])).to.be.revertedWith("!input");
       });
     });
 
@@ -783,14 +814,30 @@ describe("YOPReward", () => {
         const unclaimed = await yopRewardsContract.connect(user2).unclaimedStakingRewards([0]);
         expect(unclaimed).to.be.closeTo(user1StakingRewards, ONE_UNIT);
       });
+      it("should return 0 if no staking contract set", async () => {
+        const newYopRewards = (await YOPRewards.deploy()) as YOPRewardsMock;
+        await newYopRewards.deployed();
+        await newYopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+        expect(await newYopRewards.connect(user2).unclaimedStakingRewards([0])).to.equal(ethers.constants.Zero);
+      });
     });
 
     describe("allUnclaimedRewards", async () => {
+      it("should revert if user address is not valid", async () => {
+        expect(yopRewardsContract.connect(user2).allUnclaimedRewards(ethers.constants.AddressZero)).to.be.revertedWith("!input");
+      });
       it("should return the right amount", async () => {
         const [unclaimedTotal, unclaimedVaults, unclaimedStaking] = await yopRewardsContract.connect(user2).allUnclaimedRewards(user2.address);
         expect(unclaimedTotal).to.be.closeTo(user2TotalRewards, ONE_UNIT);
         expect(unclaimedVaults).to.be.closeTo(user2VaultRewards, ONE_UNIT);
         expect(unclaimedStaking).to.be.closeTo(user2StakingRewards, ONE_UNIT);
+      });
+      it("can call if staking contract is not set", async () => {
+        const newYopRewards = (await YOPRewards.deploy()) as YOPRewardsMock;
+        await newYopRewards.deployed();
+        await newYopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
+        const [total] = await newYopRewards.connect(user2).allUnclaimedRewards(user2.address);
+        expect(total).to.equal(ethers.constants.Zero);
       });
     });
   });

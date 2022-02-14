@@ -4,8 +4,14 @@ pragma solidity =0.8.9;
 contract HealthCheckMock {
   bool internal doCheck;
 
+  bool internal checkResult = true;
+
   function setDoCheck(bool _check) external {
     doCheck = _check;
+  }
+
+  function setCheckResult(bool _result) external {
+    checkResult = _result;
   }
 
   /* solhint-disable */
@@ -17,7 +23,7 @@ contract HealthCheckMock {
     uint256 debtOutstanding,
     uint256 totalDebt
   ) external view returns (bool) {
-    return true;
+    return checkResult;
   }
 
   /* solhint-enable */

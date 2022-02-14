@@ -255,6 +255,18 @@ describe("BaseVault", function () {
     });
   });
 
+  describe("setVaultCreator", async () => {
+    it("should revert if set by non governance", async () => {
+      expect(baseVault.setVaultCreator(user1.address)).to.be.revertedWith("!authorised");
+    });
+
+    it("should change vault creator", async () => {
+      expect(await baseVault.creator()).to.equal(ethers.constants.AddressZero);
+      await baseVault.connect(governance).setVaultCreator(user1.address);
+      expect(await baseVault.creator()).to.equal(user1.address);
+    });
+  });
+
   describe("BaseVault strategies", async () => {
     let mockStrategy: StrategyMock;
     let mockStrategySigner: SignerWithAddress;
@@ -277,6 +289,8 @@ describe("BaseVault", function () {
       expect(await baseVault.connect(vaultStrategyDataStoreSigner).addStrategy(mockStrategy.address))
         .to.emit(baseVault, "StrategyAdded")
         .withArgs(mockStrategy.address);
+      const strategyInfo = await baseVault.strategy(mockStrategy.address);
+      expect(strategyInfo.totalDebt).to.equal(ethers.constants.Zero);
     });
 
     it("test migrateStrategy", async () => {
@@ -298,6 +312,12 @@ describe("BaseVault", function () {
       expect(await baseVault.connect(mockStrategySigner).revokeStrategy())
         .to.emit(baseVault, "StrategyRevoked")
         .withArgs(mockStrategy.address);
+    });
+
+    it("return strategy debt ratio", async () => {
+      await vaultStrategyDataStore.connect(governance).addStrategy(baseVault.address, mockStrategy.address, 0, 0, 100, 100);
+      const debtRatio = await baseVault.strategyDebtRatio(mockStrategy.address);
+      expect(debtRatio).to.equal(ethers.constants.Zero);
     });
   });
 });

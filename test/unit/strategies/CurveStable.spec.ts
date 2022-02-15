@@ -119,6 +119,10 @@ describe("CurveStable strategy", async () => {
       await mockCurveGauge.mock.balanceOf.returns(0);
       await expect(await curveStableUsdcStrategy.mockBalanceOfPool()).to.be.equal(0);
     });
+    it("should return the 0 for pool balance", async () => {
+      await mockCurveGauge.mock.balanceOf.returns(0);
+      await expect(await curveStableUsdcStrategy.mockBalanceOfPool()).to.be.equal(0);
+    });
 
     it("should revert when want token doesn't match any tokens in threepool", async () => {
       await mockCurvePool.mock.coins.withArgs(0).returns(mockDai.address);
@@ -137,13 +141,26 @@ describe("CurveStable strategy", async () => {
   });
 
   describe("estimatedTotalAssets", async () => {
-    const tokenAmount = ethers.utils.parseEther("100");
-    const crvAmount = ethers.utils.parseEther("20");
-    const exchangeAmountOut = ethers.utils.parseEther("10");
-    const gaugeBalance = ethers.utils.parseEther("5");
-    const withdrawAmountOut = ethers.utils.parseEther("5");
+    it("should return 0", async () => {
+      // vaultToken.mint(curveStableUsdcStrategy.address, tokenAmount);
+      await mockCurveMinter.mock.minted.returns(ethers.constants.Zero);
 
-    beforeEach(async () => {
+      await mockDex.mock.getAmountsOut.returns([0, 0, 0]);
+      await mockCurveGauge.mock.integrate_fraction.returns(0);
+      await mockCurveGauge.mock.balanceOf.returns(0);
+
+      await mockCurvePool.mock.calc_withdraw_one_coin.returns(0);
+      await mockCurveMetaPool.mock.calc_withdraw_one_coin.returns(0);
+      const got = await curveStableUsdcStrategy.estimatedTotalAssets();
+      expect(0).to.equal(got);
+    });
+    it("should return the correct asset value", async () => {
+      const tokenAmount = ethers.utils.parseEther("100");
+      const crvAmount = ethers.utils.parseEther("20");
+      const exchangeAmountOut = ethers.utils.parseEther("10");
+      const gaugeBalance = ethers.utils.parseEther("5");
+      const withdrawAmountOut = ethers.utils.parseEther("5");
+
       vaultToken.mint(curveStableUsdcStrategy.address, tokenAmount);
       await mockCurveMinter.mock.minted.returns(ethers.constants.Zero);
 
@@ -153,9 +170,6 @@ describe("CurveStable strategy", async () => {
 
       await mockCurvePool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
       await mockCurveMetaPool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
-    });
-
-    it("should return the correct asset value", async () => {
       const expectedTotal = tokenAmount.add(exchangeAmountOut).add(withdrawAmountOut);
       const got = await curveStableUsdcStrategy.estimatedTotalAssets();
       expect(expectedTotal).to.equal(got);
@@ -189,7 +203,6 @@ describe("CurveStable strategy", async () => {
     });
 
     it("should not revert", async () => {
-      // await expect(curveStableUsdcStrategy.mockWithdrawSome(ethers.utils.parseEther("2"))).to.not.be.reverted;
       await curveStableUsdcStrategy.mockWithdrawSome(ethers.utils.parseEther("2"));
     });
   });
@@ -202,7 +215,11 @@ describe("CurveStable strategy", async () => {
     const withdrawAmountOut = ethers.utils.parseEther("5");
     const metaLpBalance = ethers.utils.parseEther("2");
 
-    beforeEach(async () => {
+    it("should not add liquidity with balances =0 ", async () => {
+      await curveStableUsdcStrategy.mockAddLiquidityToCurvePool();
+    });
+
+    it("should add liquidity with balances > 0", async () => {
       vaultToken.mint(curveStableUsdcStrategy.address, tokenAmount);
       mockMetaPoolLpToken.mint(curveStableUsdcStrategy.address, metaLpBalance);
       poolLpToken.mint(curveStableUsdcStrategy.address, metaLpBalance);
@@ -224,10 +241,6 @@ describe("CurveStable strategy", async () => {
       await mockCurveMetaPool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
       await mockCurveMetaPool.mock.calc_token_amount.returns(0);
       await mockCurveMetaPool.mock.add_liquidity.returns(0);
-    });
-
-    it("should not revert", async () => {
-      // await expect(curveStableUsdcStrategy.mockWithdrawSome(ethers.utils.parseEther("2"))).to.not.be.reverted;
       await curveStableUsdcStrategy.mockAddLiquidityToCurvePool();
     });
   });
@@ -289,6 +302,46 @@ describe("CurveStable strategy", async () => {
       await mockCurveGauge.mock.deposit.withArgs(metaLpBalance).returns();
       await mockCurveGauge.mock.balanceOf.returns(metaLpBalance);
       await curveStableUsdcStrategy.depositLPTokens();
+    });
+  });
+
+  describe("constructor", async () => {
+    it("Should fail with zero address pool", async () => {
+      const curveStableUsdcStrategyFactory = await ethers.getContractFactory("CurveStableStrategyMock");
+      await expect(
+        curveStableUsdcStrategyFactory.deploy(
+          vault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          ethers.constants.AddressZero
+        )
+      ).to.be.revertedWith("invalid pool address");
+    });
+  });
+
+  describe("approve on init", async () => {
+    it("Should fail with zero address pool", async () => {
+      await expect(curveStableUsdcStrategy.approveOnInit()).not.to.be.reverted;
+    });
+  });
+
+  describe("swapToWant", async () => {
+    it("Should not fail", async () => {
+      await expect(curveStableUsdcStrategy.swapToWant(curveStableUsdcStrategy.address, 0)).not.to.be.reverted;
+    });
+  });
+  describe("getQuoteForTokenToWant", async () => {
+    it("Should not fail", async () => {
+      await expect(curveStableUsdcStrategy.getQuoteForTokenToWant(curveStableUsdcStrategy.address, 0)).not.to.be.reverted;
+    });
+  });
+  describe("getPoolLPTokenAddress", async () => {
+    it("Should be reverted", async () => {
+      await expect(curveStableUsdcStrategy.getPoolLPTokenAddress(ethers.constants.AddressZero)).to.be.revertedWith("invalid pool address");
+    });
+    it("Should return correct LP", async () => {
+      await expect(curveStableUsdcStrategy.getPoolLPTokenAddress(mockCurvePool.address)).not.to.be.reverted;
     });
   });
 });

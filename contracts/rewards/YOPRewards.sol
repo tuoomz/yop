@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol";
 import "prb-math/contracts/PRBMathUD60x18Typed.sol";
-import "hardhat/console.sol";
 import "../interfaces/IYOPRewards.sol";
 import "../interfaces/IVault.sol";
 import "../libraries/ConvertUtils.sol";

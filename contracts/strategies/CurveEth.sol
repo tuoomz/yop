@@ -43,7 +43,7 @@ contract CurveEth is CurveBase {
     return ETH_TOKEN_INDEX;
   }
 
-  function _getCoinsCount() internal pure override returns (uint256) {
+  function _getCoinsCount() internal view virtual override returns (uint256) {
     return NUMBER_OF_COINS;
   }
 

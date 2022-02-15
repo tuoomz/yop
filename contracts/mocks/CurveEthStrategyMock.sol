@@ -6,6 +6,7 @@ import "../strategies/CurveEth.sol";
 contract CurveEthStrategyMock is CurveEth {
   address public curveTokenAddress;
   address public wethTokenAddress;
+  uint256 public coinsCount = 2;
 
   event ReturnsReported(uint256 profit, uint256 loss, uint256 debtPayment);
   event LiquidationReported(uint256 liquidatedAmount, uint256 loss);
@@ -86,5 +87,25 @@ contract CurveEthStrategyMock is CurveEth {
 
   function testOnHarvest() external {
     super.onHarvest();
+  }
+
+  function balanceOfPool() external view returns (uint256) {
+    return super._balanceOfPool();
+  }
+
+  function withdrawSome(uint256 _amount) external returns (uint256) {
+    return super._withdrawSome(_amount);
+  }
+
+  function getCoinsCount() external view returns (uint256) {
+    return super._getCoinsCount();
+  }
+
+  function _getCoinsCount() internal view override returns (uint256) {
+    return coinsCount;
+  }
+
+  function setCoinsCount(uint256 _coinsCount) external {
+    coinsCount = _coinsCount;
   }
 }

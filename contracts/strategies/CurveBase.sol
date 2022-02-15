@@ -9,7 +9,6 @@ import "../interfaces/curve/ICurveRegistry.sol";
 import "../interfaces/curve/ICurveDeposit.sol";
 import "../interfaces/curve/ICurveAddressProvider.sol";
 import "../interfaces/sushiswap/IUniswapV2Router.sol";
-import "hardhat/console.sol";
 
 /// @dev The base implementation for all Curve strategies. All strategies will add liquidity to a Curve pool (could be a plain or meta pool), and then deposit the LP tokens to the corresponding gauge to earn Curve tokens.
 ///  When it comes to harvest time, the Curve tokens will be minted and sold, and the profit will be reported and moved back to the vault.
@@ -263,6 +262,8 @@ abstract contract CurveBase is BaseStrategy {
       uint256[4] memory params;
       params[_getWantTokenIndex()] = _amount;
       requiredLPTokenAmount = (curvePool.calc_token_amount(params, true) * 10200) / 10000; // adding 2% padding
+    } else {
+      revert("Invalid number of LP tokens");
     }
     // decide how many LP tokens we can actually withdraw
     return _removeLiquidity(requiredLPTokenAmount);

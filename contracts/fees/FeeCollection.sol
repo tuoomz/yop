@@ -7,7 +7,6 @@ import "../interfaces/IVaultStrategyDataStore.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../security/BasePauseableUpgradeable.sol";
-import "hardhat/console.sol";
 
 /// @notice This contract is used to distribute the fees to various participants
 /// @dev Given the token emission rate for a vault R, and f

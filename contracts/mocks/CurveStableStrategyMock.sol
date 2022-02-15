@@ -54,7 +54,7 @@ contract CurveStableStrategyMock is CurveStable {
   }
 
   function mockBalanceOfPool() external view returns (uint256) {
-    return _balanceOfPool();
+    return super._balanceOfPool();
   }
 
   function mockGetWantIndexInCurvePool(address _pool) external view returns (int128) {
@@ -147,5 +147,21 @@ contract CurveStableStrategyMock is CurveStable {
 
   function getCurvePoolGaugeAddress() external view returns (address) {
     return super._getCurvePoolGaugeAddress();
+  }
+
+  function approveOnInit() external {
+    super._approveOnInit();
+  }
+
+  function swapToWant(address _from, uint256 _fromAmount) external returns (uint256) {
+    return super._swapToWant(_from, _fromAmount);
+  }
+
+  function getQuoteForTokenToWant(address _from, uint256 _fromAmount) external view returns (uint256) {
+    return super._getQuoteForTokenToWant(_from, _fromAmount);
+  }
+
+  function getPoolLPTokenAddress(address pool) external returns (address) {
+    return super._getPoolLPTokenAddress(pool);
   }
 }

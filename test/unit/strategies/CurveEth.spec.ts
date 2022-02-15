@@ -127,6 +127,11 @@ describe("CurveEth strategy", async () => {
       await expect(curveEthStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
+    it("should return the 0 for pool balance", async () => {
+      await mockCurveGauge.mock.balanceOf.returns(0);
+      await expect(await curveEthStrategy.balanceOfPool()).to.be.equal(0);
+    });
+
     it("should not do anything if emergency exit", async () => {
       await mockVault.mock.revokeStrategy.returns();
       await mockVault.mock.debtOutstanding.returns(0);
@@ -188,7 +193,7 @@ describe("CurveEth strategy", async () => {
       await mockCurveGauge.mock.integrate_fraction.returns(ethers.utils.parseEther("1"));
       await mockCurveMinter.mock.minted.returns(ethers.utils.parseEther("0.5"));
       await mockDex.mock.getAmountsOut.returns([0, ethers.utils.parseEther("0.5")]);
-      await mockCurvePool.mock.calc_token_amount.returns(ethers.utils.parseEther("0.5"));
+      await mockCurvePool.mock["calc_token_amount(uint256[2],bool)"].returns(ethers.utils.parseEther("0.5"));
       await mockCurveGauge.mock.withdraw.returns();
       await mockCurvePool.mock.remove_liquidity_one_coin.returns(ethers.utils.parseEther("0.5"));
       await mockVaultToken.mock.deposit.returns();
@@ -235,7 +240,8 @@ describe("CurveEth strategy", async () => {
       await curveToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       await mockDex.mock.swapExactTokensForTokens.returns([0, ethers.utils.parseEther("1")]);
       await mockVaultToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
-      await mockCurvePool.mock.calc_token_amount.returns(ethers.utils.parseEther("1"));
+      await mockCurvePool.mock["calc_token_amount(uint256[2],bool)"].returns(ethers.utils.parseEther("1"));
+
       await mockCurveGauge.mock.balanceOf.returns(ethers.utils.parseEther("0.5"));
       await mockCurveGauge.mock.withdraw.returns();
       await mockCurvePool.mock.remove_liquidity_one_coin.returns(ethers.utils.parseEther("0.5"));
@@ -261,6 +267,39 @@ describe("CurveEth strategy", async () => {
     it("should set the user checkpoint", async () => {
       await mockCurveGauge.mock.user_checkpoint.returns(true);
       await expect(curveEthStrategy.testOnHarvest()).not.to.be.reverted;
+    });
+  });
+  describe("_getCoinsCount", async () => {
+    it("should get correct number of tokens", async () => {
+      await expect(await curveEthStrategy.getCoinsCount()).to.be.equal(2);
+    });
+  });
+
+  describe("withdrawSome", async () => {
+    beforeEach(async () => {
+      await mockCurveGauge.mock.balanceOf.returns(0);
+      await mockCurveGauge.mock["withdraw(uint256)"].returns();
+      await mockCurvePool.mock.remove_liquidity_one_coin.returns(0);
+      await mockVaultToken.mock.deposit.returns();
+    });
+    it("should not revert with 2", async () => {
+      await mockCurvePool.mock["calc_token_amount(uint256[2],bool)"].returns(0);
+      await expect(curveEthStrategy.withdrawSome(1000)).not.to.be.reverted;
+    });
+    it("should not revert with 3", async () => {
+      await mockCurvePool.mock["calc_token_amount(uint256[3],bool)"].returns(0);
+      await curveEthStrategy.setCoinsCount(3);
+      await expect(curveEthStrategy.withdrawSome(1000)).not.to.be.reverted;
+    });
+    it("should not revert with 4", async () => {
+      await mockCurvePool.mock["calc_token_amount(uint256[4],bool)"].returns(0);
+      await curveEthStrategy.setCoinsCount(4);
+      await expect(curveEthStrategy.withdrawSome(1000)).not.to.be.reverted;
+    });
+    it("should revert with 5", async () => {
+      await mockCurvePool.mock["calc_token_amount(uint256[4],bool)"].returns(0);
+      await curveEthStrategy.setCoinsCount(5);
+      await expect(curveEthStrategy.withdrawSome(1000)).to.be.revertedWith("Invalid number of LP tokens");
     });
   });
 });

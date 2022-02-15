@@ -205,4 +205,10 @@ describe("ConvexEth strategy", async () => {
       await expect(convexEthStrategy.testApproveDex()).not.to.be.reverted;
     });
   });
+
+  describe("onHarvest()", async () => {
+    it("should not do anything", async () => {
+      await expect(convexEthStrategy.mockOnHarvest()).not.to.be.reverted;
+    });
+  });
 });

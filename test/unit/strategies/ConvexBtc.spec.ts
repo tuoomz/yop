@@ -1,18 +1,19 @@
-import chai, { expect } from "chai";
-import { ethers, waffle } from "hardhat";
-import { solidity, MockContract } from "ethereum-waffle";
+import { FakeContract, smock } from "@defi-wonderland/smock";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { SingleAssetVault, ConvexBtcStrategyMock, TokenMock, VaultStrategyDataStore } from "../../../types";
-import { setupConvexMocks, setupMockVault, setupCurve } from "../fixtures/setup";
-import CurveZapDepositorABI from "../../abis/curvePoolZapDepositor.json";
-import curvePoolABI from "../../abis/curvePlainPool.json";
+import chai, { expect } from "chai";
+import { MockContract } from "ethereum-waffle";
+import { ContractFactory } from "ethers";
+import { ethers, waffle } from "hardhat";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
-import dexABI from "../../abis/sushiSwapRouter.json";
-import convexBoosterABI from "../../abis/convexBooster.json";
+import { ConvexBtcStrategyMock, IConvexDeposit, TokenMock } from "../../../types";
 import convexRewardsABI from "../../abis/convexBaseRewards.json";
+import CurveZapDepositorABI from "../../abis/curvePoolZapDepositor.json";
+import dexABI from "../../abis/sushiSwapRouter.json";
+import { CONST } from "../../constants";
+import { setupMockVault } from "../fixtures/setup";
 
 const { loadFixture, deployMockContract } = waffle;
-chai.use(solidity);
+chai.use(smock.matchers);
 
 const WBTC_DECIMALS = 8;
 
@@ -27,26 +28,18 @@ describe("ConvexBtc strategy", async () => {
   let developer: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let rewards: SignerWithAddress;
-  let manager: SignerWithAddress;
 
-  let mockMetaPoolLpToken: TokenMock;
   let poolLpToken: MockContract;
   let curveToken: MockContract;
   let convexToken: MockContract;
 
-  let mockDai: MockContract;
-  let mockUsdc: MockContract;
-  let mockUsdt: MockContract;
-
   let mockCurvePool: MockContract;
-  let mockCurveMetaPool: MockContract;
-  let mockCurveGauge: MockContract;
-  let mockCurveMinter: MockContract;
-  let mockCurveRegistry: MockContract;
-  let mockConvexBooster: MockContract;
+
+  let mockConvexBooster: FakeContract<IConvexDeposit>;
   let mockConvexRewards: MockContract;
-  let mockCurveAddressProvider: MockContract;
+
   let mockDex: MockContract;
+  let convexBTCStrategyFactory: ContractFactory;
 
   let convexBtcStrategy: ConvexBtcStrategyMock;
 
@@ -70,19 +63,19 @@ describe("ConvexBtc strategy", async () => {
     await mockVaultToken.mock.approve.returns(true);
     await poolLpToken.mock.approve.returns(true);
     await poolLpToken.mock.allowance.returns(0);
-    mockConvexBooster = await deployMockContract(deployer, convexBoosterABI);
+    mockConvexBooster = await smock.fake("IConvexDeposit");
     mockConvexRewards = await deployMockContract(deployer, convexRewardsABI);
 
-    const ConvexBTCStrategyFactory = await ethers.getContractFactory("ConvexBtcStrategyMock");
-    await mockConvexBooster.mock.poolInfo.returns(
+    convexBTCStrategyFactory = await ethers.getContractFactory("ConvexBtcStrategyMock");
+    await mockConvexBooster.poolInfo.returns([
       poolLpToken.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       mockConvexRewards.address,
-      ethers.constants.AddressZero,
-      false
-    );
-    convexBtcStrategy = (await ConvexBTCStrategyFactory.deploy(
+      mockConvexBooster.address,
+      false,
+    ]);
+    convexBtcStrategy = (await convexBTCStrategyFactory.deploy(
       mockVault.address,
       proposer.address,
       developer.address,
@@ -103,6 +96,12 @@ describe("ConvexBtc strategy", async () => {
   describe("basics", async () => {
     it("should return the correct name", async () => {
       await expect(await convexBtcStrategy.name()).to.be.equal("ConvexBTC");
+    });
+    it("should return the correct convex token", async () => {
+      await expect(await convexBtcStrategy.name()).to.be.equal("ConvexBTC");
+    });
+    it("should return the correct convex token address", async () => {
+      expect(await convexBtcStrategy.mockGetConvexTokenAddress()).to.be.equal(CONST.CONVEX_TOKEN_ADDRESS);
     });
   });
 
@@ -146,14 +145,20 @@ describe("ConvexBtc strategy", async () => {
   describe("depositToConvex", async () => {
     const tokenAmount = ethers.utils.parseEther("10");
     beforeEach(async () => {
-      await mockConvexBooster.mock.depositAll.returns(true);
+      await mockConvexBooster.depositAll.returns(true);
       await mockVaultToken.mock.approve.returns(true);
       await poolLpToken.mock.balanceOf.returns(tokenAmount);
     });
 
     it("should deposit to convex", async () => {
       await convexBtcStrategy.mockDepositToConvex();
-      // await expect(convexBtcStrategy.mockDepositToConvex()).not.to.be.reverted;
+      expect(mockConvexBooster.depositAll).to.have.callCount(1);
+    });
+
+    it("should not deposit when balance is 0", async () => {
+      await poolLpToken.mock.balanceOf.returns(0);
+      await convexBtcStrategy.mockDepositToConvex();
+      expect(mockConvexBooster.depositAll).to.have.callCount(0);
     });
   });
 
@@ -213,6 +218,37 @@ describe("ConvexBtc strategy", async () => {
       await convexToken.mock.allowance.returns(1000);
       // this will fail if the token approval is called again
       await expect(convexBtcStrategy.testApproveDex()).not.to.be.reverted;
+    });
+  });
+
+  describe("_convexRewardsValue", async () => {
+    it("should not mint more crv than total supply", async () => {
+      const totalSupply = ethers.utils.parseEther("99999999");
+      const earned = ethers.utils.parseEther("100000000000000000");
+      await convexToken.mock.totalSupply.returns(totalSupply);
+      await mockConvexRewards.mock.earned.returns(earned);
+      expect(await convexBtcStrategy.mockConvexRewardsValue(convexToken.address)).to.be.equal(ethers.utils.parseEther("100000000000000001"));
+    });
+    it("cliff > total cliff", async () => {
+      const totalSupply = ethers.utils.parseEther("100000000");
+      const earned = ethers.utils.parseEther("100000000000000000");
+      await convexToken.mock.totalSupply.returns(totalSupply);
+      await mockConvexRewards.mock.earned.returns(earned);
+      expect(await convexBtcStrategy.mockConvexRewardsValue(convexToken.address)).to.be.equal(earned);
+    });
+  });
+  describe("invalid address", async () => {
+    it("should fail when passing invalid booster address", async () => {
+      expect(
+        convexBTCStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          ethers.constants.AddressZero
+        )
+      ).to.be.revertedWith("invalid booster address");
     });
   });
 });

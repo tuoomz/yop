@@ -99,4 +99,8 @@ contract ConvexStableStrategyMock is ConvexStable {
   function _approveCurveExtra() internal override {}
 
   function _approveOnInit() internal override {}
+
+  function mockOnHarvest() external {
+    onHarvest();
+  }
 }

@@ -68,6 +68,10 @@ contract ConvexBtcStrategyMock is ConvexBtc {
     return convexTokenAddress;
   }
 
+  function mockGetConvexTokenAddress() public view returns (address) {
+    return super._getConvexTokenAddress();
+  }
+
   function mockClaimRewards() public {
     _claimRewards();
   }
@@ -112,5 +116,13 @@ contract ConvexBtcStrategyMock is ConvexBtc {
 
   function mockOnHarvest() external {
     onHarvest();
+  }
+
+  function mockConvexRewardsValue(address _curveTokenAddress) public view returns (uint256) {
+    return _convexRewardsValue(_curveTokenAddress, getQuote);
+  }
+
+  function getQuote(address _from, uint256 _fromAmount) internal view virtual returns (uint256) {
+    return _fromAmount;
   }
 }

@@ -121,9 +121,8 @@ contract ConvexBase {
         }
       }
       uint256 rewardsValue;
-      if (_crv > 0) {
-        rewardsValue += _quoteFunc(_curveTokenAddress, _crv);
-      }
+
+      rewardsValue += _quoteFunc(_curveTokenAddress, _crv);
       if (_cvx > 0) {
         rewardsValue += _quoteFunc(_getConvexTokenAddress(), _cvx);
       }

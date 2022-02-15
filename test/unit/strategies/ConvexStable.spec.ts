@@ -236,4 +236,9 @@ describe("Convex Stable strategy", async () => {
       await expect(convexStableStrategy.mockApproveDex()).not.to.be.reverted;
     });
   });
+  describe("onHarvest", async () => {
+    it("should not do anything", async () => {
+      await expect(convexStableStrategy.mockOnHarvest()).not.to.be.reverted;
+    });
+  });
 });

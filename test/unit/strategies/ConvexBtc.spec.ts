@@ -239,7 +239,7 @@ describe("ConvexBtc strategy", async () => {
   });
   describe("invalid address", async () => {
     it("should fail when passing invalid booster address", async () => {
-      expect(
+      await expect(
         convexBTCStrategyFactory.deploy(
           mockVault.address,
           proposer.address,

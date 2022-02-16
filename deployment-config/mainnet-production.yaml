@@ -1,0 +1,340 @@
+wallets:
+  # https://github.com/plutodigital/yop-engineering-docs/blob/main/preDAO/wallets.md#governance
+  governance: &governance
+    type: multisig
+    address: "0x457a60065050050B3e64Fcd96cFb973123D38338"
+    safe: "0x457a60065050050B3e64Fcd96cFb973123D38338"
+  # https://github.com/plutodigital/yop-engineering-docs/blob/main/preDAO/wallets.md#gatekeeper
+  gatekeeper: &gatekeeper
+    type: multisig
+    address: "0x5B6394Eb0C9Ac102fA5777D32Cd87151E894A940"
+    safe: "0x5B6394Eb0C9Ac102fA5777D32Cd87151E894A940"
+  # https://github.com/plutodigital/yop-engineering-docs/blob/main/preDAO/wallets.md#manager
+  manager: &manager
+    type: multisig
+    address: "0x65A7cDfd73d6f6A5bE6604521c8001FE2cE58f0D"
+    safe: "0x65A7cDfd73d6f6A5bE6604521c8001FE2cE58f0D"
+addresses:
+  # https://etherscan.io/token/0xae1eaae3f627aaca434127644371b67b18444051
+  yop_token_contract: &yopContract "0xae1eaae3f627aaca434127644371b67b18444051"
+  # https://etherscan.io/address/0xe4605d46fd0b3f8329d936a8b258d69276cba264
+  yop_nft: &yopNFT "0xe4605d46fd0b3f8329d936a8b258d69276cba264"
+  yop_nft_valid_token_ids:
+    &yopNFTTokenIds ["134", "135", "136", "503", "504", "505"]
+  # TODO: need to decide what wallet to use to draw the YOP tokens from for rewards
+  rewards_wallet: &rewardsWallet ""
+  # TODO: add the protocol fee multisig wallet here once it's created
+  protocol_wallet_address: &protocolWalletAddress ""
+  # https://github.com/plutodigital/yop-engineering-docs/blob/main/preDAO/wallets.md#keeper
+  harvester_address: &harvester_address "0xE9CDD67b924a8e82709207373699bb749F8851CE"
+  # for managing the YOP staking NFT collections on OpenSea
+  # TODO: what address should we use?
+  yop_staking_nft_opensea_admin: &yopStakingNFTAdmin ""
+  # https://etherscan.io/token/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+  weth_token_address: &weth_token_address "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+  # https://etherscan.io/token/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599
+  wbtc_token_address: &wbtc_token_address "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
+  # https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+  usdc_token_address: &usdc_token_address "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+  # https://etherscan.io/token/0x6b175474e89094c44da98b954eedeac495271d0f
+  dai_token_address: &dai_token_address "0x6b175474e89094c44da98b954eedeac495271d0f"
+  # https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7
+  usdt_token_address: &usdt_token_address "0xdac17f958d2ee523a2206206994597c13d831ec7"
+constants:
+  # TODO: what's the initial management fee
+  vault_management_fee: &vault_management_fee 100 # 1%
+  # TODO: what's the initial performance fee
+  strategy_performance_fee: &strategy_performance_fee 1000 # 10%
+  vault_max_debt_ratio: &vault_max_debt_ratio 9500 # 95%
+  default_vault_creator_fee_ratio: &default_vault_creator_fee_ratio 0
+  default_strategy_developer_fee_ratio: &default_strategy_developer_fee_ratio 0
+  default_strategy_proposer_fee_ratio: &default_strategy_proposer_fee_ratio 0
+  yop_emission_start_time: &yop_emissions_start_time 1640995200 # 2022-1-1-00:00:00 GMT
+  staking_nft_uri: &staking_nft_uri ""
+  staking_nft_contract_uri: &staking_nft_contract_uri ""
+  staking_min_amount: &staking_min_amount 100
+  rewards_weight_for_vaults: &rewards_weight_for_vaults 100
+  rewards_weight_for_staking: &rewards_weight_for_staking 100
+  curve_pools:
+    # https://etherscan.io/address/0xDC24316b9AE028F1497c275EB9192a3Ea0f67022
+    steth_pool: &curve_eth_pool "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"
+    # https://etherscan.io/address/0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D
+    wbtc_pool: &curve_wbtc_pool "0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D"
+    # https://etherscan.io/address/0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
+    usdn_pool: &curve_usdn_pool "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"
+  convex_pools:
+    # https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31
+    booster: &convex_booster "0xF403C135812408BFbE8713b5A23a04b3D48AAE31"
+  weth_vault:
+    rewards_weight: &weth_vault_rewards_weight 100
+    limit: &weth_vault_limit 16.3 # ~$50000 the script will include the token decimals automatically
+    paused: &weth_vault_paused false
+    curve_strategy:
+      allocation: &curve_eth_allocation 2850 #28.5%
+    convex_strategy:
+      allocation: &convex_eth_allocation 6650 #66.5%
+  wbtc_vault:
+    rewards_weight: &wbtc_vault_rewards_weight 100
+    limit: &wbtc_vault_limit 1.1454 # ~$50000
+    paused: &wbtc_vault_paused true
+    curve_strategy:
+      allocation: &curve_wbtc_allocation 2850
+    convex_strategy:
+      allocation: &convex_wbtc_allocation 6650
+  usdc_vault:
+    rewards_weight: &usdc_vault_rewards_weight 100
+    limit: &usdc_vault_limit 50000
+    paused: &usdc_vault_paused true
+    curve_strategy:
+      allocation: &curve_usdc_allocation 2850
+    convex_strategy:
+      allocation: &convex_usdc_allocation 6650
+  dai_vault:
+    rewards_weight: &dai_vault_rewards_weight 100
+    limit: &dai_vault_limit 50000
+    paused: &dai_vault_paused true
+    curve_strategy:
+      allocation: &curve_dai_allocation 2850
+    convex_strategy:
+      allocation: &convex_dai_allocation 6650
+  usdt_vault:
+    rewards_weight: &usdt_vault_rewards_weight 100
+    limit: &usdt_vault_limit 50000
+    paused: &usdt_vault_paused true
+    curve_strategy:
+      allocation: &curve_usdt_allocation 2850
+    convex_strategy:
+      allocation: &convex_usdt_allocation 6650
+  dummy_vault:
+    rewards_weight: &dummy_vault_rewards_weight 100
+
+access_control:
+  governance: *governance
+  allowlist:
+    # can be changed
+    enabled: true
+    governance: *governance
+    # can be changed
+    global: []
+  allowany:
+    # can be changed
+    enabled: false
+    governance: *governance
+    # can be changed
+    global: true
+  erc1155:
+    # can be changed
+    enabled: true
+    governance: *governance
+    # can be changed
+    global:
+      - contract_address: *yopNFT
+        token_ids: *yopNFTTokenIds
+vault_strategy_data_store:
+  governance: *governance
+fee_collection:
+  governance: *governance
+  gatekeeper: *gatekeeper
+  # can be changed
+  protocol_wallet: *protocolWalletAddress
+  # can be changed
+  default_vault_creator_fee_ratio: *default_vault_creator_fee_ratio
+  # can be changed
+  default_strategy_proposer_fee_ratio: *default_strategy_proposer_fee_ratio
+  # can be changed
+  default_strategy_developer_fee_ratio: *default_strategy_developer_fee_ratio
+  # can be changed
+  paused: false
+rewards:
+  governance: *governance
+  gatekeeper: *gatekeeper
+  wallet: *rewardsWallet
+  yop_contract: *yopContract
+  emission_start_time: *yop_emissions_start_time
+  # can be changed
+  total_allocation_weight:
+    # TODO: decide the weight
+    vaults: *rewards_weight_for_vaults
+    staking: *rewards_weight_for_staking
+  # can be changed
+  vaults_allocation_weight:
+    # never remove vaults for here.
+    # Set the value to 0 if a vault should not receive emission anymore
+    # Name needs to match the name of the vaults
+    # TODO: decide the weight
+    "Ethereum Genesis": *weth_vault_rewards_weight
+    "Bitcoin Genesis": *wbtc_vault_rewards_weight
+    "USDC Genesis": *usdc_vault_rewards_weight
+    "DAI Genesis": *dai_vault_rewards_weight
+    "USDT Genesis": *usdt_vault_rewards_weight
+    "Dummy": *dummy_vault_rewards_weight
+  # can be changed
+  paused: false
+staking:
+  name: "YOP Staking"
+  symbol: "sYOP"
+  governance: *governance
+  gatekeeper: *gatekeeper
+  uri: *staking_nft_uri
+  # can be changed
+  contract_uri: *staking_nft_contract_uri
+  owner: *yopStakingNFTAdmin
+  # can be changed. Ignore the decimals.
+  min_stake_amount: *staking_min_amount
+  # can be changed
+  paused: false
+vaults:
+  - name: Ethereum Genesis
+    symbol: "yopETH"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *weth_token_address
+    # can be changed
+    management_fee: *vault_management_fee
+    # can be changed
+    # if this value is reduced, check the allocations for strategies and make sure
+    # the total of the allocations won't exceed the max value
+    max_debt_ratio: *vault_max_debt_ratio
+    # can be changed
+    paused: *weth_vault_paused
+    # can be changed
+    emergency_shutdown: false
+    # can be changed
+    deposit_limit: *weth_vault_limit
+    # can add new strategies, but don't remove, and don't change orders here
+    # change the allocation to 0 if the strategy is not used anymore
+    strategies:
+      - name: "CurveETH"
+        contract: "CurveEth"
+        harvester: *harvester_address
+        # can be changed
+        performance_fee: *strategy_performance_fee
+        # can be changed
+        allocation: *curve_eth_allocation
+        pool: *curve_eth_pool
+      - name: "ConvexETH"
+        contract: "ConvexEth"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *convex_eth_allocation
+        pool: *curve_eth_pool
+        booster: *convex_booster
+  - name: Bitcoin Genesis
+    symbol: "yopBTC"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *wbtc_token_address
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: *wbtc_vault_paused
+    emergency_shutdown: false
+    # can be changed
+    deposit_limit: *wbtc_vault_limit
+    strategies:
+      - name: "CurveWBTC"
+        contract: "CurveBtc"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *curve_wbtc_allocation
+        pool: *curve_wbtc_pool
+      - name: "ConvexWBTC"
+        contract: "ConvexBtc"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *convex_wbtc_allocation
+        pool: *curve_wbtc_pool
+        booster: *convex_booster
+  - name: USDC Genesis
+    symbol: "yopUSDC"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *usdc_token_address
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: *usdc_vault_paused
+    emergency_shutdown: false
+    # can be changed
+    deposit_limit: *usdc_vault_limit
+    strategies:
+      - name: "CurveUSDC"
+        contract: "CurveStable"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *curve_usdc_allocation
+        pool: *curve_usdn_pool
+      - name: "ConvexUSDC"
+        contract: "ConvexStable"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *convex_usdc_allocation
+        pool: *curve_usdn_pool
+        booster: *convex_booster
+  - name: DAI Genesis
+    symbol: "yopDAI"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *dai_token_address
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: *dai_vault_paused
+    emergency_shutdown: false
+    # can be changed
+    deposit_limit: *dai_vault_limit
+    strategies:
+      - name: "CurveDAI"
+        contract: "CurveStable"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *curve_dai_allocation
+        pool: *curve_usdn_pool
+      - name: "ConvexDAI"
+        contract: "ConvexStable"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *convex_dai_allocation
+        pool: *curve_usdn_pool
+        booster: *convex_booster
+  - name: USDT Genesis
+    symbol: "yopUSDT"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *usdt_token_address
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: *usdt_vault_paused
+    emergency_shutdown: false
+    # can be changed
+    deposit_limit: *usdc_vault_limit
+    strategies:
+      - name: "CurveUSDT"
+        contract: "CurveStable"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *curve_usdt_allocation
+        pool: *curve_usdn_pool
+      - name: "ConvexUSDT"
+        contract: "ConvexStable"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *convex_usdt_allocation
+        pool: *curve_usdn_pool
+        booster: *convex_booster
+  # a dummy vault that will never be enabled, and but can share the emission.
+  # it is needed to reserve some emissions for the private launch
+  # this should never be listed in the UI
+  - name: Dummy
+    symbol: "yopDummy"
+    governance: *governance
+    gatekeeper: *gatekeeper
+    manager: *manager
+    token_address: *yopContract
+    management_fee: *vault_management_fee
+    max_debt_ratio: *vault_max_debt_ratio
+    paused: true
+    emergency_shutdown: false
+    strategies: []

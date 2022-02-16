@@ -3,6 +3,16 @@ import { readDeploymentFile, writeDeploymentFile, getTxn } from "./util";
 
 const NETWORK_NAME = hre.network.name;
 
+let totalGasUsed = 0;
+
+export function resetTotalGasUsed() {
+  totalGasUsed = 0;
+}
+
+export function getTotalGasUsed() {
+  return totalGasUsed;
+}
+
 export async function deployContract<Type>(
   env: string = NETWORK_NAME,
   name: string,
@@ -36,12 +46,18 @@ export async function deployContract<Type>(
   console.log(`Deploying ${deploymentRecordName} contract - txHash: ${contract.deployTransaction.hash}`);
   await contract.deployed();
 
+  const deployTrans = await getTxn(contract.deployTransaction);
+  if (deployTrans.gasUsed) {
+    console.log(`Deploying ${deploymentRecordName} contract - gas used: ${deployTrans.gasUsed}`);
+    totalGasUsed += parseInt(deployTrans.gasUsed);
+  }
+
   deployRecord = {
     ...deployRecord,
     [deploymentRecordName]: {
       address: contract.address,
       proxy: upgradeable,
-      deployTransaction: await getTxn(contract.deployTransaction),
+      deployTransaction: deployTrans,
       contractParams: contractParams,
     },
   };
@@ -50,6 +66,8 @@ export async function deployContract<Type>(
     const implementationAddress = await hre.upgrades.erc1967.getImplementationAddress(contract.address);
     console.log("Contract implementation is:", implementationAddress);
     deployRecord[deploymentRecordName].implementationAddress = implementationAddress;
+    // a proxy contract deployment will cost this much gas
+    totalGasUsed += 672671;
   }
   await writeDeploymentFile(env, deployRecord);
   console.log(`${deploymentRecordName} deployed - txHash: ${contract.deployTransaction.hash} - address: ${contract.address} \n\n`);

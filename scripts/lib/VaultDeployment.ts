@@ -178,11 +178,17 @@ export class VaultDeployment extends ContractDeploymentUpdate {
       });
     }
     if (currentDepositLimit !== this.config.deposit_limit) {
+      let limit;
+      if (this.config.deposit_limit) {
+        limit = ethers.utils.parseUnits(this.config.deposit_limit.toString(), vaultDecimals);
+      } else {
+        limit = ethers.constants.MaxUint256;
+      }
       results.push({
         address: address,
         abi: VaultABI,
         methodName: "setDepositLimit",
-        params: [ethers.utils.parseUnits(this.config.deposit_limit.toString(), vaultDecimals)],
+        params: [limit],
         signer: this.config.governance,
       });
     }

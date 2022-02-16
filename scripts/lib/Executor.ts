@@ -2,7 +2,7 @@ import { BigNumber } from "ethers";
 import hre, { ethers } from "hardhat";
 import { readDeploymentFile } from "../util";
 import { ContractDeploymentCall, DeploymentRecord, ContractFunctionCall, Wallet, DefaultWallet, MultisigWallet } from "./ContractDeployment";
-import { deployContract } from "../deploy-contract";
+import { deployContract, resetTotalGasUsed, getTotalGasUsed } from "../deploy-contract";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { proposeTxn, proposeTxns } from "../gnosis/propose-txn";
 export class Executor {
@@ -41,8 +41,16 @@ export class Executor {
       console.log(`Total deployments  : ${deployments.length}`);
       console.log(`Total estimated gas: ${ethers.utils.formatUnits(totalEstimatedGas, "gwei")}`);
     } else {
+      resetTotalGasUsed();
       for (const d of deployments) {
         await this.doDeploy(d);
+      }
+      const gasUsed = getTotalGasUsed();
+      console.log(`Total gas used: ${gasUsed} GWEI`);
+      const gasPrice = process.env.GAS_PRICE;
+      if (gasPrice) {
+        const cost = parseInt(gasPrice) * gasUsed;
+        console.log(`Total gas cost: ${ethers.utils.formatUnits(cost, "gwei")} ETH`);
       }
     }
   }

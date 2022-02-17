@@ -21,10 +21,8 @@ addresses:
   yop_nft: &yopNFT "0xe4605d46fd0b3f8329d936a8b258d69276cba264"
   yop_nft_valid_token_ids:
     &yopNFTTokenIds ["134", "135", "136", "503", "504", "505"]
-  # TODO: need to decide what wallet to use to draw the YOP tokens from for rewards
-  rewards_wallet: &rewardsWallet ""
-  # TODO: add the protocol fee multisig wallet here once it's created
-  protocol_wallet_address: &protocolWalletAddress ""
+  rewards_wallet: &rewardsWallet "0x65f1d9CC122ff5340A43ADeC774e126C391d6e9C"
+  protocol_wallet_address: &protocolWalletAddress "0x4dB88F89BeCcbBBF5A75e558555537e4b40f7dDB"
   # https://github.com/plutodigital/yop-engineering-docs/blob/main/preDAO/wallets.md#keeper
   harvester_address: &harvester_address "0xE9CDD67b924a8e82709207373699bb749F8851CE"
   # for managing the YOP staking NFT collections on OpenSea

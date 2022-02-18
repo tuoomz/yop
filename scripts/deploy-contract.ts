@@ -2,6 +2,7 @@ import hre from "hardhat";
 import { readDeploymentFile, writeDeploymentFile, getTxn } from "./util";
 
 const NETWORK_NAME = hre.network.name;
+const PROXY_DEPLOY_GAS = 672671;
 
 let totalGasUsed = 0;
 
@@ -67,7 +68,7 @@ export async function deployContract<Type>(
     console.log("Contract implementation is:", implementationAddress);
     deployRecord[deploymentRecordName].implementationAddress = implementationAddress;
     // a proxy contract deployment will cost this much gas
-    totalGasUsed += 672671;
+    totalGasUsed += PROXY_DEPLOY_GAS;
   }
   await writeDeploymentFile(env, deployRecord);
   console.log(`${deploymentRecordName} deployed - txHash: ${contract.deployTransaction.hash} - address: ${contract.address} \n\n`);

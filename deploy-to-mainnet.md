@@ -30,6 +30,7 @@
       # This will do a dry-run and print out all the contracts that will be deployed
       HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun true  --env localhost-production
       ```
+
       To know more about the parameters, check the [documentation](https://github.com/plutodigital/yop-protocol-evm/blob/main/scripts/README.md#deploy-smart-contracts).
 
       This command should work and print out the contracts that need to be deployed. If there is any error, then they needs to be investigated and fixed.

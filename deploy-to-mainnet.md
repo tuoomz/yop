@@ -4,9 +4,9 @@
 
 - Checkout the [yop-protocol-evm](https://github.com/plutodigital/yop-protocol-evm) repo to run the deployment script.
 - Have [hardhat](https://hardhat.org/) installed.
-- Have a valid IAM account from AWS that has the permission to sign and verify using a KMS key, and get the id of the KMS key that will be used for the deployment. The wallet corresponding to the key in KMS should also have enough ETH in it for the deployment.
-- Have a valid etherscan API key (needed to verify the deployed contracts)
-- Have a valid Alchemy API key (needed by the deployment script)
+- Setup the AWS KMS id. For the details of how to do that, check [this document](https://github.com/plutodigital/yop-engineering-docs/blob/main/deploy/AWS_KMS.md).
+- Have a valid etherscan API key (needed to verify the deployed contracts). If you don't have one, follow [this link](https://info.etherscan.com/etherscan-developer-api-key/).
+- Have a valid Alchemy API key (needed by the deployment script). If you don't have one, you can use the shared Alchemy account (can be found in Keeper) and get a new API key.
 
 ## Steps
 
@@ -19,7 +19,7 @@
     # This is needed to pass some checks. You can use the same value as GNOSIS_SIGNER_KMSID
     TESTNET_SIGNER_KMSID=<AWS KMS deployer key id>
     ```
-    If you don't have AWS account setup locally, you can add the env vars for AWS in here as well (IAM account id and secret id).
+    If you don't have AWS account setup locally, follow the [AWS CLI configuration guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html) to setup the AWS account.
 1.  Check the [mainnet deployment configuration file](./deployment-config/mainnet-production.yaml) to make sure everything is correct. Especially check the contract addresses and make sure they are valid addresses in mainnet.
 1.  Try the deployment to a local mainnet fork first to make sure the configuration are working as expected.
 
@@ -30,6 +30,7 @@
       # This will do a dry-run and print out all the contracts that will be deployed
       HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun true  --env localhost-production
       ```
+      To know more about the parameters, check the [documentation](https://github.com/plutodigital/yop-protocol-evm/blob/main/scripts/README.md#deploy-smart-contracts).
 
       This command should work and print out the contracts that need to be deployed. If there is any error, then they needs to be investigated and fixed.
 
@@ -63,16 +64,16 @@
 1.  After the deployment is verified locally, we can proceed to deploy to the mainnet. Before progressing, check the deployer account that going to be used and make sure it has enough ETH for the deployment. Then run the following command:
 
     ```
-    # Print out contract deployment information against mainnet
+    # Print out contract deployment information against mainnet, this command will only check contract deployments and is a dry run.
     HARDHAT_NETWORK=mainnet ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun true  --env mainnet-production
 
-    # Then deploy the contracts
+    # Then deploy the contracts, but not configure the contracts.
     HARDHAT_NETWORK=mainnet ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun false  --env mainnet-production
 
-    # Check the configuration changes. Review the contract calls carefully to make sure they are the right ones.
+    # Check the configuration changes. Review the contract calls.
     HARDHAT_NETWORK=mainnet ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun true  --env mainnet-production
 
-    # Create the multisig transaction for the configuration
+    # Apply the configuration changes. For mainnet deployment, the governance wallet is needed to sign these transactions, and it is a multisig wallet. So the script will propose all the contract calls as a single transaction to the governance multisig wallet, and then the approvers of the wallet can review, approve and execute the transaction.
     HARDHAT_NETWORK=mainnet ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun false  --env mainnet-production
     ```
 
@@ -85,7 +86,7 @@
     It will take a while to upload the source code to Etherscan and get them verified. While this is being progressed, you can progress to the next step and leave this running.
 1.  An additional one-time step is required to approve the rewards contract as the spender of the rewards wallet. This is needed because when users claim their YOP rewards, the reward contract will just transfer YOP tokens from the rewards wallet to the user directly. In order for the rewards contract to do this step, the approval is needed. To do this:
     - Get the deployed address of the rewards contract (you can find it in the `deployments/mainnet-production.json` file).
-    - If the rewards wallet is a multisig, use the Gnosis UI to call the `approve` function on the [YOP token contract](https://etherscan.io/token/0xae1eaae3f627aaca434127644371b67b18444051). Set the reward contract address as the `spender` and set the large value for the limit (e.g. 3000000000000000 - 30 million YOPs).
+    - If the rewards wallet is a multisig, use the Gnosis UI to call the `approve` function on the [YOP token contract](https://etherscan.io/token/0xae1eaae3f627aaca434127644371b67b18444051). Set the reward contract address as the `spender` and set the large value for the limit (e.g. 2400000000000000 - 24 million YOPs).
     - If the rewards wallet is just a normal wallet, then you need to contact the wallet owner to do this via Etherscan.
 1.  The contract deployment is done at this point. We then need to copy the generated deployment file to the YOP Dapp so it will be used. Find the `deployments/mainnet-production.json` file and copy it to [this directory of the YOP DAPP repo](https://github.com/plutodigital/yop-dapp/tree/main/app_constants/yop-deployments), and uncomment [this code](https://github.com/plutodigital/yop-dapp/blob/main/app_constants/yop-deploy-config.ts#L121-L124) to load the deployment file.
 1.  Commit the new files generated for the production deployment and push them to upstream. Especially there should be a new file generated in the `.openzeppelin` folder and it should be committed too.

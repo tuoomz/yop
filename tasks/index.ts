@@ -5,6 +5,7 @@ export * as resetFork from "./fork/reset";
 export * as rewardsTask from "./rewards/approveRewardsContract";
 export * as gnosisPropose from "./gnosis/propose-txn";
 export * as gnosisCreate from "./gnosis/safe-create";
+export * as kmsAddress from "./kms/kms-eth-address";
 
 task("gas-price", "Prints gas price").setAction(async function ({ address }, { ethers }) {
   console.log("Gas price", (await ethers.provider.getGasPrice()).toString());

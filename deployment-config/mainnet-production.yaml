@@ -26,8 +26,7 @@ addresses:
   # https://github.com/plutodigital/yop-engineering-docs/blob/main/preDAO/wallets.md#keeper
   harvester_address: &harvester_address "0xE9CDD67b924a8e82709207373699bb749F8851CE"
   # for managing the YOP staking NFT collections on OpenSea
-  # TODO: what address should we use?
-  yop_staking_nft_opensea_admin: &yopStakingNFTAdmin ""
+  yop_staking_nft_opensea_admin: &yopStakingNFTAdmin "0xa457DB3493c9d3a11c63cAAF27B78Fe1cEB2bd0D"
   # https://etherscan.io/token/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
   weth_token_address: &weth_token_address "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   # https://etherscan.io/token/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599
@@ -39,20 +38,18 @@ addresses:
   # https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7
   usdt_token_address: &usdt_token_address "0xdac17f958d2ee523a2206206994597c13d831ec7"
 constants:
-  # TODO: what's the initial management fee
   vault_management_fee: &vault_management_fee 100 # 1%
-  # TODO: what's the initial performance fee
   strategy_performance_fee: &strategy_performance_fee 1000 # 10%
   vault_max_debt_ratio: &vault_max_debt_ratio 9500 # 95%
   default_vault_creator_fee_ratio: &default_vault_creator_fee_ratio 0
   default_strategy_developer_fee_ratio: &default_strategy_developer_fee_ratio 0
   default_strategy_proposer_fee_ratio: &default_strategy_proposer_fee_ratio 0
   yop_emission_start_time: &yop_emissions_start_time 1640995200 # 2022-1-1-00:00:00 GMT
-  staking_nft_uri: &staking_nft_uri ""
-  staking_nft_contract_uri: &staking_nft_contract_uri ""
+  staking_nft_uri: &staking_nft_uri "https://app.yop.finance/api/lockbox/{id}"
+  staking_nft_contract_uri: &staking_nft_contract_uri "https://d3q6we6gspsrqs.cloudfront.net/opensea/contract.json"
   staking_min_amount: &staking_min_amount 100
-  rewards_weight_for_vaults: &rewards_weight_for_vaults 100
-  rewards_weight_for_staking: &rewards_weight_for_staking 100
+  rewards_weight_for_vaults: &rewards_weight_for_vaults 85
+  rewards_weight_for_staking: &rewards_weight_for_staking 15
   curve_pools:
     # https://etherscan.io/address/0xDC24316b9AE028F1497c275EB9192a3Ea0f67022
     steth_pool: &curve_eth_pool "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"
@@ -64,47 +61,47 @@ constants:
     # https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31
     booster: &convex_booster "0xF403C135812408BFbE8713b5A23a04b3D48AAE31"
   weth_vault:
-    rewards_weight: &weth_vault_rewards_weight 100
+    rewards_weight: &weth_vault_rewards_weight 3
     limit: &weth_vault_limit 16.3 # ~$50000 the script will include the token decimals automatically
     paused: &weth_vault_paused false
     curve_strategy:
-      allocation: &curve_eth_allocation 2850 #28.5%
+      allocation: &curve_eth_allocation 1900 #20%
     convex_strategy:
-      allocation: &convex_eth_allocation 6650 #66.5%
+      allocation: &convex_eth_allocation 7600 #80%
   wbtc_vault:
-    rewards_weight: &wbtc_vault_rewards_weight 100
+    rewards_weight: &wbtc_vault_rewards_weight 3
     limit: &wbtc_vault_limit 1.1454 # ~$50000
     paused: &wbtc_vault_paused true
     curve_strategy:
-      allocation: &curve_wbtc_allocation 2850
+      allocation: &curve_wbtc_allocation 1900 #20%
     convex_strategy:
-      allocation: &convex_wbtc_allocation 6650
+      allocation: &convex_wbtc_allocation 7600 #80%
   usdc_vault:
-    rewards_weight: &usdc_vault_rewards_weight 100
+    rewards_weight: &usdc_vault_rewards_weight 3
     limit: &usdc_vault_limit 50000
     paused: &usdc_vault_paused true
     curve_strategy:
-      allocation: &curve_usdc_allocation 2850
+      allocation: &curve_usdc_allocation 1900 #20%
     convex_strategy:
-      allocation: &convex_usdc_allocation 6650
+      allocation: &convex_usdc_allocation 7600 #80%
   dai_vault:
-    rewards_weight: &dai_vault_rewards_weight 100
+    rewards_weight: &dai_vault_rewards_weight 3
     limit: &dai_vault_limit 50000
     paused: &dai_vault_paused true
     curve_strategy:
-      allocation: &curve_dai_allocation 2850
+      allocation: &curve_dai_allocation 1900 #20%
     convex_strategy:
-      allocation: &convex_dai_allocation 6650
+      allocation: &convex_dai_allocation 7600 #80%
   usdt_vault:
-    rewards_weight: &usdt_vault_rewards_weight 100
+    rewards_weight: &usdt_vault_rewards_weight 3
     limit: &usdt_vault_limit 50000
     paused: &usdt_vault_paused true
     curve_strategy:
-      allocation: &curve_usdt_allocation 2850
+      allocation: &curve_usdt_allocation 1900 #20%
     convex_strategy:
-      allocation: &convex_usdt_allocation 6650
+      allocation: &convex_usdt_allocation 7600 #80%
   dummy_vault:
-    rewards_weight: &dummy_vault_rewards_weight 100
+    rewards_weight: &dummy_vault_rewards_weight 70
 
 access_control:
   governance: *governance
@@ -151,7 +148,6 @@ rewards:
   emission_start_time: *yop_emissions_start_time
   # can be changed
   total_allocation_weight:
-    # TODO: decide the weight
     vaults: *rewards_weight_for_vaults
     staking: *rewards_weight_for_staking
   # can be changed
@@ -159,7 +155,6 @@ rewards:
     # never remove vaults for here.
     # Set the value to 0 if a vault should not receive emission anymore
     # Name needs to match the name of the vaults
-    # TODO: decide the weight
     "Ethereum Genesis": *weth_vault_rewards_weight
     "Bitcoin Genesis": *wbtc_vault_rewards_weight
     "USDC Genesis": *usdc_vault_rewards_weight

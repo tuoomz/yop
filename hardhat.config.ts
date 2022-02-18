@@ -71,6 +71,12 @@ const config: HardhatUserConfig = {
       chainId: chainIds.hardhat,
       allowUnlimitedContractSize: true,
     },
+    mainnet: {
+      chainId: chainIds.mainnet,
+      kmsKeyId: process.env.GNOSIS_SIGNER_KMSID,
+      gas: "auto",
+      url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
+    },
     goerli: createTestnetConfig("goerli"),
     kovan: createTestnetConfig("kovan"),
     rinkeby: createTestnetConfig("rinkeby"),

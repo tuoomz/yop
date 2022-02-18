@@ -4,7 +4,7 @@
 
 - Checkout the [yop-protocol-evm](https://github.com/plutodigital/yop-protocol-evm) repo to run the deployment script.
 - Have [hardhat](https://hardhat.org/) installed.
-- Have a valid IAM account from AWS that has the permission to sign and verify using a KMS key, and get the id of the KMS key that will be used for the deployment.
+- Have a valid IAM account from AWS that has the permission to sign and verify using a KMS key, and get the id of the KMS key that will be used for the deployment. The wallet corresponding to the key in KMS should also have enough ETH in it for the deployment.
 - Have a valid etherscan API key (needed to verify the deployed contracts)
 - Have a valid Alchemy API key (needed by the deployment script)
 
@@ -69,7 +69,7 @@
     # Then deploy the contracts
     HARDHAT_NETWORK=mainnet ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun false  --env mainnet-production
 
-    # Check the configuration changes
+    # Check the configuration changes. Review the contract calls carefully to make sure they are the right ones.
     HARDHAT_NETWORK=mainnet ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun true  --env mainnet-production
 
     # Create the multisig transaction for the configuration
@@ -82,7 +82,7 @@
     ```
     HARDHAT_NETWORK=mainnet ./node_modules/.bin/ts-node --files ./scripts/verify.ts --env mainnet-production
     ```
-    It will take a while to upload the source code to Etherscan and get them verified.
+    It will take a while to upload the source code to Etherscan and get them verified. While this is being progressed, you can progress to the next step and leave this running.
 1.  An additional one-time step is required to approve the rewards contract as the spender of the rewards wallet. This is needed because when users claim their YOP rewards, the reward contract will just transfer YOP tokens from the rewards wallet to the user directly. In order for the rewards contract to do this step, the approval is needed. To do this:
     - Get the deployed address of the rewards contract (you can find it in the `deployments/mainnet-production.json` file).
     - If the rewards wallet is a multisig, use the Gnosis UI to call the `approve` function on the [YOP token contract](https://etherscan.io/token/0xae1eaae3f627aaca434127644371b67b18444051). Set the reward contract address as the `spender` and set the large value for the limit (e.g. 3000000000000000 - 30 million YOPs).

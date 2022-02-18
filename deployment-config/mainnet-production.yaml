@@ -1,3 +1,8 @@
+# Configurations for our mainnet contract deployment.
+# Please note that once the contracts are deployed, not all fields can be changed afterwards (not supported yet by the scripts).
+# The fields that are marked with `can be changed` means they can be updated/changed afterwards.
+
+# The wallet addresses means that they could be used to sign transactions or propose signed transactions.
 wallets:
   # https://github.com/plutodigital/yop-engineering-docs/blob/main/preDAO/wallets.md#governance
   governance: &governance
@@ -21,7 +26,9 @@ addresses:
   yop_nft: &yopNFT "0xe4605d46fd0b3f8329d936a8b258d69276cba264"
   yop_nft_valid_token_ids:
     &yopNFTTokenIds ["134", "135", "136", "503", "504", "505"]
+  # Fireblocks - Pluto Product Holdings - YOP Community Emitted Wallet
   rewards_wallet: &rewardsWallet "0x65f1d9CC122ff5340A43ADeC774e126C391d6e9C"
+  # This is the wallet that will be used to collect all the fees
   protocol_wallet_address: &protocolWalletAddress "0x4dB88F89BeCcbBBF5A75e558555537e4b40f7dDB"
   # https://github.com/plutodigital/yop-engineering-docs/blob/main/preDAO/wallets.md#keeper
   harvester_address: &harvester_address "0xE9CDD67b924a8e82709207373699bb749F8851CE"
@@ -46,6 +53,8 @@ constants:
   default_strategy_proposer_fee_ratio: &default_strategy_proposer_fee_ratio 0
   yop_emission_start_time: &yop_emissions_start_time 1640995200 # 2022-1-1-00:00:00 GMT
   staking_nft_uri: &staking_nft_uri "https://app.yop.finance/api/lockbox/{id}"
+  # This is used to display information about the staking NFT collection in OpenSea.
+  # The file is a static one for now and served directly from a S3 bucket.
   staking_nft_contract_uri: &staking_nft_contract_uri "https://d3q6we6gspsrqs.cloudfront.net/opensea/contract.json"
   staking_min_amount: &staking_min_amount 100
   rewards_weight_for_vaults: &rewards_weight_for_vaults 85
@@ -62,15 +71,15 @@ constants:
     booster: &convex_booster "0xF403C135812408BFbE8713b5A23a04b3D48AAE31"
   weth_vault:
     rewards_weight: &weth_vault_rewards_weight 3
-    limit: &weth_vault_limit 16.3 # ~$50000 the script will include the token decimals automatically
-    paused: &weth_vault_paused false
+    limit: &weth_vault_limit 17 # ~$50000 the script will include the token decimals automatically
+    paused: &weth_vault_paused true
     curve_strategy:
       allocation: &curve_eth_allocation 1900 #20%
     convex_strategy:
       allocation: &convex_eth_allocation 7600 #80%
   wbtc_vault:
     rewards_weight: &wbtc_vault_rewards_weight 3
-    limit: &wbtc_vault_limit 1.1454 # ~$50000
+    limit: &wbtc_vault_limit 1.2 # ~$50000
     paused: &wbtc_vault_paused true
     curve_strategy:
       allocation: &curve_wbtc_allocation 1900 #20%
@@ -79,7 +88,7 @@ constants:
   usdc_vault:
     rewards_weight: &usdc_vault_rewards_weight 3
     limit: &usdc_vault_limit 50000
-    paused: &usdc_vault_paused true
+    paused: &usdc_vault_paused false
     curve_strategy:
       allocation: &curve_usdc_allocation 1900 #20%
     convex_strategy:
@@ -103,25 +112,38 @@ constants:
   dummy_vault:
     rewards_weight: &dummy_vault_rewards_weight 70
 
+# Configure the access policies to vaults/staking
 access_control:
   governance: *governance
+  # control access to vaults/staking with a list of addresses
   allowlist:
     # can be changed
+    # if enabled, this policy will be taking into account
     enabled: true
     governance: *governance
     # can be changed
+    # if an address is added here, it will have access to all the vaults/staking contracts
+    # this configure doesn't support per vault/staking contract configuration yet
     global: []
+  # enabled/disable public access to vaults/staking
   allowany:
     # can be changed
+    # if enabled, this policy will be taking into account
     enabled: false
     governance: *governance
     # can be changed
+    # set to true to enable global access, false to disable it
+    # this configuration doesn't support per vault/staking contract configuration yet
     global: true
+  # control access to vaults/staking using erc1155 NFT
   erc1155:
     # can be changed
+    # if enabled, this policy will be taking into account
     enabled: true
     governance: *governance
     # can be changed
+    # grant NFTs access to allow the vaults/staking contracts.
+    # this configuration doesn't support per vault/staking contract configuration yet
     global:
       - contract_address: *yopNFT
         token_ids: *yopNFTTokenIds

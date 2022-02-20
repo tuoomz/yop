@@ -1,4 +1,6 @@
 import { task } from "hardhat/config";
+
+import { createDelegate, listDelegates, deleteDelegate } from "../scripts/gnosis/safe-delegate";
 export * as impersonateAccountsTask from "./fork/impersonateAccounts";
 export * as fundFromBinanceTask from "./fork/fundAccounts";
 export * as resetFork from "./fork/reset";
@@ -22,3 +24,33 @@ task("accounts", "Prints the list of accounts", async ({ ethers }) => {
     console.log(account.address);
   }
 });
+
+task("gnosis:add-delegate", "Adds an whitelisted address that can propose txn to a safe")
+  .addParam("safe", "the safe address you to add a delegate to")
+  .addParam("delegate", "delegates the address")
+  .addOptionalParam("label", "Adds a label to the delegate", "proposer")
+  .setAction(async (taskArguments, hre) => {
+    const safe = taskArguments.safe;
+    const delegate = taskArguments.delegate;
+    const label = taskArguments.label;
+
+    await createDelegate(safe, delegate, label, hre);
+  });
+
+task("gnosis:delete-delegate", "Removes whitelisted address that can propose txn.")
+  .addParam("delegate", "delegates the address")
+  .addParam("delegator", "current delegator, use list to find this")
+  .setAction(async (taskArguments, hre) => {
+    const delegator = taskArguments.delegator;
+    const delegate = taskArguments.delegate;
+
+    await deleteDelegate(delegate, delegator, hre);
+  });
+
+task("gnosis:list-delegates", "Lists all delegates for safe")
+  .addParam("safe", "the safe address you to add a delegate to")
+  .setAction(async (taskArguments, hre) => {
+    const safe = taskArguments.safe;
+
+    await listDelegates(safe, hre);
+  });

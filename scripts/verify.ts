@@ -37,7 +37,12 @@ async function verify(address: string, args: Array<string>) {
       constructorArguments: args,
     });
   } catch (error: any) {
-    expect(error.message.toLowerCase()).contains("already verified");
+    if (error.message.toLowerCase().indexOf("already verified") > -1) {
+      console.log("contract is already verified");
+    } else {
+      console.log("error verifying contract", error);
+    }
+    // expect(error.message.toLowerCase()).contains("already verified");
   }
 }
 

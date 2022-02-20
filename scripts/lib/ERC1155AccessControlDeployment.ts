@@ -134,7 +134,7 @@ function getTokenIds(configs: NFTConfig[], address: string): string[] {
 }
 
 function itemsToAdd(oldArr: string[], newArr: string[]): string[] {
-  const results = [];
+  const results: string[] = [];
   for (const i of newArr) {
     if (oldArr.indexOf(i) === -1) {
       results.push(i);
@@ -144,7 +144,7 @@ function itemsToAdd(oldArr: string[], newArr: string[]): string[] {
 }
 
 function itemsToRemove(oldArr: string[], newArr: string[]): string[] {
-  const results = [];
+  const results: string[] = [];
   for (const i of oldArr) {
     if (newArr.indexOf(i) === -1) {
       results.push(i);

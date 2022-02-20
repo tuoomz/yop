@@ -70,7 +70,7 @@ constants:
     # https://etherscan.io/address/0xF403C135812408BFbE8713b5A23a04b3D48AAE31
     booster: &convex_booster "0xF403C135812408BFbE8713b5A23a04b3D48AAE31"
   weth_vault:
-    rewards_weight: &weth_vault_rewards_weight 3
+    rewards_weight: &weth_vault_rewards_weight 28030
     limit: &weth_vault_limit 17 # ~$50000 the script will include the token decimals automatically
     paused: &weth_vault_paused true
     curve_strategy:
@@ -78,7 +78,7 @@ constants:
     convex_strategy:
       allocation: &convex_eth_allocation 7600 #80%
   wbtc_vault:
-    rewards_weight: &wbtc_vault_rewards_weight 3
+    rewards_weight: &wbtc_vault_rewards_weight 39125
     limit: &wbtc_vault_limit 1.2 # ~$50000
     paused: &wbtc_vault_paused true
     curve_strategy:
@@ -86,7 +86,7 @@ constants:
     convex_strategy:
       allocation: &convex_wbtc_allocation 7600 #80%
   usdc_vault:
-    rewards_weight: &usdc_vault_rewards_weight 3
+    rewards_weight: &usdc_vault_rewards_weight 25694
     limit: &usdc_vault_limit 50000
     paused: &usdc_vault_paused true
     curve_strategy:
@@ -94,7 +94,7 @@ constants:
     convex_strategy:
       allocation: &convex_usdc_allocation 7600 #80%
   dai_vault:
-    rewards_weight: &dai_vault_rewards_weight 3
+    rewards_weight: &dai_vault_rewards_weight 29782
     limit: &dai_vault_limit 50000
     paused: &dai_vault_paused true
     curve_strategy:
@@ -102,7 +102,7 @@ constants:
     convex_strategy:
       allocation: &convex_dai_allocation 7600 #80%
   usdt_vault:
-    rewards_weight: &usdt_vault_rewards_weight 3
+    rewards_weight: &usdt_vault_rewards_weight 26862
     limit: &usdt_vault_limit 50000
     paused: &usdt_vault_paused true
     curve_strategy:
@@ -110,7 +110,8 @@ constants:
     convex_strategy:
       allocation: &convex_usdt_allocation 7600 #80%
   dummy_vault:
-    rewards_weight: &dummy_vault_rewards_weight 70
+    rewards_weight: &dummy_vault_rewards_weight 700000
+    limit: &dummy_vault_limit 0
 
 # Configure the access policies to vaults/staking
 access_control:
@@ -161,7 +162,7 @@ fee_collection:
   # can be changed
   default_strategy_developer_fee_ratio: *default_strategy_developer_fee_ratio
   # can be changed
-  paused: false
+  paused: true
 rewards:
   governance: *governance
   gatekeeper: *gatekeeper
@@ -184,7 +185,7 @@ rewards:
     "USDT Genesis": *usdt_vault_rewards_weight
     "Dummy": *dummy_vault_rewards_weight
   # can be changed
-  paused: false
+  paused: true
 staking:
   name: "YOP Staking"
   symbol: "sYOP"
@@ -197,7 +198,7 @@ staking:
   # can be changed. Ignore the decimals.
   min_stake_amount: *staking_min_amount
   # can be changed
-  paused: false
+  paused: true
 vaults:
   - name: Ethereum Genesis
     symbol: "yopETH"
@@ -352,4 +353,5 @@ vaults:
     max_debt_ratio: *vault_max_debt_ratio
     paused: true
     emergency_shutdown: false
+    deposit_limit: *dummy_vault_limit
     strategies: []

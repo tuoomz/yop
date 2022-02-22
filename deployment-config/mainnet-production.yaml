@@ -88,7 +88,7 @@ constants:
   usdc_vault:
     rewards_weight: &usdc_vault_rewards_weight 25694
     limit: &usdc_vault_limit 50000
-    paused: &usdc_vault_paused true
+    paused: &usdc_vault_paused false
     curve_strategy:
       allocation: &curve_usdc_allocation 1900 #20%
     convex_strategy:
@@ -162,7 +162,7 @@ fee_collection:
   # can be changed
   default_strategy_developer_fee_ratio: *default_strategy_developer_fee_ratio
   # can be changed
-  paused: true
+  paused: false
 rewards:
   governance: *governance
   gatekeeper: *gatekeeper
@@ -185,7 +185,7 @@ rewards:
     "USDT Genesis": *usdt_vault_rewards_weight
     "Dummy": *dummy_vault_rewards_weight
   # can be changed
-  paused: true
+  paused: false
 staking:
   name: "YOP Staking"
   symbol: "sYOP"
@@ -198,7 +198,7 @@ staking:
   # can be changed. Ignore the decimals.
   min_stake_amount: *staking_min_amount
   # can be changed
-  paused: true
+  paused: false
 vaults:
   - name: Ethereum Genesis
     symbol: "yopETH"

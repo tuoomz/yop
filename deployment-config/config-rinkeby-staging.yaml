@@ -47,7 +47,7 @@ access_control:
         token_ids: ["134"]
   allowany:
     # can be changed
-    enabled: true
+    enabled: false
     governance: *governance
     # can be changed
     global: true
@@ -74,8 +74,8 @@ rewards:
   emission_start_time: 1640995200 # 2022-1-1-00:00:00 GMT
   # can be changed
   total_allocation_weight:
-    vaults: 100
-    staking: 100
+    vaults: 85
+    staking: 15
   # can be changed
   vaults_allocation_weight:
     # never remove vaults for here.
@@ -84,8 +84,10 @@ rewards:
     "Ethereum Genesis": 100
     "Bitcoin Genesis": 100
     "USDC Genesis": 100
-    "DAI Genesis": 100
-    "USDT Genesis": 100
+    "DAI Genesis": 0
+    "USDT Genesis": 0
+    "DAI Genesis New": 100
+    "USDT Genesis New": 100
   # can be changed
   paused: false
 staking:
@@ -95,7 +97,7 @@ staking:
   gatekeeper: *gatekeeper
   uri: ""
   # can be changed
-  contract_uri: ""
+  contract_uri: "https://d3q6we6gspsrqs.cloudfront.net/opensea/contract.json"
   owner: *yopStakingNFTAdmin
   # can be changed. Ignore the decimals.
   min_stake_amount: 100
@@ -181,7 +183,7 @@ vaults:
         harvester: *harvester_address
         performance_fee: *strategy_performance_fee
         allocation: 6650 #66.5%
-  - name: DAI Genesis
+  - name: DAI Genesis New
     symbol: "yopDAI"
     governance: *governance
     gatekeeper: *gatekeeper
@@ -194,17 +196,17 @@ vaults:
     # can be changed
     deposit_limit: 500000
     strategies:
-      - name: "MockDAI1"
+      - name: "NewMockDAI1"
         contract: "TestnetStrategyMock"
         harvester: *harvester_address
         performance_fee: *strategy_performance_fee
         allocation: 2850 #28.5%
-      - name: "MockDAI2"
+      - name: "NewMockDAI2"
         contract: "TestnetStrategyMock"
         harvester: *harvester_address
         performance_fee: *strategy_performance_fee
         allocation: 6650 #66.5%
-  - name: USDT Genesis
+  - name: USDT Genesis New
     symbol: "yopUSDT"
     governance: *governance
     gatekeeper: *gatekeeper
@@ -217,12 +219,12 @@ vaults:
     # can be changed
     deposit_limit: 500000
     strategies:
-      - name: "MockUSDT1"
+      - name: "NewMockUSDT1"
         contract: "TestnetStrategyMock"
         harvester: *harvester_address
         performance_fee: *strategy_performance_fee
         allocation: 2850 #28.5%
-      - name: "MockUSDT2"
+      - name: "NewMockUSDT2"
         contract: "TestnetStrategyMock"
         harvester: *harvester_address
         performance_fee: *strategy_performance_fee

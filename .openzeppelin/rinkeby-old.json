@@ -2,60 +2,50 @@
   "manifestVersion": "3.2",
   "proxies": [
     {
-      "address": "0x6A926A52f60Ef35b7D259289cF5097cA3aCD9ED0",
-      "txHash": "0xb135b47294ea71976f98615bab55e92fc0d4070f20b9ab96db3ed7e8ab6315e8",
+      "address": "0x7b34A8998f0467C71827a7FE47b5326e677a78b3",
+      "txHash": "0xad876119f810986f961195b9c02b65a7330c8b7d803bb81d7dd832be562f9582",
       "kind": "uups"
     },
     {
-      "address": "0x79ef209DACD0C1019589366A6A03aB6e0d14Be15",
-      "txHash": "0xb8580e99c219d6e3b04492a2d36e94e11ddc3f7db2c70626ed21985fb0439edc",
+      "address": "0xA9fb988A75960CAae1bc55556FdD7F463A255ae0",
+      "txHash": "0xec653716b60fcacefd663e0777294f76db10e2183086ccaadbb24810717cab39",
       "kind": "uups"
     },
     {
-      "address": "0xbD3dCc8357512CA786e68656bF8ABaC3C4E906F3",
-      "txHash": "0x5f04177c6b6b68ae870c5a67a182b58299e7aaf694ebc9baee0d21ceea8576f2",
+      "address": "0xeD3B3A4aC33A3861DcA995A31A161ddB9F809b68",
+      "txHash": "0x141558f23733fea9e84df0fe29364856b2d8c1137e79361a053590499c4aa392",
       "kind": "uups"
     },
     {
-      "address": "0x1C56C5a308De6F9176f7378a580e4439F22Ca106",
-      "txHash": "0x322684acf272a53a5d3c20298dfb9052c06dbc852115572c37151f56dc46c895",
+      "address": "0xC17B83b33af998ab782E74fD271e354cf4aee2AB",
+      "txHash": "0xe29fdf0236a2d98db34ea04a012013b487d7554c26c6252fe77dd5f5f632e5f3",
       "kind": "uups"
     },
     {
-      "address": "0x8D21A7CAeE16233356D4217F478393c87710e549",
-      "txHash": "0x26c73ca13509ccd18434e202d11e82ac6c2f0935d853e07720169ec8ab30ddc5",
+      "address": "0xB9249aF92B75AE9D81888b46C0Cd810112b8C2cc",
+      "txHash": "0x4a919e4775cf98fd245fd7378a4a09cefc47e1961835a02d8c63b4cbb08c4c81",
       "kind": "uups"
     },
     {
-      "address": "0x2Ed01e80B170f7Bb18eF9A7A68fF3997Bc2430F5",
-      "txHash": "0x5cc377c04ee2d368968f2a924cf6bdad1d1ef00841be772a4504e124b1ca0511",
+      "address": "0x138667b07F6a8c22CBbdEfCd1E7Fb78307E96C9B",
+      "txHash": "0x73747f6d8099f727d21f25410fdb51cfe05d34b84161d6018c70c28ffc666ede",
       "kind": "uups"
     },
     {
-      "address": "0x4854Bbd17EFfc0cDDaa8Cc0414F6faF619D0868a",
-      "txHash": "0x5370b9443a52be89a0204082b4dd237b940fd4d3be2daf3e2b77e6f398b62e03",
+      "address": "0xAf3B1f91FdE4120BeD7f4209fB15aDF318A0CF50",
+      "txHash": "0xd82d6dc1eeb51c21dce6cb9f25a8d2cd93de041e7598e443af48643b6369e4dc",
       "kind": "uups"
     },
     {
-      "address": "0x9E51b7B6EC752c6870Dee9ba91c43bAf20A01995",
-      "txHash": "0x4f11cd0039868f4af2fb17313fca13bada9f34e9049e669721c3903905ee11ce",
-      "kind": "uups"
-    },
-    {
-      "address": "0x2838E97705A6dd726059a8ceB329DD237e398D76",
-      "txHash": "0xc810aebba369ba415f2a557d85a53494955b2b56a391a31c15f6ac49b921c32e",
-      "kind": "uups"
-    },
-    {
-      "address": "0x1C85B9a04bA0FA4A39e2Ea074C2cFb2791fCE3a9",
-      "txHash": "0x807cdacca59256bc1056ce8e220c525baacc4480e8a8b882148d5a8e528c07ec",
+      "address": "0x31A324446BA6653BaFdb3757ae81D38250A13f20",
+      "txHash": "0xd06d118d28cf9c913b5fddd4c1be923ca41e2a4635ad8f98daeb946580d79d58",
       "kind": "uups"
     }
   ],
   "impls": {
-    "e95c292bc6eba852a11eb594000f64803f19349c0851e05d0b79dd7501ebe744": {
-      "address": "0x66cc8827F9F49270bb52D6C28E48e34D17500E1a",
-      "txHash": "0x772a19bbfb9a017a53627694e2cc531eda54bc41f22cdb26f2845b9f0d302594",
+    "154819135be743ddbf746ea5c31156a1cdf8c3e9939d5781bdcd7e625382af22": {
+      "address": "0xFcc3b24A6928D70f52d6c49C4C57C2c32f16bE1c",
+      "txHash": "0x805ec3119e8ad13d76b268255527bbece4ed1db7455634db12e70ebe8d710376",
       "layout": {
         "storage": [
           {
@@ -122,77 +112,77 @@
             "contract": "FeeCollection",
             "label": "vaultStrategyDataStore",
             "type": "t_address",
-            "src": "contracts/fees/FeeCollection.sol:18"
+            "src": "contracts/fees/FeeCollection.sol:19"
           },
           {
             "contract": "FeeCollection",
             "label": "tokens",
-            "type": "t_struct(AddressSet)10743_storage",
-            "src": "contracts/fees/FeeCollection.sol:38"
+            "type": "t_struct(AddressSet)10541_storage",
+            "src": "contracts/fees/FeeCollection.sol:39"
           },
           {
             "contract": "FeeCollection",
             "label": "feesAvailableMap",
             "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts/fees/FeeCollection.sol:41"
+            "src": "contracts/fees/FeeCollection.sol:42"
           },
           {
             "contract": "FeeCollection",
             "label": "feesClaimedMap",
             "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "src": "contracts/fees/FeeCollection.sol:44"
+            "src": "contracts/fees/FeeCollection.sol:45"
           },
           {
             "contract": "FeeCollection",
             "label": "defaultVaultCreatorFeeRatio",
             "type": "t_uint16",
-            "src": "contracts/fees/FeeCollection.sol:48"
+            "src": "contracts/fees/FeeCollection.sol:49"
           },
           {
             "contract": "FeeCollection",
             "label": "defaultStrategyProposerFeeRatio",
             "type": "t_uint16",
-            "src": "contracts/fees/FeeCollection.sol:50"
+            "src": "contracts/fees/FeeCollection.sol:51"
           },
           {
             "contract": "FeeCollection",
             "label": "defaultStrategyDeveloperFeeRatio",
             "type": "t_uint16",
-            "src": "contracts/fees/FeeCollection.sol:52"
+            "src": "contracts/fees/FeeCollection.sol:53"
           },
           {
             "contract": "FeeCollection",
             "label": "vaultCreatorFeeRatioMap",
-            "type": "t_mapping(t_address,t_struct(VaultCreatorFeeRatio)12724_storage)",
-            "src": "contracts/fees/FeeCollection.sol:75"
+            "type": "t_mapping(t_address,t_struct(VaultCreatorFeeRatio)12557_storage)",
+            "src": "contracts/fees/FeeCollection.sol:76"
           },
           {
             "contract": "FeeCollection",
             "label": "strategyFeeRatioMap",
-            "type": "t_mapping(t_address,t_struct(StrategyFeeRatio)12719_storage)",
-            "src": "contracts/fees/FeeCollection.sol:76"
+            "type": "t_mapping(t_address,t_struct(StrategyFeeRatio)12552_storage)",
+            "src": "contracts/fees/FeeCollection.sol:77"
           },
           {
             "contract": "FeeCollection",
             "label": "protocolWallet",
             "type": "t_address",
-            "src": "contracts/fees/FeeCollection.sol:79"
+            "src": "contracts/fees/FeeCollection.sol:80"
           }
         ],
         "types": {
           "t_address": {
             "label": "address"
           },
-          "t_struct(AddressSet)10743_storage": {
+          "t_struct(AddressSet)10541_storage": {
             "label": "struct EnumerableSet.AddressSet",
             "members": [
               {
                 "label": "_inner",
-                "type": "t_struct(Set)10442_storage"
+                "type": "t_struct(Set)10240_storage"
               }
             ]
           },
-          "t_struct(Set)10442_storage": {
+          "t_struct(Set)10240_storage": {
             "label": "struct EnumerableSet.Set",
             "members": [
               {
@@ -226,10 +216,10 @@
           "t_uint16": {
             "label": "uint16"
           },
-          "t_mapping(t_address,t_struct(VaultCreatorFeeRatio)12724_storage)": {
+          "t_mapping(t_address,t_struct(VaultCreatorFeeRatio)12557_storage)": {
             "label": "mapping(address => struct FeeCollection.VaultCreatorFeeRatio)"
           },
-          "t_struct(VaultCreatorFeeRatio)12724_storage": {
+          "t_struct(VaultCreatorFeeRatio)12557_storage": {
             "label": "struct FeeCollection.VaultCreatorFeeRatio",
             "members": [
               {
@@ -245,10 +235,10 @@
           "t_bool": {
             "label": "bool"
           },
-          "t_mapping(t_address,t_struct(StrategyFeeRatio)12719_storage)": {
+          "t_mapping(t_address,t_struct(StrategyFeeRatio)12552_storage)": {
             "label": "mapping(address => struct FeeCollection.StrategyFeeRatio)"
           },
-          "t_struct(StrategyFeeRatio)12719_storage": {
+          "t_struct(StrategyFeeRatio)12552_storage": {
             "label": "struct FeeCollection.StrategyFeeRatio",
             "members": [
               {
@@ -274,9 +264,9 @@
         }
       }
     },
-    "e3d73824aac1c9c4b0faf455dd245ed114b5d91bf96fd78027380ebb07898e21": {
-      "address": "0xb6751867caf8CD548694233d0217d98A773a30bd",
-      "txHash": "0x29e05794272b23479d33087126e0c08f0255336b2f8a5a1651282a163efc8c92",
+    "80deaaa127344b893ae915ea76ba175d77a2e4acbc65e590e3760ffec9d12b4b": {
+      "address": "0x41C0DE359a434655276aCaD735b4D210C4a03F4c",
+      "txHash": "0x724fac027823290853f1b30a7e1eb0dbdce8bf892cd1f6591577ca4e87d74041",
       "layout": {
         "storage": [
           {
@@ -343,79 +333,79 @@
             "contract": "YOPRewards",
             "label": "vaultsRewardsWeight",
             "type": "t_uint256",
-            "src": "contracts/rewards/YOPRewards.sol:82"
+            "src": "contracts/rewards/YOPRewards.sol:80"
           },
           {
             "contract": "YOPRewards",
             "label": "stakingRewardsWeight",
             "type": "t_uint256",
-            "src": "contracts/rewards/YOPRewards.sol:84"
+            "src": "contracts/rewards/YOPRewards.sol:82"
           },
           {
             "contract": "YOPRewards",
             "label": "totalWeightForVaults",
             "type": "t_uint256",
-            "src": "contracts/rewards/YOPRewards.sol:86"
+            "src": "contracts/rewards/YOPRewards.sol:84"
           },
           {
             "contract": "YOPRewards",
             "label": "emissionStartTime",
             "type": "t_uint256",
-            "src": "contracts/rewards/YOPRewards.sol:88"
+            "src": "contracts/rewards/YOPRewards.sol:86"
           },
           {
             "contract": "YOPRewards",
             "label": "emissionEndTime",
             "type": "t_uint256",
-            "src": "contracts/rewards/YOPRewards.sol:90"
+            "src": "contracts/rewards/YOPRewards.sol:88"
           },
           {
             "contract": "YOPRewards",
             "label": "yopContractAddress",
             "type": "t_address",
-            "src": "contracts/rewards/YOPRewards.sol:92"
+            "src": "contracts/rewards/YOPRewards.sol:90"
           },
           {
             "contract": "YOPRewards",
             "label": "rewardsWallet",
             "type": "t_address",
-            "src": "contracts/rewards/YOPRewards.sol:94"
+            "src": "contracts/rewards/YOPRewards.sol:92"
           },
           {
             "contract": "YOPRewards",
             "label": "stakingContract",
             "type": "t_address",
-            "src": "contracts/rewards/YOPRewards.sol:96"
+            "src": "contracts/rewards/YOPRewards.sol:94"
           },
           {
             "contract": "YOPRewards",
             "label": "perVaultRewardsWeight",
             "type": "t_mapping(t_address,t_uint256)",
-            "src": "contracts/rewards/YOPRewards.sol:100"
+            "src": "contracts/rewards/YOPRewards.sol:98"
           },
           {
             "contract": "YOPRewards",
             "label": "vaultAddresses",
-            "type": "t_struct(AddressSet)4934_storage",
-            "src": "contracts/rewards/YOPRewards.sol:102"
+            "type": "t_struct(AddressSet)4732_storage",
+            "src": "contracts/rewards/YOPRewards.sol:100"
           },
           {
             "contract": "YOPRewards",
             "label": "poolRewardsState",
-            "type": "t_mapping(t_address,t_struct(PoolRewardsState)18185_storage)",
-            "src": "contracts/rewards/YOPRewards.sol:105"
+            "type": "t_mapping(t_address,t_struct(PoolRewardsState)17684_storage)",
+            "src": "contracts/rewards/YOPRewards.sol:103"
           },
           {
             "contract": "YOPRewards",
             "label": "userRewardsState",
-            "type": "t_mapping(t_address,t_mapping(t_bytes32,t_struct(UD60x18)39429_storage))",
-            "src": "contracts/rewards/YOPRewards.sol:107"
+            "type": "t_mapping(t_address,t_mapping(t_bytes32,t_struct(UD60x18)38741_storage))",
+            "src": "contracts/rewards/YOPRewards.sol:105"
           },
           {
             "contract": "YOPRewards",
             "label": "claimRecords",
-            "type": "t_mapping(t_bytes32,t_struct(ClaimRecord)18190_storage)",
-            "src": "contracts/rewards/YOPRewards.sol:109"
+            "type": "t_mapping(t_bytes32,t_struct(ClaimRecord)17689_storage)",
+            "src": "contracts/rewards/YOPRewards.sol:107"
           }
         ],
         "types": {
@@ -428,16 +418,16 @@
           "t_mapping(t_address,t_uint256)": {
             "label": "mapping(address => uint256)"
           },
-          "t_struct(AddressSet)4934_storage": {
+          "t_struct(AddressSet)4732_storage": {
             "label": "struct EnumerableSetUpgradeable.AddressSet",
             "members": [
               {
                 "label": "_inner",
-                "type": "t_struct(Set)4633_storage"
+                "type": "t_struct(Set)4431_storage"
               }
             ]
           },
-          "t_struct(Set)4633_storage": {
+          "t_struct(Set)4431_storage": {
             "label": "struct EnumerableSetUpgradeable.Set",
             "members": [
               {
@@ -459,15 +449,15 @@
           "t_mapping(t_bytes32,t_uint256)": {
             "label": "mapping(bytes32 => uint256)"
           },
-          "t_mapping(t_address,t_struct(PoolRewardsState)18185_storage)": {
+          "t_mapping(t_address,t_struct(PoolRewardsState)17684_storage)": {
             "label": "mapping(address => struct YOPRewards.PoolRewardsState)"
           },
-          "t_struct(PoolRewardsState)18185_storage": {
+          "t_struct(PoolRewardsState)17684_storage": {
             "label": "struct YOPRewards.PoolRewardsState",
             "members": [
               {
                 "label": "index",
-                "type": "t_struct(UD60x18)39429_storage"
+                "type": "t_struct(UD60x18)38741_storage"
               },
               {
                 "label": "timestamp",
@@ -487,7 +477,7 @@
               }
             ]
           },
-          "t_struct(UD60x18)39429_storage": {
+          "t_struct(UD60x18)38741_storage": {
             "label": "struct PRBMath.UD60x18",
             "members": [
               {
@@ -496,16 +486,16 @@
               }
             ]
           },
-          "t_mapping(t_address,t_mapping(t_bytes32,t_struct(UD60x18)39429_storage))": {
+          "t_mapping(t_address,t_mapping(t_bytes32,t_struct(UD60x18)38741_storage))": {
             "label": "mapping(address => mapping(bytes32 => struct PRBMath.UD60x18))"
           },
-          "t_mapping(t_bytes32,t_struct(UD60x18)39429_storage)": {
+          "t_mapping(t_bytes32,t_struct(UD60x18)38741_storage)": {
             "label": "mapping(bytes32 => struct PRBMath.UD60x18)"
           },
-          "t_mapping(t_bytes32,t_struct(ClaimRecord)18190_storage)": {
+          "t_mapping(t_bytes32,t_struct(ClaimRecord)17689_storage)": {
             "label": "mapping(bytes32 => struct YOPRewards.ClaimRecord)"
           },
-          "t_struct(ClaimRecord)18190_storage": {
+          "t_struct(ClaimRecord)17689_storage": {
             "label": "struct YOPRewards.ClaimRecord",
             "members": [
               {
@@ -530,9 +520,9 @@
         }
       }
     },
-    "f86a7f94e952a329c137b67e705467cb8e3e92af40b0535ebad042b81a96504e": {
-      "address": "0x50166a82B2C75EC51D0631BC5a178e9b2B39c669",
-      "txHash": "0x6483bdf802f314e8c04230d9c32045b31cbfb201b03398946195729dcdbb376a",
+    "e22ab3c392d63681aa964eef6e8b69125152b230039866abb57c40c5abfa9372": {
+      "address": "0x750c562C0a3147146D150f4c4142f7fa9d9E5afA",
+      "txHash": "0xcebb9253b4476b9990c6a67018d62813110e6b8443581b2f7b1bd48dd915a946",
       "layout": {
         "storage": [
           {
@@ -629,73 +619,67 @@
             "contract": "Staking",
             "label": "name",
             "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:55"
+            "src": "contracts/staking/Staking.sol:53"
           },
           {
             "contract": "Staking",
             "label": "symbol",
             "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:57"
+            "src": "contracts/staking/Staking.sol:55"
           },
           {
             "contract": "Staking",
             "label": "contractURI",
             "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:59"
+            "src": "contracts/staking/Staking.sol:57"
           },
           {
             "contract": "Staking",
             "label": "owner",
             "type": "t_address",
-            "src": "contracts/staking/Staking.sol:61"
+            "src": "contracts/staking/Staking.sol:59"
           },
           {
             "contract": "Staking",
             "label": "minStakeAmount",
             "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:63"
+            "src": "contracts/staking/Staking.sol:61"
           },
           {
             "contract": "Staking",
             "label": "totalWorkingSupply",
             "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:65"
+            "src": "contracts/staking/Staking.sol:63"
           },
           {
             "contract": "Staking",
             "label": "stakes",
-            "type": "t_array(t_struct(Stake)20260_storage)dyn_storage",
-            "src": "contracts/staking/Staking.sol:67"
+            "type": "t_array(t_struct(Stake)19773_storage)dyn_storage",
+            "src": "contracts/staking/Staking.sol:65"
           },
           {
             "contract": "Staking",
             "label": "yopRewards",
             "type": "t_address",
-            "src": "contracts/staking/Staking.sol:69"
+            "src": "contracts/staking/Staking.sol:67"
           },
           {
             "contract": "Staking",
             "label": "accessControlManager",
             "type": "t_address",
-            "src": "contracts/staking/Staking.sol:71"
+            "src": "contracts/staking/Staking.sol:69"
           },
           {
             "contract": "Staking",
             "label": "stakesForAddress",
             "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
-            "src": "contracts/staking/Staking.sol:73"
+            "src": "contracts/staking/Staking.sol:71"
           },
           {
             "contract": "Staking",
             "label": "owners",
             "type": "t_mapping(t_uint256,t_address)",
-            "src": "contracts/staking/Staking.sol:75"
-          },
-          {
-            "contract": "Staking",
-            "label": "stakingLimit",
-            "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:77"
+            "src": "contracts/staking/Staking.sol:73"
           }
         ],
         "types": {
@@ -708,10 +692,10 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_array(t_struct(Stake)20260_storage)dyn_storage": {
+          "t_array(t_struct(Stake)19773_storage)dyn_storage": {
             "label": "struct Staking.Stake[]"
           },
-          "t_struct(Stake)20260_storage": {
+          "t_struct(Stake)19773_storage": {
             "label": "struct Staking.Stake",
             "members": [
               {
@@ -774,9 +758,9 @@
         }
       }
     },
-    "700e241fb76250f86041de02dcce3afcea83c7ea59aaef1c2f11187ca4d2df20": {
-      "address": "0x36505725e03CE0B410C42ac96B77A73074Bd957A",
-      "txHash": "0x90f1b055c7322f87f37ebc80df4c706db709395ab7fce5af573b39d73a2c578b",
+    "c29c986ea7fd391b4dc0c4fe0a8373b9a512e4f7f416bccf174174ebfd4ad2b0": {
+      "address": "0x337e9f17EC34E720fC800AA0266427663cdC0b67",
+      "txHash": "0x320661f50b46a530c3d270622921308b39a3a988b1bb7d3c8ab0d9267c72a4fa",
       "layout": {
         "storage": [
           {
@@ -980,7 +964,7 @@
           {
             "contract": "VaultDataStorage",
             "label": "strategies",
-            "type": "t_mapping(t_address,t_struct(StrategyInfo)13917_storage)",
+            "type": "t_mapping(t_address,t_struct(StrategyInfo)13750_storage)",
             "src": "contracts/vaults/VaultDataStorage.sol:38"
           },
           {
@@ -988,12 +972,6 @@
             "label": "vaultRewards",
             "type": "t_address",
             "src": "contracts/vaults/VaultDataStorage.sol:41"
-          },
-          {
-            "contract": "VaultDataStorage",
-            "label": "dt",
-            "type": "t_mapping(t_address,t_uint256)",
-            "src": "contracts/vaults/VaultDataStorage.sol:44"
           },
           {
             "contract": "PausableUpgradeable",
@@ -1054,10 +1032,10 @@
           "t_contract(IERC20Upgradeable)2715": {
             "label": "contract IERC20Upgradeable"
           },
-          "t_mapping(t_address,t_struct(StrategyInfo)13917_storage)": {
+          "t_mapping(t_address,t_struct(StrategyInfo)13750_storage)": {
             "label": "mapping(address => struct StrategyInfo)"
           },
-          "t_struct(StrategyInfo)13917_storage": {
+          "t_struct(StrategyInfo)13750_storage": {
             "label": "struct StrategyInfo",
             "members": [
               {
@@ -1082,9 +1060,6 @@
               }
             ]
           },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)"
-          },
           "t_mapping(t_address,t_struct(Counter)3492_storage)": {
             "label": "mapping(address => struct CountersUpgradeable.Counter)"
           },
@@ -1100,6 +1075,9 @@
           "t_bytes32": {
             "label": "bytes32"
           },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
+          },
           "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
             "label": "mapping(address => mapping(address => uint256))"
           },
@@ -1112,9 +1090,9 @@
         }
       }
     },
-    "7d94ad2b092b4596bc8be352b5dfd9c1426ce8d14d6e2e765988e324b29db178": {
-      "address": "0x077eb78E25c6CD3d966C99328BE47b7951919b21",
-      "txHash": "0xa9e3a0fcfde0519249ae5d786f9355ba6a97ddd7acc23f0ccb99e1de4713f4e3",
+    "0333bfd3b3acda5444a0872c2782ef81f63d1827b029432b27ebd87b6c7edbe8": {
+      "address": "0x8F2EaEddF48D7e38c3F121c7d2F216c92FeD2Dfe",
+      "txHash": "0x782fe9a15d878e8f1c2f5d8082f08bd54aa629db55060df29e09c5d7849d14eb",
       "layout": {
         "storage": [
           {
@@ -1211,73 +1189,67 @@
             "contract": "Staking",
             "label": "name",
             "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:55"
+            "src": "contracts/staking/Staking.sol:53"
           },
           {
             "contract": "Staking",
             "label": "symbol",
             "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:57"
+            "src": "contracts/staking/Staking.sol:55"
           },
           {
             "contract": "Staking",
             "label": "contractURI",
             "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:59"
+            "src": "contracts/staking/Staking.sol:57"
           },
           {
             "contract": "Staking",
             "label": "owner",
             "type": "t_address",
-            "src": "contracts/staking/Staking.sol:61"
+            "src": "contracts/staking/Staking.sol:59"
           },
           {
             "contract": "Staking",
             "label": "minStakeAmount",
             "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:63"
+            "src": "contracts/staking/Staking.sol:61"
           },
           {
             "contract": "Staking",
             "label": "totalWorkingSupply",
             "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:65"
+            "src": "contracts/staking/Staking.sol:63"
           },
           {
             "contract": "Staking",
             "label": "stakes",
-            "type": "t_array(t_struct(Stake)20290_storage)dyn_storage",
-            "src": "contracts/staking/Staking.sol:67"
+            "type": "t_array(t_struct(Stake)19773_storage)dyn_storage",
+            "src": "contracts/staking/Staking.sol:65"
           },
           {
             "contract": "Staking",
             "label": "yopRewards",
             "type": "t_address",
-            "src": "contracts/staking/Staking.sol:69"
+            "src": "contracts/staking/Staking.sol:67"
           },
           {
             "contract": "Staking",
             "label": "accessControlManager",
             "type": "t_address",
-            "src": "contracts/staking/Staking.sol:71"
+            "src": "contracts/staking/Staking.sol:69"
           },
           {
             "contract": "Staking",
             "label": "stakesForAddress",
             "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
-            "src": "contracts/staking/Staking.sol:73"
+            "src": "contracts/staking/Staking.sol:71"
           },
           {
             "contract": "Staking",
             "label": "owners",
             "type": "t_mapping(t_uint256,t_address)",
-            "src": "contracts/staking/Staking.sol:75"
-          },
-          {
-            "contract": "Staking",
-            "label": "stakingLimit",
-            "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:77"
+            "src": "contracts/staking/Staking.sol:73"
           },
           {
             "contract": "StakingV1Mock",
@@ -1296,260 +1268,10 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_array(t_struct(Stake)20290_storage)dyn_storage": {
+          "t_array(t_struct(Stake)19773_storage)dyn_storage": {
             "label": "struct Staking.Stake[]"
           },
-          "t_struct(Stake)20290_storage": {
-            "label": "struct Staking.Stake",
-            "members": [
-              {
-                "label": "lockPeriod",
-                "type": "t_uint8"
-              },
-              {
-                "label": "amount",
-                "type": "t_uint248"
-              },
-              {
-                "label": "startTime",
-                "type": "t_uint256"
-              },
-              {
-                "label": "lastTransferTime",
-                "type": "t_uint256"
-              }
-            ]
-          },
-          "t_uint8": {
-            "label": "uint8"
-          },
-          "t_uint248": {
-            "label": "uint248"
-          },
-          "t_mapping(t_address,t_array(t_uint256)dyn_storage)": {
-            "label": "mapping(address => uint256[])"
-          },
-          "t_array(t_uint256)dyn_storage": {
-            "label": "uint256[]"
-          },
-          "t_mapping(t_uint256,t_address)": {
-            "label": "mapping(uint256 => address)"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]"
-          },
-          "t_bool": {
-            "label": "bool"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]"
-          },
-          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
-            "label": "mapping(uint256 => mapping(address => uint256))"
-          },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)"
-          },
-          "t_mapping(t_address,t_mapping(t_address,t_bool))": {
-            "label": "mapping(address => mapping(address => bool))"
-          },
-          "t_mapping(t_address,t_bool)": {
-            "label": "mapping(address => bool)"
-          },
-          "t_array(t_uint256)47_storage": {
-            "label": "uint256[47]"
-          }
-        }
-      }
-    },
-    "5d57a777ae24d2205b248e51bd04b719a0d65c97a7d8fd7b74080e10ad49a6da": {
-      "address": "0xC0E1df6f4DC7698731641f0763702367a23C44b0",
-      "txHash": "0x3ac4bdaf7214235758b03d348cd18049dc4a85aca7c60cec2525ed9853ae1109",
-      "layout": {
-        "storage": [
-          {
-            "contract": "Initializable",
-            "label": "_initialized",
-            "type": "t_bool",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
-          },
-          {
-            "contract": "Initializable",
-            "label": "_initializing",
-            "type": "t_bool",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
-          },
-          {
-            "contract": "ContextUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
-          },
-          {
-            "contract": "ERC165Upgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:36"
-          },
-          {
-            "contract": "ERC1155Upgradeable",
-            "label": "_balances",
-            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
-            "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol:25"
-          },
-          {
-            "contract": "ERC1155Upgradeable",
-            "label": "_operatorApprovals",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
-            "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol:28"
-          },
-          {
-            "contract": "ERC1155Upgradeable",
-            "label": "_uri",
-            "type": "t_string_storage",
-            "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol:31"
-          },
-          {
-            "contract": "ERC1155Upgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)47_storage",
-            "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol:471"
-          },
-          {
-            "contract": "GovernableInternal",
-            "label": "governance",
-            "type": "t_address",
-            "src": "contracts/vaults/roles/Governable.sol:20"
-          },
-          {
-            "contract": "GovernableInternal",
-            "label": "pendingGovernance",
-            "type": "t_address",
-            "src": "contracts/vaults/roles/Governable.sol:22"
-          },
-          {
-            "contract": "Gatekeeperable",
-            "label": "gatekeeper",
-            "type": "t_address",
-            "src": "contracts/vaults/roles/Gatekeeperable.sol:17"
-          },
-          {
-            "contract": "PausableUpgradeable",
-            "label": "_paused",
-            "type": "t_bool",
-            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
-          },
-          {
-            "contract": "PausableUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:97"
-          },
-          {
-            "contract": "ERC1967UpgradeUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:215"
-          },
-          {
-            "contract": "UUPSUpgradeable",
-            "label": "__gap",
-            "type": "t_array(t_uint256)50_storage",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:81"
-          },
-          {
-            "contract": "Staking",
-            "label": "name",
-            "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:55"
-          },
-          {
-            "contract": "Staking",
-            "label": "symbol",
-            "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:57"
-          },
-          {
-            "contract": "Staking",
-            "label": "contractURI",
-            "type": "t_string_storage",
-            "src": "contracts/staking/Staking.sol:59"
-          },
-          {
-            "contract": "Staking",
-            "label": "owner",
-            "type": "t_address",
-            "src": "contracts/staking/Staking.sol:61"
-          },
-          {
-            "contract": "Staking",
-            "label": "minStakeAmount",
-            "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:63"
-          },
-          {
-            "contract": "Staking",
-            "label": "totalWorkingSupply",
-            "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:65"
-          },
-          {
-            "contract": "Staking",
-            "label": "stakes",
-            "type": "t_array(t_struct(Stake)20290_storage)dyn_storage",
-            "src": "contracts/staking/Staking.sol:67"
-          },
-          {
-            "contract": "Staking",
-            "label": "yopRewards",
-            "type": "t_address",
-            "src": "contracts/staking/Staking.sol:69"
-          },
-          {
-            "contract": "Staking",
-            "label": "accessControlManager",
-            "type": "t_address",
-            "src": "contracts/staking/Staking.sol:71"
-          },
-          {
-            "contract": "Staking",
-            "label": "stakesForAddress",
-            "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
-            "src": "contracts/staking/Staking.sol:73"
-          },
-          {
-            "contract": "Staking",
-            "label": "owners",
-            "type": "t_mapping(t_uint256,t_address)",
-            "src": "contracts/staking/Staking.sol:75"
-          },
-          {
-            "contract": "Staking",
-            "label": "stakingLimit",
-            "type": "t_uint256",
-            "src": "contracts/staking/Staking.sol:77"
-          },
-          {
-            "contract": "StakingV1Mock",
-            "label": "token",
-            "type": "t_address",
-            "src": "contracts/mocks/StakingV1Mock.sol:8"
-          }
-        ],
-        "types": {
-          "t_address": {
-            "label": "address"
-          },
-          "t_string_storage": {
-            "label": "string"
-          },
-          "t_uint256": {
-            "label": "uint256"
-          },
-          "t_array(t_struct(Stake)20290_storage)dyn_storage": {
-            "label": "struct Staking.Stake[]"
-          },
-          "t_struct(Stake)20290_storage": {
+          "t_struct(Stake)19773_storage": {
             "label": "struct Staking.Stake",
             "members": [
               {

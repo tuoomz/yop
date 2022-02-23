@@ -166,35 +166,35 @@ For more information, please checkout [Hardhat docs](https://hardhat.org/getting
 
 #### Access Control
 
-- AllowlistAccessControl - [0xd3e4955B464c758385c72C95f981711D39CC9215](https://rinkeby.etherscan.io/address/0xd3e4955B464c758385c72C95f981711D39CC9215)
-- ERC1155AccessControl - [0x4dB8b94B34259C220D159b502D48477Bff2625fA](https://rinkeby.etherscan.io/address/0x4dB8b94B34259C220D159b502D48477Bff2625fA)
-- AllowAnyAccessControl - [0x35738b461D85cB013460F0E4FE9631bD533bbe86](https://rinkeby.etherscan.io/address/0x35738b461D85cB013460F0E4FE9631bD533bbe86)
-- AccessControlManager - [0x838Aaf65Dde430A41455F1f287D947D3754419bb](https://rinkeby.etherscan.io/address/0x838Aaf65Dde430A41455F1f287D947D3754419bb)
+- AllowlistAccessControl - [0x029935d6E69A2DBF1eFFF64bf8f32ec89144FB49](https://rinkeby.etherscan.io/address/0x029935d6E69A2DBF1eFFF64bf8f32ec89144FB49)
+- ERC1155AccessControl - [0x07e4d1dCE0Cb8F7f3513b0D7942EB188047F4223](https://rinkeby.etherscan.io/address/0x07e4d1dCE0Cb8F7f3513b0D7942EB188047F4223)
+- AllowAnyAccessControl - [0x0640A44A00B61a414f4B7DCb1C61F070C1e5bDFE](https://rinkeby.etherscan.io/address/0x0640A44A00B61a414f4B7DCb1C61F070C1e5bDFE)
+- AccessControlManager - [0x32F3CC19D275dAF22355C0e871D926690f790d7B](https://rinkeby.etherscan.io/address/0x32F3CC19D275dAF22355C0e871D926690f790d7B)
 
 #### Rewards
 
-- YOPRewards - [0xA9fb988A75960CAae1bc55556FdD7F463A255ae0](https://rinkeby.etherscan.io/address/0xA9fb988A75960CAae1bc55556FdD7F463A255ae0)
+- YOPRewards - [0x79ef209DACD0C1019589366A6A03aB6e0d14Be15](https://rinkeby.etherscan.io/address/0x79ef209DACD0C1019589366A6A03aB6e0d14Be15)
 
 #### Staking
 
-- Staking - [0xeD3B3A4aC33A3861DcA995A31A161ddB9F809b68](https://rinkeby.etherscan.io/address/0xeD3B3A4aC33A3861DcA995A31A161ddB9F809b68)
+- Staking - [0xbD3dCc8357512CA786e68656bF8ABaC3C4E906F3](https://rinkeby.etherscan.io/address/0xbD3dCc8357512CA786e68656bF8ABaC3C4E906F3)
 
 #### Vaults
 
-- VaultStrategyDataStore - [0xc5c788EDb6814edea110f2C3A83492C6b0147731](https://rinkeby.etherscan.io/address/0xc5c788EDb6814edea110f2C3A83492C6b0147731)
-- FeeCollection - [0x7b34A8998f0467C71827a7FE47b5326e677a78b3](https://rinkeby.etherscan.io/address/0x7b34A8998f0467C71827a7FE47b5326e677a78b3)
-- Ethereum Genesis - [0xC17B83b33af998ab782E74fD271e354cf4aee2AB](https://rinkeby.etherscan.io/address/0xC17B83b33af998ab782E74fD271e354cf4aee2AB)
-  - MockEth1 Strategy - [0x535f4B796b516b7bDBf7cbceD6c2e6826796Eab3](https://rinkeby.etherscan.io/address/0x535f4B796b516b7bDBf7cbceD6c2e6826796Eab3)
-  - MockEth2 Strategy - [0x5903f3406CE80dC4f282cF6Dc03453957af629c0](https://rinkeby.etherscan.io/address/0x5903f3406CE80dC4f282cF6Dc03453957af629c0)
-- Bitcoin Genesis - [0xB9249aF92B75AE9D81888b46C0Cd810112b8C2cc](https://rinkeby.etherscan.io/address/0xB9249aF92B75AE9D81888b46C0Cd810112b8C2cc)
-  - MockBtc1 Strategy - [0x53ea4ffD37DAe63c6D111321C7bd4eBA87185745](https://rinkeby.etherscan.io/address/0x53ea4ffD37DAe63c6D111321C7bd4eBA87185745)
-  - MockBtc2 Strategy - [0x0Acf6DF2ea0cF41f075bE3508319B04198eDB3CC](https://rinkeby.etherscan.io/address/0x0Acf6DF2ea0cF41f075bE3508319B04198eDB3CC)
-- USDC Genesis - [0x138667b07F6a8c22CBbdEfCd1E7Fb78307E96C9B](https://rinkeby.etherscan.io/address/0x138667b07F6a8c22CBbdEfCd1E7Fb78307E96C9B)
-  - MockUSDC1 Strategy - [0x1d4b9a3b7a69A17b80C30F17E6ff6820dC24e3A4](https://rinkeby.etherscan.io/address/0x1d4b9a3b7a69A17b80C30F17E6ff6820dC24e3A4)
-  - MockUSDC2 Strategy - [0x7EE1568b5dD73eBd8DB9eC0c2fbD372EAC4ddB6b](https://rinkeby.etherscan.io/address/0x7EE1568b5dD73eBd8DB9eC0c2fbD372EAC4ddB6b)
-- DAI Genesis - [0xAf3B1f91FdE4120BeD7f4209fB15aDF318A0CF50](https://rinkeby.etherscan.io/address/0xAf3B1f91FdE4120BeD7f4209fB15aDF318A0CF50)
-  - MockDAI1 - [0xCDDb89866Ccc86aae747DEAad27967adD418Aa4D](https://rinkeby.etherscan.io/address/0xCDDb89866Ccc86aae747DEAad27967adD418Aa4D)
-  - MockDAI2 - [0xAaB7772d7078FFcE423244f1900275d2492920A1](https://rinkeby.etherscan.io/address/0xAaB7772d7078FFcE423244f1900275d2492920A1)
-- USDT Genesis- [0x31A324446BA6653BaFdb3757ae81D38250A13f20](https://rinkeby.etherscan.io/address/0x31A324446BA6653BaFdb3757ae81D38250A13f20)
-  - MockUSDT1 - [0x6A9c71252349E9dd540014C1386eBC60a254718D](https://rinkeby.etherscan.io/address/0x6A9c71252349E9dd540014C1386eBC60a254718D)
-  - MockUSDT2 - [0xE0C8436D96D596B7011Ff8f8286BB4289792b4AF](https://rinkeby.etherscan.io/address/0xE0C8436D96D596B7011Ff8f8286BB4289792b4AF)
+- VaultStrategyDataStore - [0x751543288831c60CF9C3fBa2dabFbD7d507978F3](https://rinkeby.etherscan.io/address/0x751543288831c60CF9C3fBa2dabFbD7d507978F3)
+- FeeCollection - [0x6A926A52f60Ef35b7D259289cF5097cA3aCD9ED0](https://rinkeby.etherscan.io/address/0x6A926A52f60Ef35b7D259289cF5097cA3aCD9ED0)
+- Ethereum Genesis - [0x1C56C5a308De6F9176f7378a580e4439F22Ca106](https://rinkeby.etherscan.io/address/0x1C56C5a308De6F9176f7378a580e4439F22Ca106)
+  - MockEth1 Strategy - [0x5C053998F314eab836612301637361c44297Fd7d](https://rinkeby.etherscan.io/address/0x5C053998F314eab836612301637361c44297Fd7d)
+  - MockEth2 Strategy - [0x4f94b2B6E1d311c8AF38F80bbaf8a66B2eD21700](https://rinkeby.etherscan.io/address/0x4f94b2B6E1d311c8AF38F80bbaf8a66B2eD21700)
+- Bitcoin Genesis - [0x8D21A7CAeE16233356D4217F478393c87710e549](https://rinkeby.etherscan.io/address/0x8D21A7CAeE16233356D4217F478393c87710e549)
+  - MockBtc1 Strategy - [0xBC24E71879fa6ca9e00598524CAb5cA87BD3dd0c](https://rinkeby.etherscan.io/address/0xBC24E71879fa6ca9e00598524CAb5cA87BD3dd0c)
+  - MockBtc2 Strategy - [0x6fD00F4850C7B83f7AD5e663ef9f4F18047612D0](https://rinkeby.etherscan.io/address/0x6fD00F4850C7B83f7AD5e663ef9f4F18047612D0)
+- USDC Genesis - [0x2Ed01e80B170f7Bb18eF9A7A68fF3997Bc2430F5](https://rinkeby.etherscan.io/address/0x2Ed01e80B170f7Bb18eF9A7A68fF3997Bc2430F5)
+  - MockUSDC1 Strategy - [0x4600Fd20d89445Ecd4136B970a9C2F0155A1e30d](https://rinkeby.etherscan.io/address/0x4600Fd20d89445Ecd4136B970a9C2F0155A1e30d)
+  - MockUSDC2 Strategy - [0xDF3898B78e1E3a2205057aDD5C8E6B5Ce894AA65](https://rinkeby.etherscan.io/address/0xDF3898B78e1E3a2205057aDD5C8E6B5Ce894AA65)
+- DAI Genesis - [0x4854Bbd17EFfc0cDDaa8Cc0414F6faF619D0868a](https://rinkeby.etherscan.io/address/0x4854Bbd17EFfc0cDDaa8Cc0414F6faF619D0868a)
+  - MockDAI1 - [0x995ec15f3186C6F8432D045C550a9398Dbc65Fb0](https://rinkeby.etherscan.io/address/0x995ec15f3186C6F8432D045C550a9398Dbc65Fb0)
+  - MockDAI2 - [0xB3d104ac6A4EBB4CDcFdd1f228AaDc733eacD95d](https://rinkeby.etherscan.io/address/0xB3d104ac6A4EBB4CDcFdd1f228AaDc733eacD95d)
+- USDT Genesis- [0x9E51b7B6EC752c6870Dee9ba91c43bAf20A01995](https://rinkeby.etherscan.io/address/0x9E51b7B6EC752c6870Dee9ba91c43bAf20A01995)
+  - MockUSDT1 - [0xc519A688418E2E0d1dd2B5422EBAB09fa5b5D7c9](https://rinkeby.etherscan.io/address/0xc519A688418E2E0d1dd2B5422EBAB09fa5b5D7c9)
+  - MockUSDT2 - [0x69D54A8E5522F8046Dfad65B5b9FE54b8dE45991](https://rinkeby.etherscan.io/address/0x69D54A8E5522F8046Dfad65B5b9FE54b8dE45991)

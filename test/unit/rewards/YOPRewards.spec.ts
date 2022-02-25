@@ -638,6 +638,7 @@ describe("YOPReward", () => {
   describe("claim", async () => {
     let vault1: TokenMock;
     let vault2: TokenMock;
+    let vault3: TokenMock;
     let rewards: TokenMock;
     let user1VaultRewards: BigNumber;
     let user2VaultRewards: BigNumber;
@@ -651,8 +652,10 @@ describe("YOPReward", () => {
       await vault1.deployed();
       vault2 = (await TokenMockContract.deploy("vaultToken2", "vt2")) as TokenMock;
       await vault2.deployed();
-      const points = [100, 50];
-      await yopRewardsContract.setInitialVaultWeights([vault1.address, vault2.address], points);
+      vault3 = (await TokenMockContract.deploy("vaultToken3", "vt3")) as TokenMock;
+      await vault3.deployed();
+      const points = [100, 50, 0];
+      await yopRewardsContract.setInitialVaultWeights([vault1.address, vault2.address, vault3.address], points);
       await yopRewardsContract.setInitialRewardsRatios(5000, 5000);
       await stakingContract.mock.totalWorkingSupply.returns(ONE_UNIT);
       await stakingContract.mock.workingBalanceOfStake.withArgs(0).returns(ONE_UNIT * 0.3);

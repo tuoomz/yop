@@ -23,9 +23,7 @@ const CONVEX_BOOSTER_ADDRESS = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const CONVEX_REWARD_CONTRACT_ADDRESS = "0xeeeCE77e0bc5e59c77fc408789A9A172A504bD2f";
 const WBTC_DECIMALS = 8;
 
-const { loadFixture } = waffle;
-
-describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
+describe.only("ConvexBTCStrategy [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
   let vaultStrategyDataStore: VaultStrategyDataStore;
   let governance: SignerWithAddress;
@@ -41,10 +39,12 @@ describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
   let convexRewards: IConvexRewards;
   let depositAmount: BigNumber;
   let allocatedFund: BigNumber;
+  let startTime: number;
 
   beforeEach(async () => {
+    startTime = new Date().getTime();
     // setup the vault
-    ({ vault, vaultStrategyDataStore, governance } = await loadFixture(setupWBTCVault));
+    ({ vault, vaultStrategyDataStore, governance } = await setupWBTCVault());
     // deploy the strategy
     [proposer, developer, keeper, user] = (await ethers.getSigners()).reverse();
     const strategyFactory = await ethers.getContractFactory("ConvexBtc");
@@ -75,6 +75,8 @@ describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
     curveBasePool = (await ethers.getContractAt(CurveBasePoolABI, CURVE_BTC_BASE_POOL_ADDRESS)) as ICurveDeposit;
     convexRewards = (await ethers.getContractAt(ConvexRewardsABI, CONVEX_REWARD_CONTRACT_ADDRESS)) as IConvexRewards;
     convexBooster = (await ethers.getContractAt(ConvexBoosterABI, CONVEX_BOOSTER_ADDRESS)) as IConvexDeposit;
+    const duration = new Date().getTime() - startTime;
+    console.log("time spent to setup", duration);
   });
 
   describe("happy path", async () => {

@@ -108,6 +108,17 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   /// @notice The claimed records of reward tokens for each user
   mapping(bytes32 => ClaimRecord) internal claimRecords;
 
+  struct EpochInfo {
+    /// Counter of an epoch
+    uint256 epochCount;
+    /// Rate associated with the epoch
+    uint256 epochRate;
+  }
+
+  /// @dev store the information about the current epoch.
+  /// It will only updated once per epoch so one transaction will pay more gas because of this, but it will reduce gas costs for all transactions of the same epoch afterwards as there will be less loop needed.
+  EpochInfo public currentEpoch;
+
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
 
@@ -156,19 +167,8 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   /// @return _rate The current rate of emission for the current epoch.
   /// @return _epoch The current epoch. Starts from 1.
   function rate() external view returns (uint256 _rate, uint256 _epoch) {
-    if ((_getBlockTimestamp() < _getEpochStartTime()) || (_getBlockTimestamp() > _getEpochEndTime())) {
-      return (0, 0);
-    }
-    uint256 r = FIRST_EPOCH_EMISSION * (10**YOP_DECIMAL);
-    for (uint256 i = 0; i < MAX_EPOCH_COUNT; i++) {
-      uint256 startTime = _getEpochStartTime() + SECONDS_PER_EPOCH * i;
-      uint256 endTime = startTime + SECONDS_PER_EPOCH;
-      if ((_getBlockTimestamp() >= startTime) && (_getBlockTimestamp() <= endTime)) {
-        return (r, i + 1);
-      }
-      // use recursive function is a lot easier as comupting x^y for fix point values in Solidity is quite complicated and likely cost more gas
-      r = (r * (MAX_BPS - DEFLATION_RATE)) / MAX_BPS;
-    }
+    EpochInfo memory epoch = _getCurrentEpoch();
+    return (epoch.epochRate, epoch.epochCount);
   }
 
   /// @notice Return the claim record for the given address of a user
@@ -362,7 +362,50 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     rewardsWallet = _wallet;
   }
 
+  function _getCurrentEpoch() internal view returns (EpochInfo memory) {
+    EpochInfo memory epoch;
+    if ((_getBlockTimestamp() < _getEpochStartTime()) || (_getBlockTimestamp() > _getEpochEndTime())) {
+      return epoch;
+    }
+    epoch = currentEpoch;
+    if (epoch.epochCount > 0) {
+      // check if we are still in the "currentEpoch". Most requests should hit this path and no additional loops required
+      uint256 startTime = _getEpochStartTime() + (epoch.epochCount - 1) * SECONDS_PER_EPOCH;
+      uint256 endTime = startTime + SECONDS_PER_EPOCH;
+      if (startTime <= _getBlockTimestamp() && _getBlockTimestamp() <= endTime) {
+        return epoch;
+      }
+    }
+    // we are not in the "currentEpoch" anymore, so find out what's correct "currentEpoch"
+    uint256 epochRate = epoch.epochRate == 0 ? FIRST_EPOCH_EMISSION : epoch.epochRate;
+    uint256 r = epochRate * (10**YOP_DECIMAL);
+    for (uint256 i = epoch.epochCount; i < MAX_EPOCH_COUNT; i++) {
+      // if there are any interactions with any of the vaults/staking contracts/claim rewards contracts every month,
+      // then this should only be run once every epoch to bump the epoch count from i to i+1
+      uint256 startTime = _getEpochStartTime() + SECONDS_PER_EPOCH * i;
+      uint256 endTime = startTime + SECONDS_PER_EPOCH;
+      if (startTime <= _getBlockTimestamp() && _getBlockTimestamp() <= endTime) {
+        epoch.epochCount = i + 1;
+        epoch.epochRate = r;
+        break;
+      }
+      // use recursive function is a lot easier as comupting x^y for fix point values in Solidity is quite complicated and likely cost more gas
+      r = (r * (MAX_BPS - DEFLATION_RATE)) / MAX_BPS;
+    }
+    return epoch;
+  }
+
+  function _updateCurrentEpoch() internal returns (EpochInfo memory) {
+    EpochInfo memory epoch = _getCurrentEpoch();
+    if (currentEpoch.epochCount != epoch.epochCount || currentEpoch.epochRate != epoch.epochRate) {
+      currentEpoch.epochCount = epoch.epochCount;
+      currentEpoch.epochRate = epoch.epochRate;
+    }
+    return epoch;
+  }
+
   function _updatePoolState(address _pool) internal {
+    _updateCurrentEpoch();
     poolRewardsState[_pool] = _calculatePoolState(_pool);
   }
 
@@ -384,6 +427,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     }
     uint256 start = poolState.timestamp;
     uint256 end = _getBlockTimestamp();
+    EpochInfo memory epochInfo = _getCurrentEpoch();
     if (end > start) {
       uint256 r = poolState.epochRate;
       uint256 totalSupply = _getPoolTotalSupply(_pool);
@@ -391,7 +435,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
       // Start from where last time the snapshot was taken, and loop through the epochs.
       // We the calculate the for each epoch, how many rewards the vault should get and all them up.
       // Finally we divide the value by the totalSupply of the vault.
-      for (uint256 i = poolState.epochCount; i < MAX_EPOCH_COUNT; i++) {
+      for (uint256 i = poolState.epochCount; i <= epochInfo.epochCount; i++) {
         uint256 epochStart = _getEpochStartTime() + SECONDS_PER_EPOCH * i;
         uint256 epochEnd = epochStart + SECONDS_PER_EPOCH;
         // Get the rate, take the vaultsRewardsRatio and the weight of the vault into account.
@@ -467,10 +511,15 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     return 0;
   }
 
+  /// @dev This function should only be used when claiming rewards
   function _updateStateForVaults(address[] memory _vaults, bytes32 _account) internal {
     for (uint256 i = 0; i < _vaults.length; i++) {
-      _updatePoolState(_vaults[i]);
-      _updateUserState(_vaults[i], _account);
+      // since this function is only called when claiming, if the account doesn't have any balance in a vault
+      // then there is no need to update the checkpoint for the user as it will always be 0
+      if (IVault(_vaults[i]).balanceOf(_account.bytes32ToAddress()) > 0) {
+        _updatePoolState(_vaults[i]);
+        _updateUserState(_vaults[i], _account);
+      }
     }
   }
 

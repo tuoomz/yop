@@ -57,8 +57,8 @@ constants:
   # The file is a static one for now and served directly from a S3 bucket.
   staking_nft_contract_uri: &staking_nft_contract_uri "https://d3q6we6gspsrqs.cloudfront.net/opensea/contract.json"
   staking_min_amount: &staking_min_amount 100
-  rewards_weight_for_vaults: &rewards_weight_for_vaults 85
-  rewards_weight_for_staking: &rewards_weight_for_staking 15
+  rewards_weight_for_vaults: &rewards_weight_for_vaults 75
+  rewards_weight_for_staking: &rewards_weight_for_staking 25
   curve_pools:
     # https://etherscan.io/address/0xDC24316b9AE028F1497c275EB9192a3Ea0f67022
     steth_pool: &curve_eth_pool "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022"
@@ -110,7 +110,7 @@ constants:
     convex_strategy:
       allocation: &convex_usdt_allocation 7600 #80%
   dummy_vault:
-    rewards_weight: &dummy_vault_rewards_weight 700000
+    rewards_weight: &dummy_vault_rewards_weight 600000
     limit: &dummy_vault_limit 0
 
 # Configure the access policies to vaults/staking

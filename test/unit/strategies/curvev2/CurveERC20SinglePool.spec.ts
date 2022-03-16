@@ -6,6 +6,9 @@ import { setupMockVault, setupCurve } from "../../fixtures/setup";
 import { MockContract } from "ethereum-waffle";
 import ERC20ABI from "../../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 import CurvePlainPoolABI from "../../../abis/curvePlainPool.json";
+import CurvePlainPoolTrioABI from "../../../abis/curvePlainPoolTrio.json";
+import CurveZapPoolABI from "../../../abis/curvePoolZapDepositor.json";
+import { ContractFactory } from "ethers";
 const { loadFixture, deployMockContract } = waffle;
 
 const TOKEN_DECIMALS = 8;
@@ -32,6 +35,7 @@ describe("CurveERC20SinglePool strategy", async () => {
   let mockDex: MockContract;
 
   let curveStrategy: CurveERC20SinglePoolMock;
+  let CurveBTCStrategyFactory: ContractFactory;
 
   beforeEach(async () => {
     [deployer, governance, gatekeeper, rewards, proposer, developer, newStrategy] = await ethers.getSigners();
@@ -51,7 +55,7 @@ describe("CurveERC20SinglePool strategy", async () => {
     await poolLpToken.mock.approve.returns(true);
     await curveToken.mock.allowance.returns(0);
     await curveToken.mock.approve.returns(true);
-    const CurveBTCStrategyFactory = await ethers.getContractFactory("CurveERC20SinglePoolMock");
+    CurveBTCStrategyFactory = await ethers.getContractFactory("CurveERC20SinglePoolMock");
     curveStrategy = (await CurveBTCStrategyFactory.deploy(
       mockVault.address,
       proposer.address,
@@ -68,6 +72,115 @@ describe("CurveERC20SinglePool strategy", async () => {
     )) as CurveERC20SinglePoolMock;
     await curveStrategy.deployed();
     await curveStrategy.setDex(mockDex.address);
+  });
+
+  describe("deploy parameters", async () => {
+    it("should revert if pool address is not valid", async () => {
+      await expect(
+        CurveBTCStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          ethers.constants.AddressZero,
+          mockCurveGauge.address,
+          2,
+          1,
+          mockVaultToken.address,
+          false,
+          mockCurveMinter.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!pool");
+    });
+    it("should revert if gauge address is not valid", async () => {
+      await expect(
+        CurveBTCStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          ethers.constants.AddressZero,
+          2,
+          1,
+          mockVaultToken.address,
+          false,
+          mockCurveMinter.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!gauge");
+    });
+    it("should revert if number of pool tokens are not valid", async () => {
+      await expect(
+        CurveBTCStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          mockCurveGauge.address,
+          1,
+          1,
+          mockVaultToken.address,
+          false,
+          mockCurveMinter.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!poolToken");
+      await expect(
+        CurveBTCStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          mockCurveGauge.address,
+          5,
+          1,
+          mockVaultToken.address,
+          false,
+          mockCurveMinter.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!poolToken");
+    });
+    it("should revert if the index of input token is not valid", async () => {
+      await expect(
+        CurveBTCStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          mockCurveGauge.address,
+          2,
+          2,
+          mockVaultToken.address,
+          false,
+          mockCurveMinter.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!inputTokenIndex");
+    });
+    it("should revert if input token address is not valid", async () => {
+      await expect(
+        CurveBTCStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          mockCurveGauge.address,
+          2,
+          1,
+          curveToken.address,
+          false,
+          mockCurveMinter.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!inputToken");
+    });
   });
 
   describe("name", async () => {
@@ -112,6 +225,21 @@ describe("CurveERC20SinglePool strategy", async () => {
       const got = await curveStrategy.estimatedTotalAssets();
       expect(expectedTotal).to.equal(got);
     });
+
+    it("no rewards", async () => {
+      const tokenAmount = ethers.utils.parseEther("100");
+      const crvAmount = ethers.utils.parseEther("20");
+      const gaugeBalance = ethers.utils.parseEther("5");
+      const withdrawAmountOut = ethers.utils.parseEther("5");
+      await mockVaultToken.mock.balanceOf.returns(tokenAmount);
+      await mockCurveGauge.mock.integrate_fraction.returns(crvAmount);
+      await mockCurveMinter.mock.minted.returns(crvAmount);
+      await mockCurveGauge.mock.balanceOf.returns(gaugeBalance);
+      await mockCurvePool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
+      const expectedTotal = tokenAmount.add(withdrawAmountOut);
+      const got = await curveStrategy.estimatedTotalAssets();
+      expect(expectedTotal).to.equal(got);
+    });
   });
 
   describe("approveAll", async () => {
@@ -152,6 +280,60 @@ describe("CurveERC20SinglePool strategy", async () => {
       await mockVault.mock.revokeStrategy.returns();
       await mockVault.mock.debtOutstanding.returns(0);
       await curveStrategy.connect(governance).setEmergencyExit();
+      await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
+    });
+
+    it("should success for 3-token pools", async () => {
+      mockCurvePool = await deployMockContract(deployer, CurvePlainPoolTrioABI);
+      curveStrategy = (await CurveBTCStrategyFactory.deploy(
+        mockVault.address,
+        proposer.address,
+        developer.address,
+        gatekeeper.address,
+        mockCurvePool.address,
+        mockCurveGauge.address,
+        3,
+        1,
+        mockVaultToken.address,
+        false,
+        mockCurveMinter.address,
+        curveToken.address
+      )) as CurveERC20SinglePoolMock;
+      await curveStrategy.deployed();
+      await curveStrategy.setDex(mockDex.address);
+      const balance = ethers.utils.parseUnits("1", TOKEN_DECIMALS);
+      await mockVault.mock.debtOutstanding.returns(0);
+      await mockVaultToken.mock.balanceOf.returns(balance);
+      await poolLpToken.mock.balanceOf.returns(balance);
+      await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
+      await mockCurvePool.mock["add_liquidity(uint256[3],uint256)"].returns();
+      await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
+    });
+
+    it("should success for zap pools", async () => {
+      mockCurvePool = await deployMockContract(deployer, CurveZapPoolABI);
+      curveStrategy = (await CurveBTCStrategyFactory.deploy(
+        mockVault.address,
+        proposer.address,
+        developer.address,
+        gatekeeper.address,
+        mockCurvePool.address,
+        mockCurveGauge.address,
+        4,
+        1,
+        mockVaultToken.address,
+        true,
+        mockCurveMinter.address,
+        curveToken.address
+      )) as CurveERC20SinglePoolMock;
+      await curveStrategy.deployed();
+      await curveStrategy.setDex(mockDex.address);
+      const balance = ethers.utils.parseUnits("1", TOKEN_DECIMALS);
+      await mockVault.mock.debtOutstanding.returns(0);
+      await mockVaultToken.mock.balanceOf.returns(balance);
+      await poolLpToken.mock.balanceOf.returns(balance);
+      await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
+      await mockCurvePool.mock["add_liquidity(uint256[4],uint256)"].returns(1);
       await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
     });
   });
@@ -262,7 +444,17 @@ describe("CurveERC20SinglePool strategy", async () => {
       // loss = 0.5
       await expect(await curveStrategy.testLiquidatePosition(ethers.utils.parseUnits("2", TOKEN_DECIMALS)))
         .to.emit(curveStrategy, "LiquidationReported")
-        .withArgs(ethers.utils.parseUnits("1.", TOKEN_DECIMALS), ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+        .withArgs(ethers.utils.parseUnits("1", TOKEN_DECIMALS), ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+    });
+
+    it("should success when there is no rewards", async () => {
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(ethers.constants.Zero);
+      await mockVaultToken.mock.balanceOf.returns(ethers.utils.parseUnits("3", TOKEN_DECIMALS));
+      // want is less than balance, so no withdraw is needed
+      await expect(await curveStrategy.testLiquidatePosition(ethers.utils.parseUnits("2", TOKEN_DECIMALS)))
+        .to.emit(curveStrategy, "LiquidationReported")
+        .withArgs(ethers.utils.parseUnits("2", TOKEN_DECIMALS), 0);
     });
   });
 
@@ -270,6 +462,37 @@ describe("CurveERC20SinglePool strategy", async () => {
     it("should return the expected protected tokens", async () => {
       const tokens = await curveStrategy.testProtectedTokens();
       expect(tokens).to.deep.equal([curveToken.address, poolLpToken.address]);
+    });
+  });
+
+  describe("withdrawSome", async () => {
+    beforeEach(async () => {
+      await mockCurveGauge.mock.balanceOf.returns(0);
+      await mockCurveGauge.mock["withdraw(uint256)"].returns();
+      await mockVaultToken.mock.balanceOf.returns(0);
+      await mockCurvePool.mock.remove_liquidity_one_coin.returns(0);
+    });
+    it("should not revert with 2", async () => {
+      await curveStrategy.setCoinsCount(2);
+      await mockCurvePool.mock["calc_token_amount(uint256[2],bool)"].returns(0);
+      await expect(curveStrategy.withdrawSome(1000)).not.to.be.reverted;
+    });
+
+    it("should not revert with 3", async () => {
+      await curveStrategy.setCoinsCount(3);
+      await mockCurvePool.mock["calc_token_amount(uint256[3],bool)"].returns(0);
+      await expect(curveStrategy.withdrawSome(1000)).not.to.be.reverted;
+    });
+
+    it("should not revert with 4", async () => {
+      await curveStrategy.setCoinsCount(4);
+      await mockCurvePool.mock["calc_token_amount(uint256[4],bool)"].returns(0);
+      await expect(curveStrategy.withdrawSome(1000)).not.to.be.reverted;
+    });
+
+    it("should revert with more than 4 tokens", async () => {
+      await curveStrategy.setCoinsCount(5);
+      await expect(curveStrategy.withdrawSome(1000)).to.be.revertedWith("Invalid number of LP tokens");
     });
   });
 });

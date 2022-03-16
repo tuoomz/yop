@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "../strategies/curvev2/CurveERC20SinglePool.sol";
+import "../strategies/curvev2/CurveETHSinglePool.sol";
 
-contract CurveERC20SinglePoolMock is CurveERC20SinglePool {
+contract CurveETHSinglePoolMock is CurveETHSinglePool {
   address public curveTokenAddress;
-  uint256 public coinsCount = 2;
+  address public wethTokenAddress;
 
   event ReturnsReported(uint256 profit, uint256 loss, uint256 debtPayment);
   event LiquidationReported(uint256 liquidatedAmount, uint256 loss);
@@ -17,39 +17,40 @@ contract CurveERC20SinglePoolMock is CurveERC20SinglePool {
     address _harvester,
     address _pool,
     address _gauge,
-    uint8 _numberOfPoolTokens,
     uint8 _inputTokenIndex,
-    address _inputTokenAddress,
-    bool _isZapDepositor,
     address _curveMinter,
-    address _curveToken
-  )
-    CurveERC20SinglePool(
-      _vault,
-      _proposer,
-      _developer,
-      _harvester,
-      _pool,
-      _gauge,
-      _numberOfPoolTokens,
-      _inputTokenIndex,
-      _inputTokenAddress,
-      _isZapDepositor
-    )
-  {
+    address _curveToken,
+    address _wethAddress
+  ) CurveETHSinglePool(_vault, _proposer, _developer, _harvester, _pool, _gauge, _inputTokenIndex) {
     curveMinter = ICurveMinter(_curveMinter);
     curveTokenAddress = _curveToken;
+    wethTokenAddress = _wethAddress;
     _approveTokens();
   }
 
   function _approveOnInit() internal override {}
 
+  function _approveCurveExtra() internal override {}
+
   function _approveTokens() internal {
     super._approveOnInit();
+    super._approveCurveExtra();
   }
 
   function setDex(address _dex) external {
     dex = _dex;
+  }
+
+  function checkWantToken() internal view override {}
+
+  function setWETHTokenAddress(address _address) external {
+    wethTokenAddress = _address;
+    super.checkWantToken();
+  }
+
+  function _getWETHTokenAddress() internal view override returns (address) {
+    super._getWETHTokenAddress();
+    return wethTokenAddress;
   }
 
   function _getCurveTokenAddress() internal view override returns (address) {
@@ -75,16 +76,15 @@ contract CurveERC20SinglePoolMock is CurveERC20SinglePool {
     return super.protectedTokens();
   }
 
+  function testOnHarvest() external {
+    super.onHarvest();
+  }
+
+  function balanceOfPool() external view returns (uint256) {
+    return super._balanceOfPool();
+  }
+
   function withdrawSome(uint256 _amount) external returns (uint256) {
     return super._withdrawSome(_amount);
-  }
-
-  function _getCoinsCount() internal view override returns (uint256) {
-    super._getCoinsCount();
-    return coinsCount;
-  }
-
-  function setCoinsCount(uint256 _coinsCount) external {
-    coinsCount = _coinsCount;
   }
 }

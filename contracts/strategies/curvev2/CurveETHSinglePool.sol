@@ -44,7 +44,7 @@ contract CurveETHSinglePool is CurveBaseV2 {
     require(address(want) == _getWETHTokenAddress(), "wrong vault token");
   }
 
-  function _approveCurveExtra() internal {
+  function _approveCurveExtra() internal virtual {
     // the pool needs this to add liquidity to the base pool
     IERC20(_getWETHTokenAddress()).safeApprove(address(curvePool), type(uint256).max);
   }

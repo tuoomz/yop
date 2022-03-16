@@ -42,20 +42,14 @@ contract CurveERC20SinglePool is CurveBaseV2 {
     address _inputTokenAddress,
     bool _isZapDepositor
   ) CurveBaseV2(_vault, _proposer, _developer, _harvester, _pool, _gauge) {
-    {
-      require(_numberOfPoolTokens > 0, "!poolToken");
-      require(_inputTokenIndex < _numberOfPoolTokens, "!inputTokenIndex");
-      require(address(want) == _inputTokenAddress, "!inputToken");
-    }
-    {
-      numberOfTokens = _numberOfPoolTokens;
-      inputTokenIndex = _inputTokenIndex;
-      inputTokenAddress = _inputTokenAddress;
-      isZapDepositor = _isZapDepositor;
-    }
-    {
-      _approveCurveExtra();
-    }
+    require(_numberOfPoolTokens >= 2 && _numberOfPoolTokens <= 4, "!poolToken");
+    require(_inputTokenIndex < _numberOfPoolTokens, "!inputTokenIndex");
+    require(address(want) == _inputTokenAddress, "!inputToken");
+    numberOfTokens = _numberOfPoolTokens;
+    inputTokenIndex = _inputTokenIndex;
+    inputTokenAddress = _inputTokenAddress;
+    isZapDepositor = _isZapDepositor;
+    _approveCurveExtra();
   }
 
   function name() external view virtual override returns (string memory) {
@@ -90,7 +84,7 @@ contract CurveERC20SinglePool is CurveBaseV2 {
         uint256[3] memory params;
         params[inputTokenIndex] = balance;
         curvePool.add_liquidity(params, 0);
-      } else if (numberOfTokens == 4) {
+      } else {
         uint256[4] memory params;
         params[inputTokenIndex] = balance;
         curvePool.add_liquidity(params, 0);

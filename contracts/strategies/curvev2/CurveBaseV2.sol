@@ -195,10 +195,7 @@ abstract contract CurveBaseV2 is BaseStrategy {
     uint256 mintedCRV = curveMinter.minted(address(this), address(curveGauge));
     uint256 remainingCRV = totalClaimableCRV - mintedCRV;
 
-    if (remainingCRV > 0) {
-      return _getQuoteForTokenToWant(_getCurveTokenAddress(), remainingCRV);
-    }
-    return 0;
+    return _getQuoteForTokenToWant(_getCurveTokenAddress(), remainingCRV);
   }
 
   /// @dev Swaps the `_from` token to the want token using either Uniswap or Sushiswap

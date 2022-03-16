@@ -1,15 +1,15 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, jumpForward } from "../shared/setup";
+import { setupVault, impersonate, setEthBalance, jumpForward } from "../../shared/setup";
 import { ethers, waffle } from "hardhat";
-import { SingleAssetVault } from "../../../types/SingleAssetVault";
-import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
+import { SingleAssetVault } from "../../../../types/SingleAssetVault";
+import { VaultStrategyDataStore } from "../../../../types/VaultStrategyDataStore";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
-import CurvePoolZapDepositor from "../../abis/curvePoolZapDepositor.json";
-import CurveBasePoolABI from "../../abis/curvePlainPoolTrio.json";
-import CurveStableSwapABI from "../../abis/curvePlainPool.json";
-import { ICurveDeposit } from "../../../types/ICurveDeposit";
-import { CurveERC20SinglePool, ERC20 } from "../../../types";
+import ERC20ABI from "../../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
+import CurvePoolZapDepositor from "../../../abis/curvePoolZapDepositor.json";
+import CurveBasePoolABI from "../../../abis/curvePlainPoolTrio.json";
+import CurveStableSwapABI from "../../../abis/curvePlainPool.json";
+import { ICurveDeposit } from "../../../../types/ICurveDeposit";
+import { CurveERC20SinglePool, ERC20 } from "../../../../types";
 
 const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 // a zap depositor

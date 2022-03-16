@@ -1,14 +1,14 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, jumpForward } from "../shared/setup";
+import { setupVault, impersonate, setEthBalance, jumpForward } from "../../shared/setup";
 import { ethers, waffle } from "hardhat";
-import { SingleAssetVault } from "../../../types/SingleAssetVault";
-import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
+import { SingleAssetVault } from "../../../../types/SingleAssetVault";
+import { VaultStrategyDataStore } from "../../../../types/VaultStrategyDataStore";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import WethABI from "../../abis/weth.json";
-import { IWETH } from "../../../types";
-import CurvePlainPoolABI from "../../abis/curvePlainPool.json";
-import { ICurveDeposit } from "../../../types/ICurveDeposit";
-import { CurveETHSinglePool } from "../../../types/CurveETHSinglePool";
+import WethABI from "../../../abis/weth.json";
+import { IWETH } from "../../../../types";
+import CurvePlainPoolABI from "../../../abis/curvePlainPool.json";
+import { ICurveDeposit } from "../../../../types/ICurveDeposit";
+import { CurveETHSinglePool } from "../../../../types/CurveETHSinglePool";
 
 const WETH_ADDRESS = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 // curve stETH pool

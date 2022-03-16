@@ -12,7 +12,7 @@ const TOKEN_DECIMALS = 8;
 const SUSHISWAP_DEX_ADDRESS = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F";
 const UNISWAP_DEX_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 
-describe.only("CurveERC20SinglePool strategy", async () => {
+describe("CurveERC20SinglePool strategy", async () => {
   let mockVault: MockContract;
   let mockVaultToken: MockContract;
   let deployer: SignerWithAddress;

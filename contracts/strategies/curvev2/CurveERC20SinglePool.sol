@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -41,14 +42,20 @@ contract CurveERC20SinglePool is CurveBaseV2 {
     address _inputTokenAddress,
     bool _isZapDepositor
   ) CurveBaseV2(_vault, _proposer, _developer, _harvester, _pool, _gauge) {
-    require(_numberOfPoolTokens > 0, "!poolToken");
-    require(_inputTokenIndex < _numberOfPoolTokens, "!inputTokenIndex");
-    require(address(want) == _inputTokenAddress, "!inputToken");
-    numberOfTokens = _numberOfPoolTokens;
-    inputTokenIndex = _inputTokenIndex;
-    inputTokenAddress = _inputTokenAddress;
-    isZapDepositor = _isZapDepositor;
-    _approveCurveExtra();
+    {
+      require(_numberOfPoolTokens > 0, "!poolToken");
+      require(_inputTokenIndex < _numberOfPoolTokens, "!inputTokenIndex");
+      require(address(want) == _inputTokenAddress, "!inputToken");
+    }
+    {
+      numberOfTokens = _numberOfPoolTokens;
+      inputTokenIndex = _inputTokenIndex;
+      inputTokenAddress = _inputTokenAddress;
+      isZapDepositor = _isZapDepositor;
+    }
+    {
+      _approveCurveExtra();
+    }
   }
 
   function name() external view virtual override returns (string memory) {

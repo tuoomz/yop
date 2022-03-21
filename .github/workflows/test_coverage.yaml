@@ -74,6 +74,15 @@ jobs:
       - name: Generate Types
         run: npx hardhat typechain
 
+      # this will help reduce the time it is taking to run the integration tests
+      # by caching all of the requests made by Ganache when forking
+      - name: Restore Network Fork Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./cache/hardhat-network-fork/network-1
+          key: mainnet-fork-request-cache
+
       - name: Run integration test
         run: |
           export NODE_OPTIONS="--max_old_space_size=6144" 

@@ -9,7 +9,6 @@ import { ERC20 } from "../../../types/ERC20";
 import { Staking } from "../../../types/Staking";
 import { BigNumber } from "ethers";
 import { CONST } from "../../constants";
-import { FakeContract, smock } from "@defi-wonderland/smock";
 
 let vault: SingleAssetVault;
 let governance: SignerWithAddress;
@@ -78,16 +77,16 @@ describe("FeeCollection [@skip-on-coverage]", async () => {
     it("should report the correct fees", async () => {
       await vault.connect(await impersonate(strategy.address)).report(gains, 0, 0);
       // Tried to use this to increase the manage fess but it caused other tests to fail
+      const protocolWallet = await feeCollection.protocolWallet();
+      const availableFeesBefore = await feeCollection.connect(await impersonate(protocolWallet)).feesAvailableForToken(CONST.USDC_ADDRESS);
       await jumpForward(60 * 60 * 24); // 1 day
       expect(await vault.connect(await impersonate(strategy.address)).report(gains, 0, 0))
         .to.emit(feeCollection, "ManageFeesCollected")
-        // 2190106 is management fee for one day
-        // TODO: Find a better way to test this, possibly will get some failures
-        // due to timing
-        .withArgs(vault.address, CONST.USDC_ADDRESS, 0, 2190106)
-        // .withArgs(vault.address, CONST.USDC_ADDRESS, 0, 25)
         .to.emit(feeCollection, "PerformanceFeesCollected")
         .withArgs(strategy.address, CONST.USDC_ADDRESS, 0, 0, feeCollected.div(100));
+      const availableFeesAfter = await feeCollection.connect(await impersonate(protocolWallet)).feesAvailableForToken(CONST.USDC_ADDRESS);
+      const fees = availableFeesAfter.sub(availableFeesBefore).toNumber();
+      expect(fees).to.be.closeTo(2190106 + feeCollected.div(100).toNumber(), 100);
     });
   });
 

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { setupVault, impersonate, setEthBalance, jumpForward, setupWBTCVault } from "../shared/setup";
-import { ethers, waffle } from "hardhat";
+import { ethers, waffle, network } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -42,7 +42,6 @@ describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
   let startTime: number;
 
   beforeEach(async () => {
-    startTime = new Date().getTime();
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupWBTCVault());
     // deploy the strategy
@@ -75,8 +74,6 @@ describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
     curveBasePool = (await ethers.getContractAt(CurveBasePoolABI, CURVE_BTC_BASE_POOL_ADDRESS)) as ICurveDeposit;
     convexRewards = (await ethers.getContractAt(ConvexRewardsABI, CONVEX_REWARD_CONTRACT_ADDRESS)) as IConvexRewards;
     convexBooster = (await ethers.getContractAt(ConvexBoosterABI, CONVEX_BOOSTER_ADDRESS)) as IConvexDeposit;
-    const duration = new Date().getTime() - startTime;
-    console.log("time spent to setup", duration);
   });
 
   describe("happy path", async () => {

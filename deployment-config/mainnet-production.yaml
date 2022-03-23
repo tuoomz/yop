@@ -72,11 +72,11 @@ constants:
   weth_vault:
     rewards_weight: &weth_vault_rewards_weight 28030
     limit: &weth_vault_limit 17 # ~$50000 the script will include the token decimals automatically
-    paused: &weth_vault_paused true
+    paused: &weth_vault_paused false
     curve_strategy:
-      allocation: &curve_eth_allocation 1900 #20%
+      allocation: &curve_eth_allocation 0 #20%
     convex_strategy:
-      allocation: &convex_eth_allocation 7600 #80%
+      allocation: &convex_eth_allocation 9400 #80%
   wbtc_vault:
     rewards_weight: &wbtc_vault_rewards_weight 39125
     limit: &wbtc_vault_limit 1.2 # ~$50000
@@ -90,13 +90,13 @@ constants:
     limit: &usdc_vault_limit 50000
     paused: &usdc_vault_paused false
     curve_strategy:
-      allocation: &curve_usdc_allocation 1900 #20%
+      allocation: &curve_usdc_allocation 1897 #20%
     convex_strategy:
-      allocation: &convex_usdc_allocation 7600 #80%
+      allocation: &convex_usdc_allocation 7595 #80%
   dai_vault:
     rewards_weight: &dai_vault_rewards_weight 29782
     limit: &dai_vault_limit 50000
-    paused: &dai_vault_paused true
+    paused: &dai_vault_paused false
     curve_strategy:
       allocation: &curve_dai_allocation 1900 #20%
     convex_strategy:

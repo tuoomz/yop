@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./BaseVault.sol";
+import "../libraries/VaultUtils.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 abstract contract SingleAssetVaultBase is BaseVault {
@@ -161,21 +162,7 @@ abstract contract SingleAssetVaultBase is BaseVault {
 
   function _debtOutstanding(address _strategy) internal view returns (uint256) {
     _validateStrategy(_strategy);
-    if (_strategyDataStore().vaultTotalDebtRatio(address(this)) == 0) {
-      return strategies[_strategy].totalDebt;
-    }
-    uint256 availableAssets_ = _totalAsset();
-    uint256 strategyLimit_ = (availableAssets_ * _strategyDataStore().strategyDebtRatio(address(this), _strategy)) /
-      MAX_BASIS_POINTS;
-    uint256 strategyTotalDebt_ = strategies[_strategy].totalDebt;
-
-    if (emergencyShutdown) {
-      return strategyTotalDebt_;
-    } else if (strategyTotalDebt_ <= strategyLimit_) {
-      return 0;
-    } else {
-      return strategyTotalDebt_ - strategyLimit_;
-    }
+    return VaultUtils.debtOutstanding(emergencyShutdown, _totalAsset(), _strategyDataStore(), strategies, _strategy);
   }
 
   function _creditAvailable(address _strategy) internal view returns (uint256) {
@@ -183,42 +170,11 @@ abstract contract SingleAssetVaultBase is BaseVault {
       return 0;
     }
     _validateStrategy(_strategy);
-    uint256 vaultTotalAsset_ = _totalAsset();
-    uint256 vaultTotalDebtLimit_ = (vaultTotalAsset_ * _strategyDataStore().vaultTotalDebtRatio(address(this))) /
-      MAX_BASIS_POINTS;
-    uint256 vaultTotalDebt_ = totalDebt;
-
-    uint256 strategyDebtLimit_ = (vaultTotalAsset_ * _strategyDataStore().strategyDebtRatio(address(this), _strategy)) /
-      MAX_BASIS_POINTS;
-    uint256 strategyTotalDebt_ = strategies[_strategy].totalDebt;
-    uint256 strategyMinDebtPerHarvest_ = _strategyDataStore().strategyMinDebtPerHarvest(address(this), _strategy);
-    uint256 strategyMaxDebtPerHarvest_ = _strategyDataStore().strategyMaxDebtPerHarvest(address(this), _strategy);
-
-    if ((strategyDebtLimit_ <= strategyTotalDebt_) || (vaultTotalDebtLimit_ <= vaultTotalDebt_)) {
-      return 0;
-    }
-
-    uint256 available_ = strategyDebtLimit_ - strategyTotalDebt_;
-    available_ = Math.min(available_, vaultTotalDebtLimit_ - vaultTotalDebt_);
-    available_ = Math.min(available_, token.balanceOf(address(this)));
-
-    return available_ < strategyMinDebtPerHarvest_ ? 0 : Math.min(available_, strategyMaxDebtPerHarvest_);
+    return VaultUtils.creditAvailable(token, _totalAsset(), totalDebt, _strategyDataStore(), strategies, _strategy);
   }
 
   function _expectedReturn(address _strategy) internal view returns (uint256) {
     _validateStrategy(_strategy);
-    uint256 strategyLastReport_ = strategies[_strategy].lastReport;
-    // solhint-disable-next-line not-rely-on-time
-    uint256 sinceLastHarvest_ = block.timestamp - strategyLastReport_;
-    uint256 totalHarvestTime_ = strategyLastReport_ - strategies[_strategy].activation;
-
-    // NOTE: If either `sinceLastHarvest_` or `totalHarvestTime_` is 0, we can short-circuit to `0`
-    if ((sinceLastHarvest_ > 0) && (totalHarvestTime_ > 0) && (IStrategy(_strategy).isActive())) {
-      // # NOTE: Unlikely to throw unless strategy accumalates >1e68 returns
-      // # NOTE: Calculate average over period of time where harvests have occured in the past
-      return (strategies[_strategy].totalGain * sinceLastHarvest_) / totalHarvestTime_;
-    } else {
-      return 0;
-    }
+    return VaultUtils.expectedReturn(strategies, _strategy);
   }
 }

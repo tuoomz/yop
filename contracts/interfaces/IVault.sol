@@ -107,3 +107,11 @@ interface IVault is IERC20, IERC20Permit {
     uint256 _debtPayment
   ) external returns (uint256);
 }
+
+interface IBoostedVault {
+  function totalBoostedSupply() external view returns (uint256);
+
+  function boostedBalanceOf(address _user) external view returns (uint256);
+
+  function updateBoostedBalancesForUsers(address[] calldata _users) external;
+}

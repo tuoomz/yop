@@ -25,7 +25,13 @@ const { deployMockContract } = waffle;
 
 export async function setupVault() {
   const [, governance, gatekeeper, manager, rewards] = await ethers.getSigners();
-  const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault");
+  const VaultUtilsFactory = await ethers.getContractFactory("VaultUtils");
+  const vaultUtils = await VaultUtilsFactory.deploy();
+  const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault", {
+    libraries: {
+      VaultUtils: vaultUtils.address,
+    },
+  });
   const vault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVault;
   await vault.deployed();
 

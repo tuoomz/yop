@@ -186,7 +186,13 @@ describe("yopRewards [@skip-on-coverage]", async () => {
     let newVault: SingleAssetVault;
     let wbtcContract: ERC20;
     beforeEach(async () => {
-      const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault");
+      const VaultUtils = await ethers.getContractFactory("VaultUtils");
+      const vaultUtils = await VaultUtils.deploy();
+      const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault", {
+        libraries: {
+          VaultUtils: vaultUtils.address,
+        },
+      });
       newVault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVault;
       await newVault.deployed();
       await newVault.initialize(

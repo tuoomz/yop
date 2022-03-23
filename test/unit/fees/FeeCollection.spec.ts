@@ -64,7 +64,15 @@ describe("FeeCollection", () => {
     token2.allowance.returns(0);
     token2.transferFrom.returns(true);
     token2.transfer.returns(true);
-    const Vault = await smock.mock<SingleAssetVault__factory>("SingleAssetVault"); // eslint-disable-line
+
+    const VaultUtilsFactory = await ethers.getContractFactory("VaultUtils");
+    const vaultUtils = await VaultUtilsFactory.deploy();
+    // eslint-disable-next-line camelcase
+    const Vault = await smock.mock<SingleAssetVault__factory>("SingleAssetVault", {
+      libraries: {
+        VaultUtils: vaultUtils.address,
+      },
+    });
     vault = await Vault.deploy();
     await vault.deployed();
     vault.creator.returns(vaultCreator.address);

@@ -16,7 +16,13 @@ const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 export async function setupVault(tokenAddress: string) {
   const now = Math.round(new Date().getTime() / 1000);
   const [, governance, gatekeeper, rewardsWallet, owner] = await ethers.getSigners();
-  const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault");
+  const VaultUtils = await ethers.getContractFactory("VaultUtils");
+  const vaultUtils = await VaultUtils.deploy();
+  const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault", {
+    libraries: {
+      VaultUtils: vaultUtils.address,
+    },
+  });
   const vault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVault;
   await vault.deployed();
 

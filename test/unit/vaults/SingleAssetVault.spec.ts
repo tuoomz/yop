@@ -1,4 +1,4 @@
-import { BigNumber, utils, constants } from "ethers";
+import { BigNumber, utils, constants, Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers, network, upgrades, waffle } from "hardhat";
@@ -8,6 +8,7 @@ import { YOPRewards } from "../../../types/YOPRewards";
 import { MockContract } from "ethereum-waffle";
 import FeeCollectionABI from "../../../abi/contracts/interfaces/IFeeCollection.sol/IFeeCollection.json";
 import { SingleAssetVaultV2Mock } from "../../../types/SingleAssetVaultV2Mock";
+import { VaultUtils } from "../../../types/VaultUtils";
 const { deployMockContract } = waffle;
 
 const YOP_CONTRACT_ADDRESS = "0xAE1eaAE3F627AAca434127644371b67B18444051";
@@ -47,7 +48,13 @@ describe("SingleAssetVault", async () => {
     await feeCollection.mock.collectManageFee.returns();
     await feeCollection.mock.collectPerformanceFee.returns();
 
-    const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
+    const VaultUtilsFactory = await ethers.getContractFactory("VaultUtils");
+    const vaultUtils = await VaultUtilsFactory.deploy();
+    const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault", {
+      libraries: {
+        VaultUtils: vaultUtils.address,
+      },
+    });
     vault = (await SingleAssetVault.deploy()) as SingleAssetVault;
     await vault.deployed();
     await vault.initialize(
@@ -83,7 +90,13 @@ describe("SingleAssetVault", async () => {
     });
 
     it("should revert if token address is not valid", async () => {
-      const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
+      const VaultUtilsFactory = await ethers.getContractFactory("VaultUtils");
+      const vaultUtils = await VaultUtilsFactory.deploy();
+      const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault", {
+        libraries: {
+          VaultUtils: vaultUtils.address,
+        },
+      });
       const newVault = (await SingleAssetVault.deploy()) as SingleAssetVault;
       await newVault.deployed();
       expect(
@@ -276,7 +289,13 @@ describe("SingleAssetVault", async () => {
       });
 
       it("user can deposit without the rewards contract", async () => {
-        const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
+        const VaultUtilsFactory = await ethers.getContractFactory("VaultUtils");
+        const vaultUtils = await VaultUtilsFactory.deploy();
+        const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault", {
+          libraries: {
+            VaultUtils: vaultUtils.address,
+          },
+        });
         const newVault = (await SingleAssetVault.deploy()) as SingleAssetVault;
         await newVault.deployed();
         await newVault.initialize(
@@ -1007,7 +1026,13 @@ describe("SingleAssetVault", async () => {
     let newVault: SingleAssetVaultV2Mock;
 
     beforeEach(async () => {
-      const SingleAssetVault = await ethers.getContractFactory("SingleAssetVaultV2Mock");
+      const VaultUtilsFactory = await ethers.getContractFactory("VaultUtils");
+      const vaultUtils = await VaultUtilsFactory.deploy();
+      const SingleAssetVault = await ethers.getContractFactory("SingleAssetVaultV2Mock", {
+        libraries: {
+          VaultUtils: vaultUtils.address,
+        },
+      });
       newVault = (await SingleAssetVault.deploy()) as SingleAssetVaultV2Mock;
       await newVault.deployed();
       await newVault.initialize(
@@ -1110,6 +1135,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
   let vault1: SingleAssetVault;
   let vault2: SingleAssetVault;
   let yopRewards: YOPRewards;
+  let vaultUtils: Contract;
 
   beforeEach(async () => {
     [deployer, governance, gatekeeper, manager, rewards, user, wallet] = await ethers.getSigners();
@@ -1128,7 +1154,13 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
     await yopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
     await yopRewards.deployed();
 
-    const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault");
+    const VaultUtilsFactory = await ethers.getContractFactory("VaultUtils");
+    vaultUtils = await VaultUtilsFactory.deploy();
+    const SingleAssetVault = await ethers.getContractFactory("SingleAssetVault", {
+      libraries: {
+        VaultUtils: vaultUtils.address,
+      },
+    });
     const params1 = [
       vaultName1,
       vaultSymbol1,
@@ -1140,7 +1172,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       ethers.constants.AddressZero,
       yopRewards.address,
     ];
-    vault1 = (await upgrades.deployProxy(SingleAssetVault, params1, { kind: "uups" })) as SingleAssetVault;
+    vault1 = (await upgrades.deployProxy(SingleAssetVault, params1, { kind: "uups", unsafeAllowLinkedLibraries: true })) as SingleAssetVault;
     await vault1.deployed();
     const params2 = [
       vaultName2,
@@ -1153,7 +1185,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       ethers.constants.AddressZero,
       yopRewards.address,
     ];
-    vault2 = (await upgrades.deployProxy(SingleAssetVault, params2, { kind: "uups" })) as SingleAssetVault;
+    vault2 = (await upgrades.deployProxy(SingleAssetVault, params2, { kind: "uups", unsafeAllowLinkedLibraries: true })) as SingleAssetVault;
     await vault2.deployed();
   });
 
@@ -1167,11 +1199,22 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
   });
 
   it("only governance can upgrade", async () => {
-    let SingleAssetVaultV2Mock = await ethers.getContractFactory("SingleAssetVaultV2Mock");
-    await expect(upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock)).to.be.revertedWith("governance only");
+    let SingleAssetVaultV2Mock = await ethers.getContractFactory("SingleAssetVaultV2Mock", {
+      libraries: {
+        VaultUtils: vaultUtils.address,
+      },
+    });
+    await expect(upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock, { unsafeAllowLinkedLibraries: true })).to.be.revertedWith(
+      "governance only"
+    );
     // see https://forum.openzeppelin.com/t/execute-upgrade-using-different-signer/14264
-    SingleAssetVaultV2Mock = await ethers.getContractFactory("SingleAssetVaultV2Mock", governance);
-    const vaultv2 = await upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock);
+    SingleAssetVaultV2Mock = await ethers.getContractFactory("SingleAssetVaultV2Mock", {
+      signer: governance,
+      libraries: {
+        VaultUtils: vaultUtils.address,
+      },
+    });
+    const vaultv2 = await upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock, { unsafeAllowLinkedLibraries: true });
     expect(await vaultv2.version()).to.equal("2.0.0");
   });
 });

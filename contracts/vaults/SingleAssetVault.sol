@@ -199,14 +199,29 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     _validateStrategy(strat);
     require(token.balanceOf(strat) >= (_gain + _debtPayment), "!balance");
 
-    _checkStrategyHealth(strat, _gain, _loss, _debtPayment);
-
-    _reportLoss(strat, _loss);
+    VaultUtils.checkStrategyHealth(
+      healthCheck,
+      strat,
+      _gain,
+      _loss,
+      _debtPayment,
+      _debtOutstanding(strat),
+      strategies[strat].totalDebt
+    );
+    totalDebt = VaultUtils.reportLoss(strategies, strat, totalDebt, _strategyDataStore(), _loss);
     // Returns are always "realized gains"
     strategies[strat].totalGain = strategies[strat].totalGain + _gain;
 
     // Assess both management fee and performance fee, and issue both as shares of the vault
-    uint256 totalFees = _assessFees(strat, _gain);
+    uint256 totalFees = VaultUtils.assessFees(
+      token,
+      feeCollection,
+      strategies,
+      strat,
+      _gain,
+      managementFee,
+      _strategyDataStore().strategyPerformanceFee(address(this), strat)
+    );
     // Compute the line of credit the Vault is able to offer the Strategy (if any)
     uint256 credit = _creditAvailable(strat);
     // Outstanding debt the Strategy wants to take back from the Vault (if any)
@@ -294,24 +309,6 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
     return shares;
   }
 
-  function _assessFees(address _strategy, uint256 _gain) internal returns (uint256) {
-    uint256 totalFee_;
-    uint256 performanceFee_;
-    (totalFee_, performanceFee_) = _calculateFees(_strategy, _gain);
-
-    if (totalFee_ > 0) {
-      token.approve(feeCollection, totalFee_);
-      uint256 managementFee_ = totalFee_ - performanceFee_;
-      if (managementFee_ > 0) {
-        IFeeCollection(feeCollection).collectManageFee(managementFee_);
-      }
-      if (performanceFee_ > 0) {
-        IFeeCollection(feeCollection).collectPerformanceFee(_strategy, performanceFee_);
-      }
-    }
-    return totalFee_;
-  }
-
   function _withdraw(
     uint256 _maxShares,
     address _recipient,
@@ -385,7 +382,7 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       if (loss > 0) {
         value = value - loss;
         totalLoss = totalLoss + loss;
-        _reportLoss(strategyAddress, loss);
+        totalDebt = VaultUtils.reportLoss(strategies, strategyAddress, totalDebt, _strategyDataStore(), loss);
       }
 
       // Reduce the Strategy's debt by the amount withdrawn ("realized returns")
@@ -393,39 +390,6 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
       _decreaseDebt(strategyAddress, withdrawAmount);
     }
     return totalLoss;
-  }
-
-  function _reportLoss(address _strategy, uint256 _loss) internal {
-    if (_loss > 0) {
-      require(strategies[_strategy].totalDebt >= _loss, "!loss");
-      uint256 tRatio_ = _strategyDataStore().vaultTotalDebtRatio(address(this));
-      uint256 straRatio_ = _strategyDataStore().strategyDebtRatio(address(this), _strategy);
-      // make sure we reduce our trust with the strategy by the amount of loss
-      if (tRatio_ != 0) {
-        uint256 c = Math.min((_loss * tRatio_) / totalDebt, straRatio_);
-        _strategyDataStore().updateStrategyDebtRatio(address(this), _strategy, straRatio_ - c);
-      }
-      strategies[_strategy].totalLoss = strategies[_strategy].totalLoss + _loss;
-      strategies[_strategy].totalDebt = strategies[_strategy].totalDebt - _loss;
-      totalDebt = totalDebt - _loss;
-    }
-  }
-
-  function _assessStrategyPerformanceFee(address _strategy, uint256 _gain) internal view returns (uint256) {
-    return (_gain * (_strategyDataStore().strategyPerformanceFee(address(this), _strategy))) / MAX_BASIS_POINTS;
-  }
-
-  // calculate the management fee based on TVL.
-  function _assessManagementFee(address _strategy) internal view returns (uint256) {
-    // solhint-disable-next-line not-rely-on-time
-    uint256 duration = block.timestamp - strategies[_strategy].lastReport;
-    require(duration > 0, "!block"); // should not be called twice within the same block
-    // the managementFee is per year, so only charge the management fee for the period since last time it is charged.
-    if (managementFee > 0) {
-      uint256 strategyTVL = strategies[_strategy].totalDebt - IStrategy(_strategy).delegatedAssets();
-      return (strategyTVL * managementFee * duration) / SECONDS_PER_YEAR / MAX_BASIS_POINTS;
-    }
-    return 0;
   }
 
   function _ensureValidShares(address _account, uint256 _shares) internal view returns (uint256) {
@@ -442,52 +406,6 @@ contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, Reentran
   function _decreaseDebt(address _strategy, uint256 _amount) internal {
     strategies[_strategy].totalDebt = strategies[_strategy].totalDebt - _amount;
     totalDebt = totalDebt - _amount;
-  }
-
-  function _checkStrategyHealth(
-    address _strategy,
-    uint256 _gain,
-    uint256 _loss,
-    uint256 _debtPayment
-  ) internal {
-    if (healthCheck != address(0)) {
-      IHealthCheck check = IHealthCheck(healthCheck);
-      if (check.doHealthCheck(_strategy)) {
-        require(
-          check.check(
-            _strategy,
-            _gain,
-            _loss,
-            _debtPayment,
-            _debtOutstanding(_strategy),
-            strategies[_strategy].totalDebt
-          ),
-          "!healthy"
-        );
-      } else {
-        check.enableCheck(_strategy);
-      }
-    }
-  }
-
-  function _calculateFees(address _strategy, uint256 _gain)
-    internal
-    view
-    returns (uint256 totalFee, uint256 performanceFee)
-  {
-    // Issue new shares to cover fees
-    // solhint-disable-next-line not-rely-on-time
-    if (strategies[_strategy].activation == block.timestamp) {
-      return (0, 0); // NOTE: Just added, no fees to assess
-    }
-    if (_gain == 0) {
-      // The fees are not charged if there hasn't been any gains reported
-      return (0, 0);
-    }
-    uint256 managementFee_ = _assessManagementFee(_strategy);
-    uint256 strategyPerformanceFee_ = _assessStrategyPerformanceFee(_strategy, _gain);
-    uint256 totalFee_ = Math.min(_gain, managementFee_ + strategyPerformanceFee_);
-    return (totalFee_, strategyPerformanceFee_);
   }
 
   function _ensureValidDepositAmount(address _account, uint256 _amount) internal view returns (uint256) {

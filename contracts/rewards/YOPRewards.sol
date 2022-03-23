@@ -130,7 +130,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     address _wallet,
     address _yopContract,
     uint256 _emissionStartTime
-  ) external initializer {
+  ) external virtual initializer {
     __YOPRewards_init(_governance, _gatekeeper, _wallet, _yopContract, _emissionStartTime);
   }
 
@@ -512,11 +512,12 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   }
 
   /// @dev This function should only be used when claiming rewards
-  function _updateStateForVaults(address[] memory _vaults, bytes32 _account) internal {
+  function _updateStateForVaults(address[] memory _vaults, bytes32 _account) internal virtual {
     for (uint256 i = 0; i < _vaults.length; i++) {
       // since this function is only called when claiming, if the account doesn't have any balance in a vault
       // then there is no need to update the checkpoint for the user as it will always be 0
       if (IVault(_vaults[i]).balanceOf(_account.bytes32ToAddress()) > 0) {
+        require(vaultAddresses.contains(_vaults[i]), "!vault");
         _updatePoolState(_vaults[i]);
         _updateUserState(_vaults[i], _account);
       }
@@ -604,7 +605,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     if (_pool == stakingContract) {
       return IStaking(_pool).totalWorkingSupply();
     } else {
-      return IERC20MetadataUpgradeable(_pool).totalSupply();
+      return _getVaultTotalSupply(_pool);
     }
   }
 
@@ -612,8 +613,16 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
     if (_pool == stakingContract) {
       return IStaking(_pool).workingBalanceOfStake(_account.bytes32ToUint256());
     } else {
-      return IERC20Upgradeable(_pool).balanceOf(_account.bytes32ToAddress());
+      return _getVaultBalanceOf(_pool, _account.bytes32ToAddress());
     }
+  }
+
+  function _getVaultTotalSupply(address _vault) internal view virtual returns (uint256) {
+    return IERC20MetadataUpgradeable(_vault).totalSupply();
+  }
+
+  function _getVaultBalanceOf(address _vault, address _user) internal view virtual returns (uint256) {
+    return IERC20Upgradeable(_vault).balanceOf(_user);
   }
 
   function _getCurrentRateForPool(address _pool, uint256 _rate) internal view returns (uint256) {

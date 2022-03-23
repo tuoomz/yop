@@ -5,13 +5,14 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../security/BasePauseableUpgradeable.sol";
 import "../interfaces/IYOPRewards.sol";
-import "../interfaces//IAccessControlManager.sol";
+import "../interfaces/IAccessControlManager.sol";
+import "../interfaces/IStaking.sol";
 
 /// @notice This contract will stake (lock) YOP tokens for a period of time. While the tokens are locked in this contract, users will be able to claim additional YOP tokens (from the community emission as per YOP tokenomics).
 ///  Users can stake as many times as they want, but each stake can't be modified/extended once it is created.
 ///  For each stake, the user will recive an ERC1155 NFT token as the receipt. These NFT tokens can be transferred to other to still allow users to use the locked YOP tokens as a collateral.
 ///  When the NFT tokens are transferred, all the remaining unclaimed rewards will be transferred to the new owner as well.
-contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
+contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event Staked(
@@ -94,7 +95,7 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
     string memory _contractURI,
     address _owner,
     address _accessControlManager
-  ) external initializer {
+  ) external virtual initializer {
     __Staking_init(
       _name,
       _symbol,
@@ -175,33 +176,7 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   /// @param _lockPeriod The locking period of the stake, in months
   /// @return The id of the NFT token that is also the id of the stake
   function stake(uint248 _amount, uint8 _lockPeriod) external whenNotPaused returns (uint256) {
-    require(_amount > minStakeAmount, "!amount");
-    require(_lockPeriod > 0 && _lockPeriod <= MAX_LOCK_PERIOD, "!lockPeriod");
-    require(IERC20Upgradeable(_getYOPAddress()).balanceOf(_msgSender()) >= _amount, "!balance");
-    require((totalWorkingSupply + _amount * _lockPeriod) <= stakingLimit, "limit reached");
-    if (accessControlManager != address(0)) {
-      require(IAccessControlManager(accessControlManager).hasAccess(_msgSender(), address(this)), "!access");
-    }
-    // issue token id
-    uint256 tokenId = stakes.length;
-    // calculate the rewards for the token.
-    // This only needs to be called when NFT tokens are minted/burne. It doesn't need to be called again when NFTs are transferred as the balance of the token and the totalBalance are not changed when tokens are transferred
-    // This needs to be called before the stakes array is updated as otherwise the workingBalanceOfStake will return a value.
-    IYOPRewards(yopRewards).calculateStakingRewards(tokenId);
-    // record the stake
-    Stake memory s = Stake({
-      lockPeriod: _lockPeriod,
-      amount: _amount,
-      startTime: _getBlockTimestamp(),
-      lastTransferTime: _getBlockTimestamp()
-    });
-    stakes.push(s);
-    // transfer the the tokens to this contract and mint an NFT token
-    IERC20Upgradeable(_getYOPAddress()).safeTransferFrom(_msgSender(), address(this), _amount);
-    bytes memory data;
-    _mint(_msgSender(), tokenId, 1, data);
-    emit Staked(_msgSender(), tokenId, _amount, _lockPeriod, _getBlockTimestamp());
-    return tokenId;
+    return _mintStake(_amount, _lockPeriod);
   }
 
   /// @notice Unstake a single staking position that is owned by the caller after it's unlocked, and transfer the unlocked tokens to the _to address
@@ -379,5 +354,35 @@ contract Staking is ERC1155Upgradeable, BasePauseableUpgradeable {
   function _updateContractURI(string memory _contractURI) internal {
     contractURI = _contractURI;
     emit StakingContractURIUpdated(_contractURI);
+  }
+
+  function _mintStake(uint248 _amount, uint8 _lockPeriod) internal returns (uint256) {
+    require(_amount > minStakeAmount, "!amount");
+    require(_lockPeriod > 0 && _lockPeriod <= MAX_LOCK_PERIOD, "!lockPeriod");
+    require(IERC20Upgradeable(_getYOPAddress()).balanceOf(_msgSender()) >= _amount, "!balance");
+    require((totalWorkingSupply + _amount * _lockPeriod) <= stakingLimit, "limit reached");
+    if (accessControlManager != address(0)) {
+      require(IAccessControlManager(accessControlManager).hasAccess(_msgSender(), address(this)), "!access");
+    }
+    // issue token id
+    uint256 tokenId = stakes.length;
+    // calculate the rewards for the token.
+    // This only needs to be called when NFT tokens are minted/burne. It doesn't need to be called again when NFTs are transferred as the balance of the token and the totalBalance are not changed when tokens are transferred
+    // This needs to be called before the stakes array is updated as otherwise the workingBalanceOfStake will return a value.
+    IYOPRewards(yopRewards).calculateStakingRewards(tokenId);
+    // record the stake
+    Stake memory s = Stake({
+      lockPeriod: _lockPeriod,
+      amount: _amount,
+      startTime: _getBlockTimestamp(),
+      lastTransferTime: _getBlockTimestamp()
+    });
+    stakes.push(s);
+    // transfer the the tokens to this contract and mint an NFT token
+    IERC20Upgradeable(_getYOPAddress()).safeTransferFrom(_msgSender(), address(this), _amount);
+    bytes memory data;
+    _mint(_msgSender(), tokenId, 1, data);
+    emit Staked(_msgSender(), tokenId, _amount, _lockPeriod, _getBlockTimestamp());
+    return tokenId;
   }
 }

@@ -703,6 +703,10 @@ describe("YOPReward", () => {
       it("should revert when vaults are not empty", async () => {
         await expect(yopRewardsContract.claimVaultRewards([], user1.address)).to.be.revertedWith("no vaults");
       });
+
+      it("should revert if vault doesn't exit", async () => {
+        await expect(yopRewardsContract.claimVaultRewards([user1.address], user1.address)).to.be.revertedWith("!vault");
+      });
       it("allow users to claim all their vault rewards in a single vault", async () => {
         let balance = await rewards.balanceOf(user1.address);
         await expect(balance).to.equal(0);

@@ -43,10 +43,10 @@ contract YOPRewardsV2 is YOPRewards {
   /// @dev This is called when user claims their rewards for vaults. This will also update the user's boosted balance based on their latest staking position.
   function _updateStateForVaults(address[] memory _vaults, bytes32 _account) internal virtual override {
     for (uint256 i = 0; i < _vaults.length; i++) {
+      require(vaultAddresses.contains(_vaults[i]), "!vault");
       // since this function is only called when claiming, if the account doesn't have any balance in a vault
       // then there is no need to update the checkpoint for the user as it will always be 0
       if (IVault(_vaults[i]).balanceOf(_account.bytes32ToAddress()) > 0) {
-        require(vaultAddresses.contains(_vaults[i]), "!vault");
         address[] memory users = new address[](1);
         users[0] = _account.bytes32ToAddress();
         // the updateBoostedBalancesForUsers will calculate the user's rewards, and update the boosted balance

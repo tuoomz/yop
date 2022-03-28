@@ -514,10 +514,10 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   /// @dev This function should only be used when claiming rewards
   function _updateStateForVaults(address[] memory _vaults, bytes32 _account) internal virtual {
     for (uint256 i = 0; i < _vaults.length; i++) {
+      require(vaultAddresses.contains(_vaults[i]), "!vault");
       // since this function is only called when claiming, if the account doesn't have any balance in a vault
       // then there is no need to update the checkpoint for the user as it will always be 0
       if (IVault(_vaults[i]).balanceOf(_account.bytes32ToAddress()) > 0) {
-        require(vaultAddresses.contains(_vaults[i]), "!vault");
         _updatePoolState(_vaults[i]);
         _updateUserState(_vaults[i], _account);
       }

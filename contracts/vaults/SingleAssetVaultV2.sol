@@ -155,6 +155,14 @@ contract SingleAssetVaultV2 is SingleAssetVault {
     totalBoostedBalance = totalBoostedBalance - totalBalanceToReduce + totalBalanceToAdd;
   }
 
+  /// @notice Returns the latest boosted balance of the user based on their latest staking and vault positions
+  ///  Use this function and boostedBalanceOf to check if a user's boosted balance should be updated
+  /// @param _user the address of the user to query
+  /// @return the latest boosted balance for the user
+  function latestBoostedBalanceOf(address _user) external view returns (uint256) {
+    return _calculateBoostedBalanceForUser(_user);
+  }
+
   function _calculateBoostedBalanceForUser(address _user) internal view returns (uint256) {
     return
       VaultUtils.calculateBoostedVaultBalance(

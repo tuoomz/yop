@@ -4,6 +4,7 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol";
 import "./Staking.sol";
 import "../interfaces/IVault.sol";
+import "hardhat/console.sol";
 
 /// @dev Add a new stake function that will update the user's boost balance in selected vaults immediately after staking
 contract StakingV2 is Staking {

@@ -75,19 +75,7 @@ contract CurveERC20SinglePool is CurveBaseV2 {
   function _addLiquidityToCurvePool() internal virtual override {
     uint256 balance = _balanceOfWant();
     if (balance > 0) {
-      if (numberOfTokens == 2) {
-        uint256[2] memory params;
-        params[inputTokenIndex] = balance;
-        curvePool.add_liquidity(params, 0);
-      } else if (numberOfTokens == 3) {
-        uint256[3] memory params;
-        params[inputTokenIndex] = balance;
-        curvePool.add_liquidity(params, 0);
-      } else {
-        uint256[4] memory params;
-        params[inputTokenIndex] = balance;
-        curvePool.add_liquidity(params, 0);
-      }
+      _depositToCurvePool(balance, numberOfTokens, inputTokenIndex);
     }
   }
 

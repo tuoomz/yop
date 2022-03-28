@@ -226,6 +226,26 @@ abstract contract CurveBaseV2 is BaseStrategy {
     return 0;
   }
 
+  function _depositToCurvePool(
+    uint256 _amount,
+    uint8 _numberOfTokens,
+    uint128 _indexOfTokenInPool
+  ) internal virtual {
+    if (_numberOfTokens == 2) {
+      uint256[2] memory params;
+      params[_indexOfTokenInPool] = _amount;
+      curvePool.add_liquidity(params, 0);
+    } else if (_numberOfTokens == 3) {
+      uint256[3] memory params;
+      params[_indexOfTokenInPool] = _amount;
+      curvePool.add_liquidity(params, 0);
+    } else {
+      uint256[4] memory params;
+      params[_indexOfTokenInPool] = _amount;
+      curvePool.add_liquidity(params, 0);
+    }
+  }
+
   /// @dev Deposits the LP tokens to Curve gauge.
   function _depositLPTokens() internal virtual {
     address poolLPToken = curveGauge.lp_token();
@@ -238,26 +258,31 @@ abstract contract CurveBaseV2 is BaseStrategy {
   /// @dev Withdraws the given amount of want tokens from the Curve pools.
   /// @param _amount The amount of *want* tokens (not LP token).
   function _withdrawSome(uint256 _amount) internal virtual returns (uint256) {
+    uint256 requiredLPTokenAmount = _calculateLpTokenForWant(_amount);
+    // decide how many LP tokens we can actually withdraw
+    return _removeLiquidity(requiredLPTokenAmount);
+  }
+
+  function _calculateLpTokenForWant(uint256 _wantAmount) internal virtual returns (uint256) {
     uint256 requiredLPTokenAmount;
     // check how many LP tokens we will need for the given want _amount
     // not great, but can't find a better way to define the params dynamically based on the coins count
     if (_getCoinsCount() == 2) {
       uint256[2] memory params;
-      params[_getWantTokenIndex()] = _amount;
+      params[_getWantTokenIndex()] = _wantAmount;
       requiredLPTokenAmount = (curvePool.calc_token_amount(params, true) * 10200) / 10000; // adding 2% padding
     } else if (_getCoinsCount() == 3) {
       uint256[3] memory params;
-      params[_getWantTokenIndex()] = _amount;
+      params[_getWantTokenIndex()] = _wantAmount;
       requiredLPTokenAmount = (curvePool.calc_token_amount(params, true) * 10200) / 10000; // adding 2% padding
     } else if (_getCoinsCount() == 4) {
       uint256[4] memory params;
-      params[_getWantTokenIndex()] = _amount;
+      params[_getWantTokenIndex()] = _wantAmount;
       requiredLPTokenAmount = (curvePool.calc_token_amount(params, true) * 10200) / 10000; // adding 2% padding
     } else {
       revert("Invalid number of LP tokens");
     }
-    // decide how many LP tokens we can actually withdraw
-    return _removeLiquidity(requiredLPTokenAmount);
+    return requiredLPTokenAmount;
   }
 
   /// @dev Removes the liquidity by the LP token amount

@@ -3,6 +3,7 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/convex/IConvexDeposit.sol";
 import "../interfaces/convex/IConvexRewards.sol";
+import "hardhat/console.sol";
 
 /// @notice This contract provides common functions that will be used by all Convex strategies.
 contract ConvexBase {
@@ -97,6 +98,7 @@ contract ConvexBase {
     returns (uint256)
   {
     uint256 _crv = IConvexRewards(cvxRewards).earned(address(this));
+
     if (_crv > 0) {
       // calculations pulled directly from CVX's contract for minting CVX per CRV claimed
       uint256 totalCliffs = 1000;

@@ -5,7 +5,6 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./CurveBaseV2.sol";
-import "hardhat/console.sol";
 
 contract CurveERC20SinglePool is CurveBaseV2 {
   using SafeERC20 for IERC20;

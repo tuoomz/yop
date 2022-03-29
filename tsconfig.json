@@ -7,7 +7,8 @@
     "outDir": "dist",
     "declaration": true,
     "resolveJsonModule": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "incremental": true
   },
   "include": [
     "hardhat.config.ts",
@@ -16,5 +17,8 @@
     "./deploy",
     "./test"
   ],
-  "files": ["./hardhat.config.ts", "test/unit/utils/Impersonate.ts"]
+  "files": ["./hardhat.config.ts", "test/unit/utils/Impersonate.ts"],
+  "ts-node": {
+    "swc": true
+  }
 }

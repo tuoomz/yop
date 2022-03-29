@@ -1,4 +1,5 @@
 import { ethers, waffle } from "hardhat";
+import { MockContract } from "ethereum-waffle";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
 import { TokenMock } from "../../../types/TokenMock";
@@ -168,6 +169,18 @@ export async function setupVaultAndCurveTrio() {
   await strat.mockCurvePool.mock.coins.withArgs(1).returns(strat.mockUsdc.address);
   await strat.mockCurvePool.mock.coins.withArgs(2).returns(strat.mockUsdt.address);
   return { ...vault, ...strat };
+}
+
+export async function setupConvex(): Promise<{
+  mockConvexBooster: MockContract;
+  mockConvexRewards: MockContract;
+  mockConvexToken: MockContract;
+}> {
+  const [deployer] = await ethers.getSigners();
+  const mockConvexBooster = await deployMockContract(deployer, convexBoosterABI);
+  const mockConvexRewards = await deployMockContract(deployer, convexRewardsABI);
+  const mockConvexToken = await deployMockContract(deployer, ERC20ABI);
+  return { mockConvexBooster, mockConvexRewards, mockConvexToken };
 }
 
 export async function setupConvexMocks() {

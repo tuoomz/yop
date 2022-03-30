@@ -3,6 +3,7 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../security/BasePauseableUpgradeable.sol";
 import "../interfaces/IYOPRewards.sol";
 import "../interfaces/IAccessControlManager.sol";
@@ -12,7 +13,7 @@ import "../interfaces/IStaking.sol";
 ///  Users can stake as many times as they want, but each stake can't be modified/extended once it is created.
 ///  For each stake, the user will recive an ERC1155 NFT token as the receipt. These NFT tokens can be transferred to other to still allow users to use the locked YOP tokens as a collateral.
 ///  When the NFT tokens are transferred, all the remaining unclaimed rewards will be transferred to the new owner as well.
-contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
+contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable, ReentrancyGuardUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event Staked(
@@ -122,6 +123,7 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
     address _accessControlManager
   ) internal onlyInitializing {
     __ERC1155_init(_uri);
+    __ReentrancyGuard_init();
     __BasePauseableUpgradeable_init(_governance, _gatekeeper);
     __Staking_init_unchained(_name, _symbol, _yopRewards, _contractURI, _owner, _accessControlManager);
   }
@@ -182,46 +184,14 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
   /// @notice Unstake a single staking position that is owned by the caller after it's unlocked, and transfer the unlocked tokens to the _to address
   /// @param _stakeId The id of the staking NFT token, and owned by the caller
   function unstakeSingle(uint256 _stakeId, address _to) external whenNotPaused {
-    require(_to != address(0), "!input");
-    require(balanceOf(_msgSender(), _stakeId) > 0, "!stake");
-    Stake memory s = stakes[_stakeId];
-    uint256 startTime = s.startTime;
-    uint248 amount = s.amount;
-    uint8 lockPeriod = s.lockPeriod;
-    require(_isUnlocked(s), "locked");
-    // This only needs to be called when NFT tokens are minted/burne. It doesn't need to be called again when NFTs are transferred as the balance of the token and the totalBalance are not changed when tokens are transferred
-    IYOPRewards(yopRewards).calculateStakingRewards(_stakeId);
-    // burn the NFT
-    _burn(_msgSender(), _stakeId, 1);
-    // transfer the tokens to _to
-    IERC20Upgradeable(_getYOPAddress()).safeTransfer(_to, amount);
-    emit Unstaked(_msgSender(), _stakeId, amount, lockPeriod, startTime);
+    _burnSingle(_stakeId, _to);
   }
 
   /// @notice Unstake all the unlocked stakes the caller currently has and transfer all the tokens to _to address in a single transfer.
   ///  This will be more gas efficient if the caller has multiple stakes that are unlocked.
   /// @param _to the address that will receive the tokens
   function unstakeAll(address _to) external whenNotPaused {
-    require(_to != address(0), "!input");
-    uint256[] memory stakeIds = stakesForAddress[_msgSender()];
-    uint256 toTransfer = 0;
-    uint256[] memory unlockedIds = _getUnlockedStakeIds(stakeIds);
-    require(unlockedIds.length > 0, "!unlocked");
-    uint256[] memory amounts = new uint256[](unlockedIds.length);
-    for (uint256 i = 0; i < unlockedIds.length; i++) {
-      amounts[i] = 1;
-      Stake memory s = stakes[unlockedIds[i]];
-      IYOPRewards(yopRewards).calculateStakingRewards(unlockedIds[i]);
-      uint256 startTime = s.startTime;
-      uint248 amount = s.amount;
-      uint8 lockPeriod = s.lockPeriod;
-      toTransfer += amount;
-      emit Unstaked(_msgSender(), unlockedIds[i], amount, lockPeriod, startTime);
-    }
-    // burn the NFTs
-    _burnBatch(_msgSender(), unlockedIds, amounts);
-    // transfer the tokens to _to
-    IERC20Upgradeable(_getYOPAddress()).safeTransfer(_to, toTransfer);
+    _burnAll(_to);
   }
 
   /// @notice Lists the is of stakes for a user
@@ -384,5 +354,45 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
     _mint(_msgSender(), tokenId, 1, data);
     emit Staked(_msgSender(), tokenId, _amount, _lockPeriod, _getBlockTimestamp());
     return tokenId;
+  }
+
+  function _burnSingle(uint256 _stakeId, address _to) internal {
+    require(_to != address(0), "!input");
+    require(balanceOf(_msgSender(), _stakeId) > 0, "!stake");
+    Stake memory s = stakes[_stakeId];
+    uint256 startTime = s.startTime;
+    uint248 amount = s.amount;
+    uint8 lockPeriod = s.lockPeriod;
+    require(_isUnlocked(s), "locked");
+    // This only needs to be called when NFT tokens are minted/burne. It doesn't need to be called again when NFTs are transferred as the balance of the token and the totalBalance are not changed when tokens are transferred
+    IYOPRewards(yopRewards).calculateStakingRewards(_stakeId);
+    // burn the NFT
+    _burn(_msgSender(), _stakeId, 1);
+    // transfer the tokens to _to
+    IERC20Upgradeable(_getYOPAddress()).safeTransfer(_to, amount);
+    emit Unstaked(_msgSender(), _stakeId, amount, lockPeriod, startTime);
+  }
+
+  function _burnAll(address _to) internal {
+    require(_to != address(0), "!input");
+    uint256[] memory stakeIds = stakesForAddress[_msgSender()];
+    uint256 toTransfer = 0;
+    uint256[] memory unlockedIds = _getUnlockedStakeIds(stakeIds);
+    require(unlockedIds.length > 0, "!unlocked");
+    uint256[] memory amounts = new uint256[](unlockedIds.length);
+    for (uint256 i = 0; i < unlockedIds.length; i++) {
+      amounts[i] = 1;
+      Stake memory s = stakes[unlockedIds[i]];
+      IYOPRewards(yopRewards).calculateStakingRewards(unlockedIds[i]);
+      uint256 startTime = s.startTime;
+      uint248 amount = s.amount;
+      uint8 lockPeriod = s.lockPeriod;
+      toTransfer += amount;
+      emit Unstaked(_msgSender(), unlockedIds[i], amount, lockPeriod, startTime);
+    }
+    // burn the NFTs
+    _burnBatch(_msgSender(), unlockedIds, amounts);
+    // transfer the tokens to _to
+    IERC20Upgradeable(_getYOPAddress()).safeTransfer(_to, toTransfer);
   }
 }

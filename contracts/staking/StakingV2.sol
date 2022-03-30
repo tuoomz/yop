@@ -70,20 +70,40 @@ contract StakingV2 is Staking {
   ///  If the vault addresses are provided, the user's boosted balance in these vaults will be updated immediately after staking to take into account their latest staking positions.
   /// @param _amount The amount of YOP tokens to stake
   /// @param _lockPeriod The locking period of the stake, in months
-  /// @param _vaultsToUpdate The vaults that the user's boosted balance should be updated after staking
+  /// @param _vaultsToBoost The vaults that the user's boosted balance should be updated after staking
   /// @return The id of the NFT token that is also the id of the stake
-  function stake(
+  function stakeAndBoost(
     uint248 _amount,
     uint8 _lockPeriod,
-    address[] calldata _vaultsToUpdate
-  ) external whenNotPaused returns (uint256) {
+    address[] calldata _vaultsToBoost
+  ) external whenNotPaused nonReentrant returns (uint256) {
     uint256 tokenId = _mintStake(_amount, _lockPeriod);
-    for (uint256 i = 0; i < _vaultsToUpdate.length; i++) {
-      require(_vaultsToUpdate[i].supportsInterface(type(IVault).interfaceId), "!vault interface");
-      address[] memory users = new address[](1);
-      users[0] = _msgSender();
-      IBoostedVault(_vaultsToUpdate[i]).updateBoostedBalancesForUsers(users);
-    }
+    _updateVaults(_vaultsToBoost);
     return tokenId;
+  }
+
+  function unstakeSingleAndBoost(
+    uint256 _stakeId,
+    address _to,
+    address[] calldata _vaultsToBoost
+  ) external whenNotPaused nonReentrant {
+    _burnSingle(_stakeId, _to);
+    _updateVaults(_vaultsToBoost);
+  }
+
+  function unstakeAllAndBoost(address _to, address[] calldata _vaultsToBoost) external whenNotPaused nonReentrant {
+    _burnAll(_to);
+    _updateVaults(_vaultsToBoost);
+  }
+
+  function _updateVaults(address[] calldata _vaultsToBoost) internal {
+    for (uint256 i = 0; i < _vaultsToBoost.length; i++) {
+      require(_vaultsToBoost[i].supportsInterface(type(IVault).interfaceId), "!vault interface");
+      if (IVault(_vaultsToBoost[i]).balanceOf(_msgSender()) > 0) {
+        address[] memory users = new address[](1);
+        users[0] = _msgSender();
+        IBoostedVault(_vaultsToBoost[i]).updateBoostedBalancesForUsers(users);
+      }
+    }
   }
 }

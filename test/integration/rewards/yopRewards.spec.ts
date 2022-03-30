@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, setNextBlockTimestamp, YOP_WHALE_ADDRESS, YOP_CONTRACT_ADDRESS } from "../shared/setup";
+import { setupVault, impersonate, setEthBalance, setNextBlockTimestamp } from "../shared/setup";
 import { ethers } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -11,6 +11,7 @@ import { BigNumber } from "ethers";
 import { ERC20 } from "../../../types/ERC20";
 import { Staking } from "../../../types/Staking";
 import { FeeCollection } from "../../../types/FeeCollection";
+import { CONST } from "../../constants";
 
 const WETH_ADDRESS = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_WHALE_ADDRESS = "0x2f0b23f53734252bda2277357e97e1517d6b042a";
@@ -56,7 +57,7 @@ describe("yopRewards [@skip-on-coverage]", async () => {
     await wethContract.connect(await impersonate(WETH_WHALE_ADDRESS)).transfer(user2.address, ethers.utils.parseEther("100"));
     await wethContract.connect(user).approve(vault.address, ethers.constants.MaxUint256);
     await wethContract.connect(user2).approve(vault.address, ethers.constants.MaxUint256);
-    yopContract = (await ethers.getContractAt(ERC20ABI, YOP_CONTRACT_ADDRESS)) as ERC20;
+    yopContract = (await ethers.getContractAt(ERC20ABI, CONST.YOP_ADDRESS)) as ERC20;
     await yopContract.connect(yopWalletAccount).transfer(user.address, ONE_THOUSAND_YOP);
     await yopContract.connect(yopWalletAccount).transfer(user2.address, THREE_THOUSAND_YOP);
     await yopContract.connect(user).approve(yopStaking.address, ethers.constants.MaxUint256);

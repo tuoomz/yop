@@ -6,7 +6,8 @@ import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC
 import YOPRewardsABI from "../../../abi/contracts/rewards/YOPRewards.sol/YOPRewards.json";
 import SingleAssetVaultV2ABI from "../../../abi/contracts/vaults/SingleAssetVaultV2.sol/SingleAssetVaultV2.json";
 import { StakingV2Mock } from "../../../types";
-import { ContractFactory } from "ethers";
+import { BigNumber, ContractFactory } from "ethers";
+import { monthsInSeconds } from "../utils/time";
 const TOKEN_DECIMALS = 8;
 const CONTRACT_URI = "https://yop.finance/"; // random url
 const { deployMockContract } = waffle;
@@ -52,11 +53,11 @@ describe("StakingV2", async () => {
     expect(await staking.totalSupply()).to.equal(ethers.constants.Zero);
   });
 
-  describe("stake", async () => {
+  describe("stakeAndBoost", async () => {
     it("should revert if paused", async () => {
       await staking.connect(governance).pause();
       await expect(
-        staking["stake(uint248,uint8,address[])"](ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, [vault1.address, vault2.address])
+        staking.stakeAndBoost(ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, [vault1.address, vault2.address])
       ).to.be.revertedWith("Pausable: paused");
     });
     it("should revert if the vault doesn't implement the vault interface", async () => {
@@ -64,22 +65,89 @@ describe("StakingV2", async () => {
       await stakeToken.mock.transferFrom.returns(true);
       await vault1.mock.supportsInterface.returns(false);
       await expect(
-        staking["stake(uint248,uint8,address[])"](ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, [vault1.address, vault2.address])
+        staking.stakeAndBoost(ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, [vault1.address, vault2.address])
       ).to.be.revertedWith("!vault interface");
     });
     it("should success", async () => {
       await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
       await stakeToken.mock.transferFrom.returns(true);
+      await vault1.mock.balanceOf.returns(BigNumber.from("100"));
       await vault1.mock.supportsInterface.returns(true);
       await vault1.mock.supportsInterface.withArgs("0xffffffff").returns(false);
       await vault1.mock.updateBoostedBalancesForUsers.returns();
+      await vault2.mock.balanceOf.returns(BigNumber.from("0"));
       await vault2.mock.supportsInterface.returns(true);
       await vault2.mock.supportsInterface.withArgs("0xffffffff").returns(false);
-      await vault2.mock.updateBoostedBalancesForUsers.returns();
-      await staking["stake(uint248,uint8,address[])"](ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, [vault1.address, vault2.address]);
-      // await expect(
-      //   staking["stake(uint248,uint8,address[])"](ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, [vault1.address, vault2.address])
-      // ).not.to.be.reverted;
+      await expect(staking.stakeAndBoost(ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, [vault1.address, vault2.address])).not.to.be
+        .reverted;
+    });
+  });
+
+  describe("unstakeSingleAndBoost", async () => {
+    beforeEach(async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await stakeToken.mock.transferFrom.returns(true);
+      await staking.connect(user).stake(ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1);
+      await staking.setBlockTime(monthsInSeconds(2));
+    });
+
+    it("should revert if paused", async () => {
+      await staking.connect(governance).pause();
+      await expect(staking.connect(user).unstakeSingleAndBoost(0, user.address, [vault1.address])).to.be.revertedWith("Pausable: paused");
+    });
+    it("should revert if the vault doesn't implement the vault interface", async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await stakeToken.mock.transfer.returns(true);
+      await vault1.mock.supportsInterface.returns(false);
+      await expect(staking.connect(user).unstakeSingleAndBoost(0, user.address, [vault1.address, vault2.address])).to.be.revertedWith(
+        "!vault interface"
+      );
+    });
+    it("should success", async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await stakeToken.mock.transfer.returns(true);
+      await vault1.mock.balanceOf.returns(BigNumber.from("100"));
+      await vault1.mock.supportsInterface.returns(true);
+      await vault1.mock.supportsInterface.withArgs("0xffffffff").returns(false);
+      await vault1.mock.updateBoostedBalancesForUsers.returns();
+      await vault2.mock.balanceOf.returns(ethers.constants.Zero);
+      await vault2.mock.supportsInterface.returns(true);
+      await vault2.mock.supportsInterface.withArgs("0xffffffff").returns(false);
+      await expect(staking.connect(user).unstakeSingleAndBoost(0, user.address, [vault1.address, vault2.address])).not.to.be.reverted;
+    });
+  });
+
+  describe("unstakeAllAndBoost", async () => {
+    beforeEach(async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await stakeToken.mock.transferFrom.returns(true);
+      await staking.connect(user).stake(ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1);
+      await staking.setBlockTime(monthsInSeconds(2));
+    });
+
+    it("should revert if paused", async () => {
+      await staking.connect(governance).pause();
+      await expect(staking.connect(user).unstakeAllAndBoost(user.address, [vault1.address])).to.be.revertedWith("Pausable: paused");
+    });
+    it("should revert if the vault doesn't implement the vault interface", async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await stakeToken.mock.transfer.returns(true);
+      await vault1.mock.supportsInterface.returns(false);
+      await expect(staking.connect(user).unstakeAllAndBoost(user.address, [vault1.address, vault2.address])).to.be.revertedWith(
+        "!vault interface"
+      );
+    });
+    it("should success", async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await stakeToken.mock.transfer.returns(true);
+      await vault1.mock.balanceOf.returns(BigNumber.from("100"));
+      await vault1.mock.supportsInterface.returns(true);
+      await vault1.mock.supportsInterface.withArgs("0xffffffff").returns(false);
+      await vault1.mock.updateBoostedBalancesForUsers.returns();
+      await vault2.mock.balanceOf.returns(ethers.constants.Zero);
+      await vault2.mock.supportsInterface.returns(true);
+      await vault2.mock.supportsInterface.withArgs("0xffffffff").returns(false);
+      await expect(staking.connect(user).unstakeAllAndBoost(user.address, [vault1.address, vault2.address])).not.to.be.reverted;
     });
   });
 });

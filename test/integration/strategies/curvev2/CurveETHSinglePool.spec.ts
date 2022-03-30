@@ -34,7 +34,7 @@ describe("CurveETHSinglePoolStrategy [@skip-on-coverage]", async () => {
   let curveAnkrEthPool: ICurveDeposit;
 
   beforeEach(async () => {
-    reset();
+    await reset();
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupVault(WETH_ADDRESS));
     // deploy the strategy

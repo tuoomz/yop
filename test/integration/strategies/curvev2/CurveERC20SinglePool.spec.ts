@@ -38,7 +38,7 @@ describe("CurveERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
   let curveRenBTCPool: ICurveDeposit;
 
   beforeEach(async () => {
-    reset();
+    await reset();
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupVault(WBTC_ADDRESS));
     // deploy the strategy

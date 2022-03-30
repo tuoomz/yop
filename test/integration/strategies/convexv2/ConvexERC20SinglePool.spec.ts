@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, jumpForward } from "../../shared/setup";
+import { setupVault, impersonate, setEthBalance, jumpForward, reset } from "../../shared/setup";
 import { ethers } from "hardhat";
 import { SingleAssetVault } from "../../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../../types/VaultStrategyDataStore";
@@ -42,6 +42,7 @@ describe("ConvexERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
   let curveBasePool: ICurveDeposit;
   let curveRenBTCPool: ICurveDeposit;
   beforeEach(async () => {
+    await reset();
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupVault(WBTC_ADDRESS));
     // deploy the strategy

@@ -185,7 +185,7 @@ describe("Upgrade to SingleAssetVaultV2 [@skip-on-coverage]", async () => {
         VaultUtils: vaultUtils.address,
       },
     });
-    const vaultV2 = (await upgrades.upgradeProxy(vault, VaultV2Factory, { unsafeAllowLinkedLibraries: true })) as SingleAssetVaultV2;
+    const vaultV2 = (await upgrades.upgradeProxy(vault, VaultV2Factory, { unsafeAllow: ["external-library-linking"] })) as SingleAssetVaultV2;
     await vaultV2.connect(governance).setBoostedFormulaWeights(1, 9);
     await vaultV2.connect(governance).setStakingContract(stakingV2.address);
     expect(await vaultV2.balanceOf(user1.address)).to.equal(user1DepositAmount);

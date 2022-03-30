@@ -1172,7 +1172,10 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       ethers.constants.AddressZero,
       yopRewards.address,
     ];
-    vault1 = (await upgrades.deployProxy(SingleAssetVault, params1, { kind: "uups", unsafeAllowLinkedLibraries: true })) as SingleAssetVault;
+    vault1 = (await upgrades.deployProxy(SingleAssetVault, params1, {
+      kind: "uups",
+      unsafeAllow: ["external-library-linking"],
+    })) as SingleAssetVault;
     await vault1.deployed();
     const params2 = [
       vaultName2,
@@ -1185,7 +1188,10 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
       ethers.constants.AddressZero,
       yopRewards.address,
     ];
-    vault2 = (await upgrades.deployProxy(SingleAssetVault, params2, { kind: "uups", unsafeAllowLinkedLibraries: true })) as SingleAssetVault;
+    vault2 = (await upgrades.deployProxy(SingleAssetVault, params2, {
+      kind: "uups",
+      unsafeAllow: ["external-library-linking"],
+    })) as SingleAssetVault;
     await vault2.deployed();
   });
 
@@ -1204,7 +1210,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
         VaultUtils: vaultUtils.address,
       },
     });
-    await expect(upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock, { unsafeAllowLinkedLibraries: true })).to.be.revertedWith(
+    await expect(upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock, { unsafeAllow: ["external-library-linking"] })).to.be.revertedWith(
       "governance only"
     );
     // see https://forum.openzeppelin.com/t/execute-upgrade-using-different-signer/14264
@@ -1214,7 +1220,7 @@ describe("SingleAssetVault proxy [ @skip-on-coverage ]", async () => {
         VaultUtils: vaultUtils.address,
       },
     });
-    const vaultv2 = await upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock, { unsafeAllowLinkedLibraries: true });
+    const vaultv2 = await upgrades.upgradeProxy(vault1, SingleAssetVaultV2Mock, { unsafeAllow: ["external-library-linking"] });
     expect(await vaultv2.version()).to.equal("2.0.0");
   });
 });

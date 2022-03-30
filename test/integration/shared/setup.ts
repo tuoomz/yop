@@ -85,7 +85,7 @@ export async function setupUpgradeableVault(tokenAddress: string) {
   ];
   const vault = (await upgrades.deployProxy(SingleAssetVaultFactory, params, {
     kind: "uups",
-    unsafeAllowLinkedLibraries: true,
+    unsafeAllow: ["external-library-linking"],
   })) as SingleAssetVault;
   await vault.deployed();
 

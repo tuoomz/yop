@@ -14,6 +14,7 @@ import "../interfaces/IStrategy.sol";
 import "../interfaces/IAccessControlManager.sol";
 import "../interfaces/IFeeCollection.sol";
 import "./SingleAssetVaultBase.sol";
+import "hardhat/console.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {

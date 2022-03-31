@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, jumpForward } from "../shared/setup";
+import { setupVault, impersonate, setEthBalance, jumpForward, reset } from "../shared/setup";
 import { ethers, waffle } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
@@ -30,6 +30,7 @@ describe("CurveBTCStrategy [@skip-on-coverage]", async () => {
   let curveBasePool: ICurveDeposit;
 
   beforeEach(async () => {
+    await reset(13612911);
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupVault(WBTC_ADDRESS));
     // deploy the strategy

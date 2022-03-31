@@ -1,11 +1,12 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance } from "../shared/setup";
+import { setupVault, impersonate, setEthBalance, reset } from "../shared/setup";
 import { ethers } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Staking } from "../../../types/Staking";
 import { AccessControlManager } from "../../../types/AccessControlManager";
 import { AllowAnyAccessControl } from "../../../types/AllowAnyAccessControl";
+import { SanctionsListAccessControl } from "../../../types/SanctionsListAccessControl";
 import { ERC1155AccessControl } from "../../../types/ERC1155AccessControl";
 import { IWETH } from "../../../types";
 import IWethABI from "../../../abi/contracts/interfaces/IWeth.sol/IWETH.json";
@@ -19,6 +20,8 @@ const ONE_THOUSAND_YOP = ethers.utils.parseUnits("1000", 8);
 const YOP_NFT_CONTRACT_ADDRESS = "0xe4605d46fd0b3f8329d936a8b258d69276cba264";
 const YOP_NFT_IDS = ["134", "135", "136", "503", "504", "505"];
 const YOP_NFT_WHALE_ADDRESS = "0x4f0dbc8af1d058c316b09f69437722e699cfb6bd";
+
+const SANCTIONED_ADDRESS = "0x7F367cC41522cE07553e823bf3be79A889DEbe1B";
 const depositAmount = ethers.utils.parseEther("10");
 
 describe("AccessControl [@skip-on-coverage]", async () => {
@@ -28,6 +31,7 @@ describe("AccessControl [@skip-on-coverage]", async () => {
   let yopStaking: Staking;
   let accessManager: AccessControlManager;
   let allowAnyAccessControl: AllowAnyAccessControl;
+  let sanctionsListAccessControl: SanctionsListAccessControl;
   let erc1155AccessControl: ERC1155AccessControl;
   let yopWalletAccount: SignerWithAddress;
   let wethContract: IWETH;
@@ -35,7 +39,10 @@ describe("AccessControl [@skip-on-coverage]", async () => {
   let yopNftHolder: SignerWithAddress;
 
   beforeEach(async () => {
-    ({ vault, governance, yopStaking, accessManager, allowAnyAccessControl, yopWalletAccount } = await setupVault(WETH_ADDRESS));
+    await reset(14356555);
+    ({ vault, governance, yopStaking, accessManager, allowAnyAccessControl, sanctionsListAccessControl, yopWalletAccount } = await setupVault(
+      WETH_ADDRESS
+    ));
     [user] = (await ethers.getSigners()).reverse();
     const ERC1155AccessControlFactory = await ethers.getContractFactory("ERC1155AccessControl");
     erc1155AccessControl = (await ERC1155AccessControlFactory.deploy(governance.address)) as ERC1155AccessControl;
@@ -61,6 +68,33 @@ describe("AccessControl [@skip-on-coverage]", async () => {
     await yopContract.connect(yopNftHolder).approve(yopStaking.address, ethers.constants.MaxUint256);
   });
 
+  describe("SanctionsList", async () => {
+    it("should add sanctionsList to block policies", async () => {
+      const blockPoliciesBefore = await accessManager.getBlockControlPolicies();
+      expect(blockPoliciesBefore.length).to.equal(0);
+      await accessManager.connect(governance).addBlockControlPolicies([sanctionsListAccessControl.address]);
+      const blockPoliciesAfter = await accessManager.getBlockControlPolicies();
+      expect(blockPoliciesAfter[0]).to.equal(sanctionsListAccessControl.address);
+    });
+    it("should be blocked from sanctioned address", async () => {
+      await accessManager.connect(governance).addBlockControlPolicies([sanctionsListAccessControl.address]);
+      expect(await accessManager.hasAccess(SANCTIONED_ADDRESS, vault.address)).to.be.equal(false);
+    });
+    it("should be blocked on vaults from sanctioned address", async () => {
+      const sanctionedWallet = await impersonate(SANCTIONED_ADDRESS);
+      await setEthBalance(sanctionedWallet.address, ethers.utils.parseEther("10"));
+      await wethContract.connect(await impersonate(WETH_WHALE_ADDRESS)).transfer(sanctionedWallet.address, ethers.utils.parseEther("100"));
+      await accessManager.connect(governance).addBlockControlPolicies([sanctionsListAccessControl.address]);
+      await expect(vault.connect(sanctionedWallet).deposit(depositAmount, SANCTIONED_ADDRESS)).to.be.revertedWith("!access");
+    });
+    it("should be blocked on stake from sanctioned address", async () => {
+      const sanctionedWallet = await impersonate(SANCTIONED_ADDRESS);
+      await setEthBalance(sanctionedWallet.address, ethers.utils.parseEther("10"));
+      await yopContract.connect(yopWalletAccount).transfer(sanctionedWallet.address, ONE_THOUSAND_YOP);
+      await accessManager.connect(governance).addBlockControlPolicies([sanctionsListAccessControl.address]);
+      await expect(yopStaking.connect(sanctionedWallet).stake(ONE_THOUSAND_YOP, 3)).to.be.revertedWith("!access");
+    });
+  });
   describe("check access with YOP NFT", async () => {
     it("should revert if user does not own any of the NFTs when deposit to a vault", async () => {
       await expect(vault.connect(user).deposit(depositAmount, user.address)).to.be.revertedWith("!access");

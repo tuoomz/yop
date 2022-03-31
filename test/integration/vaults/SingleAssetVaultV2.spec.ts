@@ -27,7 +27,7 @@ describe("SingleAssetVaultV2 Boosted Balance [@skip-on-coverage]", async () => {
   let yopContract: ERC20;
 
   beforeEach(async () => {
-    await reset();
+    await reset(14212231);
     ({ vault, governance, yopStaking, yopRewards } = await setupVaultV2(CONST.USDC_ADDRESS));
     [user1, user2, user3] = (await ethers.getSigners()).reverse();
     await prepareUseAccount(
@@ -113,7 +113,7 @@ describe("SingleAssetVaultV2 Boosted Balance [@skip-on-coverage]", async () => {
         0.5 *
         SECONDS_PER_WEEK *
         (user3BoostedBalance.mul(PRECISION).div(totalBoosted).toNumber() / PRECISION);
-      expect(parseFloat(ethers.utils.formatUnits(claimed, CONST.YOP_DECIMALS))).to.be.closeTo(user3Rewards, 5);
+      expect(parseFloat(ethers.utils.formatUnits(claimed, CONST.YOP_DECIMALS))).to.be.closeTo(user3Rewards, 10);
       blockTime += SECONDS_PER_MONTH * 11;
       await setNextBlockTimestamp(blockTime);
       await yopStaking.connect(user3).unstakeAllAndBoost(user3.address, [vault.address]);

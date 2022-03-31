@@ -7,6 +7,7 @@ import { BigNumber } from "ethers";
 import { Staking } from "../../../types/Staking";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json";
 import { AllowAnyAccessControl } from "../../../types/AllowAnyAccessControl";
+import { SanctionsListAccessControl } from "../../../types/SanctionsListAccessControl";
 import { FeeCollection } from "../../../types/FeeCollection";
 import { SingleAssetVaultV2 } from "../../../types/SingleAssetVaultV2";
 import { ERC20, StakingV2 } from "../../../types";
@@ -33,7 +34,7 @@ export async function setupUpgradeableVault(tokenAddress: string) {
   await allowAnyAccessControl.connect(governance).setDefault(true);
 
   const AccessManagerFactory = await ethers.getContractFactory("AccessControlManager");
-  const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address])) as AccessControlManager;
+  const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address], [])) as AccessControlManager;
   await accessManager.deployed();
   const FeeCollectionFactory = await ethers.getContractFactory("FeeCollection");
   const feeCollection = (await FeeCollectionFactory.deploy()) as FeeCollection;
@@ -136,8 +137,15 @@ export async function setupVault(tokenAddress: string) {
   await allowAnyAccessControl.deployed();
   await allowAnyAccessControl.connect(governance).setDefault(true);
 
+  const SanctionsListAccessControlFactory = await ethers.getContractFactory("SanctionsListAccessControl");
+  const sanctionsListAccessControl = (await SanctionsListAccessControlFactory.deploy(
+    governance.address,
+    CONST.SANCTIONS_LIST_CONTRACT_ADDRESS
+  )) as SanctionsListAccessControl;
+  await sanctionsListAccessControl.deployed();
+
   const AccessManagerFactory = await ethers.getContractFactory("AccessControlManager");
-  const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address])) as AccessControlManager;
+  const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address], [])) as AccessControlManager;
   await accessManager.deployed();
   const FeeCollectionFactory = await ethers.getContractFactory("FeeCollection");
   const feeCollection = (await FeeCollectionFactory.deploy()) as FeeCollection;
@@ -197,6 +205,7 @@ export async function setupVault(tokenAddress: string) {
     yopStaking,
     yopWalletAccount,
     allowAnyAccessControl,
+    sanctionsListAccessControl,
   };
 }
 
@@ -227,9 +236,15 @@ export async function setupVaultV2(tokenAddress: string) {
   const allowAnyAccessControl = (await AllowAnyAccessControlFactory.deploy(governance.address)) as AllowAnyAccessControl;
   await allowAnyAccessControl.deployed();
   await allowAnyAccessControl.connect(governance).setDefault(true);
+  const SanctionsListAccessControlFactory = await ethers.getContractFactory("SanctionsListAccessControl");
+  const sanctionsListAccessControl = (await SanctionsListAccessControlFactory.deploy(
+    governance.address,
+    CONST.SANCTIONS_LIST_CONTRACT_ADDRESS
+  )) as SanctionsListAccessControl;
+  await sanctionsListAccessControl.deployed();
 
   const AccessManagerFactory = await ethers.getContractFactory("AccessControlManager");
-  const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address])) as AccessControlManager;
+  const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address], [])) as AccessControlManager;
   await accessManager.deployed();
   const FeeCollectionFactory = await ethers.getContractFactory("FeeCollection");
   const feeCollection = (await FeeCollectionFactory.deploy()) as FeeCollection;
@@ -290,6 +305,7 @@ export async function setupVaultV2(tokenAddress: string) {
     yopStaking,
     yopWalletAccount,
     allowAnyAccessControl,
+    sanctionsListAccessControl,
   };
 }
 
@@ -330,14 +346,14 @@ export async function transferERC20Tokens(tokenAddress: string, from: string, to
   await tokenContract.connect(await impersonate(from)).transfer(to, amount);
 }
 
-export async function reset() {
+export async function reset(blockNumber = 13612911) {
   await network.provider.request({
     method: "hardhat_reset",
     params: [
       {
         forking: {
           jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-          blockNumber: 13612911,
+          blockNumber: blockNumber,
         },
       },
     ],

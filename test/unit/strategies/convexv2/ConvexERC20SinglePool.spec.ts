@@ -416,6 +416,7 @@ describe("ConvexERC20SinglePool strategy", async () => {
       await mockCurvePool.mock.calc_withdraw_one_coin.returns(ethers.utils.parseUnits("2", TOKEN_DECIMALS));
       const res = { activation: 0, totalDebt: ethers.utils.parseUnits("4", TOKEN_DECIMALS), lastReport: 0, totalGain: 0, totalLoss: 0 };
       await mockVault.mock.strategy.returns(res);
+
       await mockCurveGauge.mock.integrate_fraction.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
       await mockCurveMinter.mock.minted.returns(ethers.utils.parseUnits("0.5", TOKEN_DECIMALS));
       await mockDex.mock.getAmountsOut.returns([0, 0, ethers.utils.parseUnits("0.5", TOKEN_DECIMALS)]);

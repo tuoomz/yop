@@ -220,7 +220,7 @@ describe("SingleAssetVault", async () => {
         await allowlistPolicy.deployed();
 
         const AccessControlContract = await ethers.getContractFactory("AccessControlManager");
-        accessControlManager = (await AccessControlContract.deploy(governance.address, [allowlistPolicy.address])) as AccessControlManager;
+        accessControlManager = (await AccessControlContract.deploy(governance.address, [allowlistPolicy.address], [])) as AccessControlManager;
         await accessControlManager.deployed();
 
         await vault.connect(governance).setAccessManager(accessControlManager.address);

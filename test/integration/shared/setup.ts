@@ -24,7 +24,7 @@ export async function setupUpgradeableVault(tokenAddress: string) {
   await vaultStrategyDataStore.deployed();
 
   const YOPRewardsFactory = await ethers.getContractFactory("YOPRewards");
-  const yopRewardsParams = [governance.address, gatekeeper.address, CONST.YOP_WHALE_ADDRESS, CONST.YOP_ADDRESS, now];
+  const yopRewardsParams = [governance.address, gatekeeper.address, CONST.TOKENS.YOP.WHALE, CONST.TOKENS.YOP.ADDRESS, now];
   const yopRewards = (await upgrades.deployProxy(YOPRewardsFactory, yopRewardsParams, { kind: "uups" })) as YOPRewards;
   await yopRewards.deployed();
 
@@ -64,8 +64,8 @@ export async function setupUpgradeableVault(tokenAddress: string) {
   const yopStaking = (await upgrades.deployProxy(StakingFactory, stakingParams, { kind: "uups" })) as Staking;
   await yopStaking.deployed();
 
-  const yopWalletAccount = await impersonate(CONST.YOP_WHALE_ADDRESS);
-  await setEthBalance(CONST.YOP_WHALE_ADDRESS, ethers.utils.parseEther("10"));
+  const yopWalletAccount = await impersonate(CONST.TOKENS.YOP.WHALE);
+  await setEthBalance(CONST.TOKENS.YOP.WHALE, ethers.utils.parseEther("10"));
   const VaultUtils = await ethers.getContractFactory("VaultUtils");
   const vaultUtils = await VaultUtils.deploy();
   const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault", {
@@ -94,7 +94,7 @@ export async function setupUpgradeableVault(tokenAddress: string) {
   await yopRewards.connect(governance).setRewardsAllocationWeights(5000, 5000);
   await yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address], [100]);
 
-  const yopContract = await ethers.getContractAt(ERC20ABI, CONST.YOP_ADDRESS);
+  const yopContract = await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS);
   await yopContract.connect(yopWalletAccount).approve(yopRewards.address, ethers.constants.MaxUint256);
   return {
     vault,
@@ -130,7 +130,7 @@ export async function setupVault(tokenAddress: string) {
   const YOPRewardsFactory = await ethers.getContractFactory("YOPRewards");
   const yopRewards = (await YOPRewardsFactory.deploy()) as YOPRewards;
   await yopRewards.deployed();
-  await yopRewards.initialize(governance.address, gatekeeper.address, CONST.YOP_WHALE_ADDRESS, CONST.YOP_ADDRESS, now);
+  await yopRewards.initialize(governance.address, gatekeeper.address, CONST.TOKENS.YOP.WHALE, CONST.TOKENS.YOP.ADDRESS, now);
 
   const AllowAnyAccessControlFactory = await ethers.getContractFactory("AllowAnyAccessControl");
   const allowAnyAccessControl = (await AllowAnyAccessControlFactory.deploy(governance.address)) as AllowAnyAccessControl;
@@ -175,8 +175,8 @@ export async function setupVault(tokenAddress: string) {
     accessManager.address
   );
 
-  const yopWalletAccount = await impersonate(CONST.YOP_WHALE_ADDRESS);
-  await setEthBalance(CONST.YOP_WHALE_ADDRESS, ethers.utils.parseEther("10"));
+  const yopWalletAccount = await impersonate(CONST.TOKENS.YOP.WHALE);
+  await setEthBalance(CONST.TOKENS.YOP.WHALE, ethers.utils.parseEther("10"));
   await vault.initialize(
     "test vault",
     "test",
@@ -192,7 +192,7 @@ export async function setupVault(tokenAddress: string) {
   await yopRewards.connect(governance).setRewardsAllocationWeights(5000, 5000);
   await yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address], [100]);
 
-  const yopContract = await ethers.getContractAt(ERC20ABI, CONST.YOP_ADDRESS);
+  const yopContract = await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS);
   await yopContract.connect(yopWalletAccount).approve(yopRewards.address, ethers.constants.MaxUint256);
   return {
     vault,
@@ -230,7 +230,7 @@ export async function setupVaultV2(tokenAddress: string) {
   const YOPRewardsFactory = await ethers.getContractFactory("YOPRewardsV2");
   const yopRewards = (await YOPRewardsFactory.deploy()) as YOPRewardsV2;
   await yopRewards.deployed();
-  await yopRewards.initialize(governance.address, gatekeeper.address, CONST.YOP_WHALE_ADDRESS, CONST.YOP_ADDRESS, now);
+  await yopRewards.initialize(governance.address, gatekeeper.address, CONST.TOKENS.YOP.WHALE, CONST.TOKENS.YOP.ADDRESS, now);
 
   const AllowAnyAccessControlFactory = await ethers.getContractFactory("AllowAnyAccessControl");
   const allowAnyAccessControl = (await AllowAnyAccessControlFactory.deploy(governance.address)) as AllowAnyAccessControl;
@@ -274,8 +274,8 @@ export async function setupVaultV2(tokenAddress: string) {
     accessManager.address
   );
 
-  const yopWalletAccount = await impersonate(CONST.YOP_WHALE_ADDRESS);
-  await setEthBalance(CONST.YOP_WHALE_ADDRESS, ethers.utils.parseEther("10"));
+  const yopWalletAccount = await impersonate(CONST.TOKENS.YOP.WHALE);
+  await setEthBalance(CONST.TOKENS.YOP.WHALE, ethers.utils.parseEther("10"));
   await vault["initialize(string,string,address,address,address,address,address,address,address,address)"](
     "test vault",
     "test",
@@ -292,7 +292,7 @@ export async function setupVaultV2(tokenAddress: string) {
   await yopRewards.connect(governance).setRewardsAllocationWeights(5000, 5000);
   await yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address], [100]);
 
-  const yopContract = await ethers.getContractAt(ERC20ABI, CONST.YOP_ADDRESS);
+  const yopContract = await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS);
   await yopContract.connect(yopWalletAccount).approve(yopRewards.address, ethers.constants.MaxUint256);
   return {
     vault,
@@ -310,7 +310,7 @@ export async function setupVaultV2(tokenAddress: string) {
 }
 
 export async function setupWBTCVault() {
-  return setupVault(CONST.WBTC_ADDRESS);
+  return setupVault(CONST.TOKENS.WBTC.ADDRESS);
 }
 
 export async function impersonate(account: string) {
@@ -374,10 +374,10 @@ export async function prepareUseAccount(
   await transferERC20Tokens(tokenAddress, from, userAccount.address, amount);
   // transfer some YOP
   await transferERC20Tokens(
-    CONST.YOP_ADDRESS,
-    CONST.YOP_WHALE_ADDRESS,
+    CONST.TOKENS.YOP.ADDRESS,
+    CONST.TOKENS.YOP.WHALE,
     userAccount.address,
-    ethers.utils.parseUnits("200000", CONST.YOP_DECIMALS)
+    ethers.utils.parseUnits("200000", CONST.TOKENS.YOP.DECIMALS)
   );
   // approve
   if (vault) {
@@ -385,7 +385,7 @@ export async function prepareUseAccount(
     await tokenContract.connect(userAccount).approve(vault, ethers.constants.MaxUint256);
   }
   if (staking) {
-    const yopContract = (await ethers.getContractAt(ERC20ABI, CONST.YOP_ADDRESS)) as ERC20;
+    const yopContract = (await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS)) as ERC20;
     await yopContract.connect(userAccount).approve(staking, ethers.constants.MaxUint256);
   }
 }

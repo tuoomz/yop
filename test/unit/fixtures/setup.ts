@@ -74,7 +74,9 @@ export async function setupCurve() {
   const [deployer] = await ethers.getSigners();
   const poolLpToken = await deployMockContract(deployer, ERC20ABI);
   const curveToken = await deployMockContract(deployer, ERC20ABI);
+  const curveMetaPoolLPToken = await deployMockContract(deployer, ERC20ABI);
   const mockCurvePool = await deployMockContract(deployer, curvePoolABI);
+  const mockCurveMetaPool = await deployMockContract(deployer, curvePoolABI);
   const mockCurveGauge = await deployMockContract(deployer, curveGaugeABI);
   const mockCurveRegistry = await deployMockContract(deployer, curveRegistryABI);
   const mockCurveMinter = await deployMockContract(deployer, curveMinterABI);
@@ -108,6 +110,8 @@ export async function setupCurve() {
     mockDex,
     poolLpToken,
     curveToken,
+    curveMetaPoolLPToken,
+    mockCurveMetaPool,
   };
 }
 

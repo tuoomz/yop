@@ -61,7 +61,7 @@ describe("AccessControl [@skip-on-coverage]", async () => {
     await wethContract.connect(await impersonate(WETH_WHALE_ADDRESS)).transfer(yopNftHolder.address, ethers.utils.parseEther("100"));
     await wethContract.connect(user).approve(vault.address, ethers.constants.MaxUint256);
     await wethContract.connect(yopNftHolder).approve(vault.address, ethers.constants.MaxUint256);
-    yopContract = (await ethers.getContractAt(ERC20ABI, CONST.YOP_ADDRESS)) as ERC20;
+    yopContract = (await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS)) as ERC20;
     await yopContract.connect(yopWalletAccount).transfer(user.address, ONE_THOUSAND_YOP);
     await yopContract.connect(yopWalletAccount).transfer(yopNftHolder.address, ONE_THOUSAND_YOP);
     await yopContract.connect(user).approve(yopStaking.address, ethers.constants.MaxUint256);

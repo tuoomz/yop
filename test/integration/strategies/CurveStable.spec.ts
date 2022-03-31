@@ -30,7 +30,7 @@ describe("CurveStableStrategy [@skip-on-coverage]", async () => {
   let allocatedFund: BigNumber;
   beforeEach(async () => {
     // setup the vault
-    ({ vault, vaultStrategyDataStore, governance } = await setupVault(CONST.USDC_ADDRESS));
+    ({ vault, vaultStrategyDataStore, governance } = await setupVault(CONST.TOKENS.USDC.ADDRESS));
     // deploy the strategy
     [proposer, developer, keeper, user] = (await ethers.getSigners()).reverse();
     const strategyFactory = await ethers.getContractFactory("CurveStable");
@@ -39,7 +39,7 @@ describe("CurveStableStrategy [@skip-on-coverage]", async () => {
       proposer.address,
       developer.address,
       keeper.address,
-      CONST.CURVE_DAI_USDC_USDT_POOL_ADDRESS
+      CONST.THREE_POOL.ADDRESS
     )) as CurveStable;
     // add the strategy to the vault
     await vaultStrategyDataStore
@@ -48,14 +48,14 @@ describe("CurveStableStrategy [@skip-on-coverage]", async () => {
     await vault.connect(governance).unpause();
 
     // send some weth to the user
-    usdcContract = (await ethers.getContractAt(ERC20ABI, CONST.USDC_ADDRESS)) as ERC20;
-    await setEthBalance(CONST.USDC_WHALE_ADDRESS, ethers.utils.parseEther("10"));
+    usdcContract = (await ethers.getContractAt(ERC20ABI, CONST.TOKENS.USDC.ADDRESS)) as ERC20;
+    await setEthBalance(CONST.TOKENS.USDC.WHALE, ethers.utils.parseEther("10"));
     await usdcContract.connect(user).approve(vault.address, ethers.constants.MaxUint256);
-    depositAmount = ethers.utils.parseUnits("1000", CONST.USDC_DECIMALS);
-    allocatedFund = ethers.utils.parseUnits("900", CONST.USDC_DECIMALS); // 90% ratio
-    await usdcContract.connect(await impersonate(CONST.USDC_WHALE_ADDRESS)).transfer(user.address, depositAmount);
+    depositAmount = ethers.utils.parseUnits("1000", CONST.TOKENS.USDC.DECIMALS);
+    allocatedFund = ethers.utils.parseUnits("900", CONST.TOKENS.USDC.DECIMALS); // 90% ratio
+    await usdcContract.connect(await impersonate(CONST.TOKENS.USDC.WHALE)).transfer(user.address, depositAmount);
     // get an instance of the pool contract
-    curveStableTriPool = (await ethers.getContractAt(CurveBasePoolABI, CONST.CURVE_DAI_USDC_USDT_POOL_ADDRESS)) as ICurveDeposit;
+    curveStableTriPool = (await ethers.getContractAt(CurveBasePoolABI, CONST.THREE_POOL.ADDRESS)) as ICurveDeposit;
     curveMetaPool = (await ethers.getContractAt(CurveBasePoolABI, CURVE_USDN_META_POOL_ADDRESS)) as ICurveDeposit;
   });
 
@@ -84,9 +84,9 @@ describe("CurveStableStrategy [@skip-on-coverage]", async () => {
 
       await jumpForward(60 * 60 * 24); // 1 day
       await curveStrategy.connect(governance).harvest();
-      const estimatedTotal = ethers.utils.formatUnits(await curveStrategy.estimatedTotalAssets(), CONST.USDC_DECIMALS);
+      const estimatedTotal = ethers.utils.formatUnits(await curveStrategy.estimatedTotalAssets(), CONST.TOKENS.USDC.DECIMALS);
       // it's not going to make any profit as there is fee charged by Curve, so just check it is within certain range.
-      expect(parseFloat(estimatedTotal)).to.be.closeTo(parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.USDC_DECIMALS)), 1);
+      expect(parseFloat(estimatedTotal)).to.be.closeTo(parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.TOKENS.USDC.DECIMALS)), 1);
     });
 
     it("emergency withdraw", async () => {
@@ -101,8 +101,8 @@ describe("CurveStableStrategy [@skip-on-coverage]", async () => {
       await curveStrategy.connect(governance).harvest();
       const afterBalance = await usdcContract.balanceOf(vault.address);
       const diff = afterBalance.sub(beforeBalance);
-      expect(parseFloat(ethers.utils.formatUnits(diff, CONST.USDC_DECIMALS))).to.be.closeTo(
-        parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.USDC_DECIMALS)),
+      expect(parseFloat(ethers.utils.formatUnits(diff, CONST.TOKENS.USDC.DECIMALS))).to.be.closeTo(
+        parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.TOKENS.USDC.DECIMALS)),
         1
       );
     });

@@ -42,8 +42,8 @@ contract CurveMeta is CurveBaseV2 {
     address _metaPoolLpToken,
     uint128 _indexOfWantInPool,
     uint8 _noPoolCoins,
-    address _gage
-  ) CurveBaseV2(_vault, _proposer, _developer, _keeper, _pool, _gage) {
+    address _metaPoolGauge
+  ) CurveBaseV2(_vault, _proposer, _developer, _keeper, _pool, _metaPoolGauge) {
     indexOfWantInPool = _indexOfWantInPool;
     metaPoolLpToken = _metaPoolLpToken;
     basePoolLpToken = _basePoolLpToken;
@@ -53,7 +53,7 @@ contract CurveMeta is CurveBaseV2 {
   }
 
   function name() external view virtual override returns (string memory) {
-    return string("CurveMetaPool");
+    return string("CurveMeta");
   }
 
   function _getWantTokenIndex() internal view override returns (uint256) {

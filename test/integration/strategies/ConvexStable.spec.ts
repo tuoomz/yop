@@ -38,7 +38,7 @@ describe("ConvexStable [@skip-on-coverage]", async () => {
 
   beforeEach(async () => {
     // setup the vault
-    ({ vault, vaultStrategyDataStore, governance } = await setupVault(CONST.USDC_ADDRESS));
+    ({ vault, vaultStrategyDataStore, governance } = await setupVault(CONST.TOKENS.USDC.ADDRESS));
     // deploy the strategy
     [proposer, developer, keeper, user] = (await ethers.getSigners()).reverse();
     const ConvexStableStrategyFactory = await ethers.getContractFactory("ConvexStable");
@@ -57,12 +57,12 @@ describe("ConvexStable [@skip-on-coverage]", async () => {
     await vault.connect(governance).unpause();
 
     // send some usdc to the user
-    depositAmount = ethers.utils.parseUnits("1000", CONST.USDC_DECIMALS);
-    allocatedFund = ethers.utils.parseUnits("900", CONST.USDC_DECIMALS); // 90% ratio
-    usdcContract = (await ethers.getContractAt(usdcABI, CONST.USDC_ADDRESS)) as ERC20;
+    depositAmount = ethers.utils.parseUnits("1000", CONST.TOKENS.USDC.DECIMALS);
+    allocatedFund = ethers.utils.parseUnits("900", CONST.TOKENS.USDC.DECIMALS); // 90% ratio
+    usdcContract = (await ethers.getContractAt(usdcABI, CONST.TOKENS.USDC.ADDRESS)) as ERC20;
     curve3PoolTokenContract = (await ethers.getContractAt(usdcABI, CURVE_3POOL_TOKEN_ADDRESS)) as ERC20;
-    await setEthBalance(CONST.USDC_WHALE_ADDRESS, ethers.utils.parseEther("10"));
-    await usdcContract.connect(await impersonate(CONST.USDC_WHALE_ADDRESS)).transfer(user.address, depositAmount);
+    await setEthBalance(CONST.TOKENS.USDC.WHALE, ethers.utils.parseEther("10"));
+    await usdcContract.connect(await impersonate(CONST.TOKENS.USDC.WHALE)).transfer(user.address, depositAmount);
     await usdcContract.connect(user).approve(vault.address, ethers.constants.MaxUint256);
 
     // get an instance of the pool contract
@@ -96,9 +96,9 @@ describe("ConvexStable [@skip-on-coverage]", async () => {
       expect(await convexRewards.balanceOf(convexStableStrategy.address)).to.gt(ethers.constants.Zero);
       await jumpForward(60 * 60 * 24); // 1 day
       await convexStableStrategy.connect(governance).harvest();
-      const estimatedTotal = ethers.utils.formatUnits(await convexStableStrategy.estimatedTotalAssets(), CONST.USDC_DECIMALS);
+      const estimatedTotal = ethers.utils.formatUnits(await convexStableStrategy.estimatedTotalAssets(), CONST.TOKENS.USDC.DECIMALS);
       // it's not going to make any profit as there is fee charged by Curve, so just check it is within certain range.
-      expect(parseFloat(estimatedTotal)).to.be.closeTo(parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.USDC_DECIMALS)), 1);
+      expect(parseFloat(estimatedTotal)).to.be.closeTo(parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.TOKENS.USDC.DECIMALS)), 1);
     });
 
     it("emergency withdraw", async () => {
@@ -110,8 +110,8 @@ describe("ConvexStable [@skip-on-coverage]", async () => {
       await convexStableStrategy.connect(governance).harvest();
       const afterBalance = await usdcContract.balanceOf(vault.address);
       const diff = afterBalance.sub(beforeBalance);
-      expect(parseFloat(ethers.utils.formatUnits(diff, CONST.USDC_DECIMALS))).to.be.closeTo(
-        parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.USDC_DECIMALS)),
+      expect(parseFloat(ethers.utils.formatUnits(diff, CONST.TOKENS.USDC.DECIMALS))).to.be.closeTo(
+        parseFloat(ethers.utils.formatUnits(allocatedFund, CONST.TOKENS.USDC.DECIMALS)),
         1
       );
     });

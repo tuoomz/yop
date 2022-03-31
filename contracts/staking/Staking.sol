@@ -178,7 +178,7 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable, Reen
   /// @param _lockPeriod The locking period of the stake, in months
   /// @return The id of the NFT token that is also the id of the stake
   function stake(uint248 _amount, uint8 _lockPeriod) external whenNotPaused returns (uint256) {
-    return _mintStake(_amount, _lockPeriod);
+    return _mintStake(_amount, _lockPeriod, _msgSender());
   }
 
   /// @notice Unstake a single staking position that is owned by the caller after it's unlocked, and transfer the unlocked tokens to the _to address
@@ -326,13 +326,17 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable, Reen
     emit StakingContractURIUpdated(_contractURI);
   }
 
-  function _mintStake(uint248 _amount, uint8 _lockPeriod) internal returns (uint256) {
+  function _mintStake(
+    uint248 _amount,
+    uint8 _lockPeriod,
+    address _to
+  ) internal returns (uint256) {
     require(_amount > minStakeAmount, "!amount");
     require(_lockPeriod > 0 && _lockPeriod <= MAX_LOCK_PERIOD, "!lockPeriod");
     require(IERC20Upgradeable(_getYOPAddress()).balanceOf(_msgSender()) >= _amount, "!balance");
     require((totalWorkingSupply + _amount * _lockPeriod) <= stakingLimit, "limit reached");
     if (accessControlManager != address(0)) {
-      require(IAccessControlManager(accessControlManager).hasAccess(_msgSender(), address(this)), "!access");
+      require(IAccessControlManager(accessControlManager).hasAccess(_to, address(this)), "!access");
     }
     // issue token id
     uint256 tokenId = stakes.length;
@@ -351,8 +355,8 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable, Reen
     // transfer the the tokens to this contract and mint an NFT token
     IERC20Upgradeable(_getYOPAddress()).safeTransferFrom(_msgSender(), address(this), _amount);
     bytes memory data;
-    _mint(_msgSender(), tokenId, 1, data);
-    emit Staked(_msgSender(), tokenId, _amount, _lockPeriod, _getBlockTimestamp());
+    _mint(_to, tokenId, 1, data);
+    emit Staked(_to, tokenId, _amount, _lockPeriod, _getBlockTimestamp());
     return tokenId;
   }
 

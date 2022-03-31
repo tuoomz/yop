@@ -73,7 +73,7 @@ contract CurveETHSinglePool is CurveBaseV2 {
   function _removeLiquidity(uint256 _amount) internal override returns (uint256) {
     uint256 amount = super._removeLiquidity(_amount);
     // wrap the eth to weth
-    IWETH(_getWETHTokenAddress()).deposit{value: amount}(amount);
+    IWETH(_getWETHTokenAddress()).deposit{value: amount}();
     return amount;
   }
 

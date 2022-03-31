@@ -7,7 +7,7 @@ import "../interfaces/IVault.sol";
 import "hardhat/console.sol";
 
 /// @dev Add a new stake function that will update the user's boost balance in selected vaults immediately after staking
-contract StakingV2 is Staking {
+contract StakingV2 is IStakingV2, Staking {
   using ERC165CheckerUpgradeable for address;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -86,8 +86,38 @@ contract StakingV2 is Staking {
     uint8 _lockPeriod,
     address[] calldata _vaultsToBoost
   ) external whenNotPaused nonReentrant returns (uint256) {
-    uint256 tokenId = _mintStake(_amount, _lockPeriod);
-    _updateVaults(_vaultsToBoost);
+    uint256 tokenId = _mintStake(_amount, _lockPeriod, _msgSender());
+    _updateVaults(_vaultsToBoost, _msgSender());
+    return tokenId;
+  }
+
+  /// @notice Stake the YOP tokens on behalf of another user.
+  /// @param _amount The amount of YOP tokens to stake
+  /// @param _lockPeriod The locking period of the stake, in months
+  /// @param _to The user to send the NFT to
+  /// @return The id of the NFT token that is also the id of the stake
+  function stakeForUser(
+    uint248 _amount,
+    uint8 _lockPeriod,
+    address _to
+  ) external returns (uint256) {
+    return _mintStake(_amount, _lockPeriod, _to);
+  }
+
+  /// @notice Stake the YOP tokens on behalf of another user and boost the user's balance in the given vaults
+  /// @param _amount The amount of YOP tokens to stake
+  /// @param _lockPeriod The locking period of the stake, in months
+  /// @param _to The user to send the NFT to
+  /// @param _vaultsToBoost The vaults that the user's boosted balance should be updated after staking
+  /// @return The id of the NFT token that is also the id of the stake
+  function stakeAndBoostForUser(
+    uint248 _amount,
+    uint8 _lockPeriod,
+    address _to,
+    address[] calldata _vaultsToBoost
+  ) external whenNotPaused nonReentrant returns (uint256) {
+    uint256 tokenId = _mintStake(_amount, _lockPeriod, _to);
+    _updateVaults(_vaultsToBoost, _to);
     return tokenId;
   }
 
@@ -97,20 +127,20 @@ contract StakingV2 is Staking {
     address[] calldata _vaultsToBoost
   ) external whenNotPaused nonReentrant {
     _burnSingle(_stakeId, _to);
-    _updateVaults(_vaultsToBoost);
+    _updateVaults(_vaultsToBoost, _msgSender());
   }
 
   function unstakeAllAndBoost(address _to, address[] calldata _vaultsToBoost) external whenNotPaused nonReentrant {
     _burnAll(_to);
-    _updateVaults(_vaultsToBoost);
+    _updateVaults(_vaultsToBoost, _msgSender());
   }
 
-  function _updateVaults(address[] calldata _vaultsToBoost) internal {
+  function _updateVaults(address[] calldata _vaultsToBoost, address _user) internal {
     for (uint256 i = 0; i < _vaultsToBoost.length; i++) {
       require(_vaultsToBoost[i].supportsInterface(type(IVault).interfaceId), "!vault interface");
-      if (IVault(_vaultsToBoost[i]).balanceOf(_msgSender()) > 0) {
+      if (IVault(_vaultsToBoost[i]).balanceOf(_user) > 0) {
         address[] memory users = new address[](1);
-        users[0] = _msgSender();
+        users[0] = _user;
         IBoostedVault(_vaultsToBoost[i]).updateBoostedBalancesForUsers(users);
       }
     }

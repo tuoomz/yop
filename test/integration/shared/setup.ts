@@ -10,7 +10,7 @@ import { AllowAnyAccessControl } from "../../../types/AllowAnyAccessControl";
 import { SanctionsListAccessControl } from "../../../types/SanctionsListAccessControl";
 import { FeeCollection } from "../../../types/FeeCollection";
 import { SingleAssetVaultV2 } from "../../../types/SingleAssetVaultV2";
-import { ERC20, StakingV2 } from "../../../types";
+import { ERC20, StakingV2, YOPRegistry, YOPRouter } from "../../../types";
 import { CONST } from "../../constants";
 import { YOPRewardsV2 } from "../../../types/YOPRewardsV2";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -288,12 +288,31 @@ export async function setupVaultV2(tokenAddress: string) {
     yopRewards.address,
     yopStaking.address
   );
+
+  const YOPRegistryFactory = await ethers.getContractFactory("YOPRegistry");
+  const yopRegistry = (await YOPRegistryFactory.deploy()) as YOPRegistry;
+  await yopRegistry.initialize(governance.address);
+  await yopRegistry.connect(governance).registerVault(vault.address);
+
+  const YOPRouterFactory = await ethers.getContractFactory("YOPRouter");
+  const yopRouter = (await YOPRouterFactory.deploy()) as YOPRouter;
+  await yopRouter.initialize(
+    governance.address,
+    gatekeeper.address,
+    yopStaking.address,
+    CONST.UNISWAP_ADDRESS,
+    yopRegistry.address,
+    CONST.YOP_ADDRESS,
+    CONST.WETH_ADDRESS
+  );
+
   await yopRewards.connect(governance).setStakingContractAddress(yopStaking.address);
   await yopRewards.connect(governance).setRewardsAllocationWeights(5000, 5000);
   await yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address], [100]);
 
   const yopContract = await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS);
   await yopContract.connect(yopWalletAccount).approve(yopRewards.address, ethers.constants.MaxUint256);
+
   return {
     vault,
     vaultStrategyDataStore,
@@ -306,6 +325,8 @@ export async function setupVaultV2(tokenAddress: string) {
     yopWalletAccount,
     allowAnyAccessControl,
     sanctionsListAccessControl,
+    yopRegistry,
+    yopRouter,
   };
 }
 
@@ -366,7 +387,8 @@ export async function prepareUseAccount(
   from: string,
   amount: BigNumber,
   vault?: string,
-  staking?: string
+  staking?: string,
+  router?: string
 ) {
   // add some eth
   await setEthBalance(userAccount.address, ethers.utils.parseEther("10"));
@@ -379,13 +401,21 @@ export async function prepareUseAccount(
     userAccount.address,
     ethers.utils.parseUnits("200000", CONST.TOKENS.YOP.DECIMALS)
   );
+  const tokenContract = (await ethers.getContractAt(ERC20ABI, tokenAddress)) as ERC20;
+  const yopContract = (await ethers.getContractAt(ERC20ABI, CONST.YOP_ADDRESS)) as ERC20;
   // approve
   if (vault) {
-    const tokenContract = (await ethers.getContractAt(ERC20ABI, tokenAddress)) as ERC20;
     await tokenContract.connect(userAccount).approve(vault, ethers.constants.MaxUint256);
   }
   if (staking) {
-    const yopContract = (await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS)) as ERC20;
     await yopContract.connect(userAccount).approve(staking, ethers.constants.MaxUint256);
   }
+  if (router) {
+    await tokenContract.connect(userAccount).approve(router, ethers.constants.MaxUint256);
+    await yopContract.connect(userAccount).approve(router, ethers.constants.MaxUint256);
+  }
+}
+
+export function minutesInSeconds(minutes: number) {
+  return Math.round(new Date().getTime() / 1000) + minutes * 60;
 }

@@ -25,6 +25,7 @@ contract YOPRegistry is IYOPRegistry, GovernableUpgradeable, UUPSUpgradeable {
 
   function __YOPRegistry_init(address _governance) internal onlyInitializing {
     __Governable_init(_governance);
+    __UUPSUpgradeable_init();
   }
 
   /// @notice Get the current vault address for the given token address
@@ -70,5 +71,5 @@ contract YOPRegistry is IYOPRegistry, GovernableUpgradeable, UUPSUpgradeable {
   }
 
   // solhint-disable-next-line no-unused-vars no-empty-blocks
-  function _authorizeUpgrade(address implementation) internal view override onlyGovernance {}
+  function _authorizeUpgrade(address) internal view override onlyGovernance {}
 }

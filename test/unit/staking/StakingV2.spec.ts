@@ -217,4 +217,33 @@ describe("StakingV2", async () => {
       await expect(staking.connect(user).unstakeAllAndBoost(user.address, [vault1.address, vault2.address])).not.to.be.reverted;
     });
   });
+
+  describe("stakeForUser", async () => {
+    it("should success", async () => {
+      expect(await staking.balanceOf(user.address, 0)).to.equal(0);
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await stakeToken.mock.transferFrom.returns(true);
+      await staking.stakeForUser(ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, user.address);
+      expect(await staking.balanceOf(user.address, 0)).to.equal(1);
+    });
+  });
+
+  describe("stakeAndBoostForUser", async () => {
+    it("should success", async () => {
+      expect(await staking.balanceOf(user.address, 0)).to.equal(0);
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await stakeToken.mock.transferFrom.returns(true);
+      await vault1.mock.balanceOf.returns(BigNumber.from("100"));
+      await vault1.mock.supportsInterface.returns(true);
+      await vault1.mock.supportsInterface.withArgs("0xffffffff").returns(false);
+      await vault1.mock.updateBoostedBalancesForUsers.returns();
+      await vault2.mock.balanceOf.returns(BigNumber.from("0"));
+      await vault2.mock.supportsInterface.returns(true);
+      await vault2.mock.supportsInterface.withArgs("0xffffffff").returns(false);
+      await expect(
+        staking.stakeAndBoostForUser(ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, user.address, [vault1.address, vault2.address])
+      ).not.to.be.reverted;
+      expect(await staking.balanceOf(user.address, 0)).to.equal(1);
+    });
+  });
 });

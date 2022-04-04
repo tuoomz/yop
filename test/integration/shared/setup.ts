@@ -298,11 +298,10 @@ export async function setupVaultV2(tokenAddress: string) {
   const yopRouter = (await YOPRouterFactory.deploy()) as YOPRouter;
   await yopRouter.initialize(
     governance.address,
-    gatekeeper.address,
     yopStaking.address,
     CONST.UNISWAP_ADDRESS,
     yopRegistry.address,
-    CONST.YOP_ADDRESS,
+    CONST.TOKENS.YOP.ADDRESS,
     CONST.WETH_ADDRESS
   );
 
@@ -402,7 +401,7 @@ export async function prepareUseAccount(
     ethers.utils.parseUnits("200000", CONST.TOKENS.YOP.DECIMALS)
   );
   const tokenContract = (await ethers.getContractAt(ERC20ABI, tokenAddress)) as ERC20;
-  const yopContract = (await ethers.getContractAt(ERC20ABI, CONST.YOP_ADDRESS)) as ERC20;
+  const yopContract = (await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS)) as ERC20;
   // approve
   if (vault) {
     await tokenContract.connect(userAccount).approve(vault, ethers.constants.MaxUint256);
@@ -414,8 +413,4 @@ export async function prepareUseAccount(
     await tokenContract.connect(userAccount).approve(router, ethers.constants.MaxUint256);
     await yopContract.connect(userAccount).approve(router, ethers.constants.MaxUint256);
   }
-}
-
-export function minutesInSeconds(minutes: number) {
-  return Math.round(new Date().getTime() / 1000) + minutes * 60;
 }

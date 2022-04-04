@@ -3,7 +3,8 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
-import "../security/BasePauseableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "../vaults/roles/Governable.sol";
 import "../libraries/SwapUtils.sol";
 import "../interfaces/IStaking.sol";
 import "../interfaces/IYOPRegistry.sol";
@@ -13,7 +14,7 @@ import "../interfaces/IWeth.sol";
 /// @notice This contract allow users to use any tokens against the YOP platform.
 ///  The contract will swap the tokens from users using Uniswap and then deposit the tokens to vaults or staking.
 ///  The returned receipt tokens will be forwarded to the user.
-contract YOPRouter is BasePauseableUpgradeable {
+contract YOPRouter is GovernableUpgradeable, UUPSUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   address public stakingContract;
@@ -49,34 +50,25 @@ contract YOPRouter is BasePauseableUpgradeable {
 
   function initialize(
     address _governance,
-    address _gatekeeper,
     address _stakingContract,
     address _uniswapAddress,
     address _yopRegistry,
     address _yopAddress,
     address _wethAddress
   ) external initializer {
-    __YOPRouter_init(
-      _governance,
-      _gatekeeper,
-      _stakingContract,
-      _uniswapAddress,
-      _yopRegistry,
-      _yopAddress,
-      _wethAddress
-    );
+    __YOPRouter_init(_governance, _stakingContract, _uniswapAddress, _yopRegistry, _yopAddress, _wethAddress);
   }
 
   function __YOPRouter_init(
     address _governance,
-    address _gatekeeper,
     address _stakingContract,
     address _uniswapAddress,
     address _yopRegistry,
     address _yopAddress,
     address _wethAddress
   ) internal onlyInitializing {
-    __BasePauseableUpgradeable_init(_governance, _gatekeeper);
+    __Governable_init(_governance);
+    __UUPSUpgradeable_init();
     __YOPRouter_init_unchained(_stakingContract, _uniswapAddress, _yopRegistry, _yopAddress, _wethAddress);
   }
 
@@ -272,7 +264,6 @@ contract YOPRouter is BasePauseableUpgradeable {
     uint256[] memory amounts = _transferAndSwapETH(_tokenOut, _minOutAmount, _deadline);
     uint256 swappedAmountOut = amounts[amounts.length - 1];
     uint256 depositAmount = _existingTokenOutAmount + swappedAmountOut;
-    require(depositAmount > 0, "!deposit");
     _approveVaultForDeposit(_tokenOut, vaultAddress);
     IVault(vaultAddress).deposit(depositAmount, _msgSender());
   }
@@ -352,4 +343,7 @@ contract YOPRouter is BasePauseableUpgradeable {
       return amounts;
     }
   }
+
+  // solhint-disable-next-line no-unused-vars no-empty-blocks
+  function _authorizeUpgrade(address) internal view override onlyGovernance {}
 }

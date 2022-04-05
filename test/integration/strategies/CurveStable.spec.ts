@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, jumpForward } from "../shared/setup";
+import { setupVault, impersonate, setEthBalance, jumpForward, reset } from "../shared/setup";
 import { ethers, waffle } from "hardhat";
 import { BigNumber } from "ethers";
 
@@ -28,7 +28,9 @@ describe("CurveStableStrategy [@skip-on-coverage]", async () => {
   let curveMetaPool: ICurveDeposit;
   let depositAmount: BigNumber;
   let allocatedFund: BigNumber;
+
   beforeEach(async () => {
+    await reset(13612911);
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupVault(CONST.TOKENS.USDC.ADDRESS));
     // deploy the strategy

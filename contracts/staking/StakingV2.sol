@@ -9,6 +9,15 @@ import "hardhat/console.sol";
 /// @dev Add a new stake function that will update the user's boost balance in selected vaults immediately after staking
 contract StakingV2 is Staking {
   using ERC165CheckerUpgradeable for address;
+  using SafeERC20Upgradeable for IERC20Upgradeable;
+
+  event StakeExtended(
+    address indexed _user,
+    uint256 indexed _tokenId,
+    uint248 indexed _newAmount,
+    uint8 _newlockPeriod,
+    address[] _vaults
+  );
 
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
@@ -105,5 +114,48 @@ contract StakingV2 is Staking {
         IBoostedVault(_vaultsToBoost[i]).updateBoostedBalancesForUsers(users);
       }
     }
+  }
+
+  function extendStake(
+    uint256 _stakeId,
+    uint8 _additionalDuration,
+    uint248 _additionalAmount,
+    address[] calldata _vaultsToUpdate
+  ) external {
+    require(_additionalAmount > 0 || _additionalDuration > 0, "!invalid parameters");
+
+    Stake storage stake = stakes[_stakeId];
+    require(owners[_stakeId] == _msgSender(), "!stake owner");
+
+    uint8 newLockPeriod = stake.lockPeriod;
+    if (_additionalDuration > 0) {
+      newLockPeriod = stake.lockPeriod + _additionalDuration;
+      require(newLockPeriod <= MAX_LOCK_PERIOD, "!max lock period");
+    }
+
+    uint248 newAmount = stake.amount;
+    if (_additionalAmount > 0) {
+      require(IERC20Upgradeable(_getYOPAddress()).balanceOf(_msgSender()) >= _additionalAmount, "!balance");
+      newAmount = stake.amount + _additionalAmount;
+      require(newAmount >= minStakeAmount, "!min stake amount");
+    }
+
+    uint256 newTotalWorkingSupply = (totalWorkingSupply +
+      (newAmount * newLockPeriod - stake.amount * stake.lockPeriod));
+
+    require(newTotalWorkingSupply <= stakingLimit, "limit reached");
+
+    if (_additionalDuration > 0) {
+      stake.lockPeriod = newLockPeriod;
+    }
+    if (_additionalAmount > 0) {
+      IERC20Upgradeable(_getYOPAddress()).safeTransferFrom(_msgSender(), address(this), _additionalAmount);
+      stake.amount = newAmount;
+    }
+
+    IYOPRewards(yopRewards).calculateStakingRewards(_stakeId);
+    totalWorkingSupply = newTotalWorkingSupply;
+    _updateVaults(_vaultsToUpdate);
+    emit StakeExtended(_msgSender(), _stakeId, newAmount, newLockPeriod, _vaultsToUpdate);
   }
 }

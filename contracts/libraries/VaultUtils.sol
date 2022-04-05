@@ -32,8 +32,7 @@ library VaultUtils {
       Math.min(
         _vaultBalanceWeight *
           userVaultBalance +
-          (_stakingBalanceWeight * stakingPoolSize * totalVaultSize) /
-          totalStakingSize,
+          (totalStakingSize == 0 ? 0 : ((_stakingBalanceWeight * stakingPoolSize * totalVaultSize) / totalStakingSize)),
         totalWeight * userVaultBalance
       );
   }

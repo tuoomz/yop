@@ -11,6 +11,9 @@ import { monthsInSeconds } from "../utils/time";
 const TOKEN_DECIMALS = 8;
 const CONTRACT_URI = "https://yop.finance/"; // random url
 const { deployMockContract } = waffle;
+const _100_YOP = ethers.utils.parseUnits("100", TOKEN_DECIMALS);
+const _200_YOP = ethers.utils.parseUnits("200", TOKEN_DECIMALS);
+const _500_YOP = ethers.utils.parseUnits("500", TOKEN_DECIMALS);
 
 describe("StakingV2", async () => {
   let deployer: SignerWithAddress;
@@ -51,6 +54,70 @@ describe("StakingV2", async () => {
 
   it("totalSupply", async () => {
     expect(await staking.totalSupply()).to.equal(ethers.constants.Zero);
+  });
+
+  describe("extendStake", async () => {
+    beforeEach(async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("1000", TOKEN_DECIMALS));
+      await stakeToken.mock.transferFrom.returns(true);
+      await vault1.mock.balanceOf.returns(BigNumber.from("100"));
+      await vault1.mock.supportsInterface.returns(true);
+      await vault1.mock.supportsInterface.withArgs("0xffffffff").returns(false);
+      await vault1.mock.updateBoostedBalancesForUsers.returns();
+      await vault2.mock.balanceOf.returns(BigNumber.from("0"));
+      await vault2.mock.supportsInterface.returns(true);
+      await vault2.mock.supportsInterface.withArgs("0xffffffff").returns(false);
+    });
+    it("should revert on extension by non-owner", async () => {
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await expect(staking.connect(governance).extendStake(0, 12, _100_YOP, [])).to.be.revertedWith("!stake owner");
+    });
+    it("should revert on zero extension", async () => {
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await expect(staking.connect(user).extendStake(0, 0, 0, [])).to.be.revertedWith("!invalid parameters");
+    });
+
+    it("should revert if new lock period is greater than max", async () => {
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await expect(staking.connect(user).extendStake(0, 60, _100_YOP, [])).to.be.revertedWith("!max lock period");
+    });
+
+    it("should revert if new amount less than min", async () => {
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await staking.connect(governance).setMinStakeAmount(_500_YOP);
+      await expect(staking.connect(user).extendStake(0, 12, _200_YOP, [])).to.be.revertedWith("!min stake amount");
+    });
+
+    it("should revert if new amount greater than max", async () => {
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await staking.connect(governance).setStakingLimit(_200_YOP);
+      await expect(staking.connect(user).extendStake(0, 12, _200_YOP, [])).to.be.revertedWith("limit reached");
+    });
+
+    it("should revert if not enough balance", async () => {
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("100", TOKEN_DECIMALS));
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await expect(staking.connect(user).extendStake(0, 0, _200_YOP, [])).to.be.revertedWith("!balance");
+    });
+
+    it("should extend both", async () => {
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await expect(staking.connect(user).extendStake(0, 12, _200_YOP, [])).not.to.be.reverted;
+    });
+
+    it("should extend duration only", async () => {
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await expect(staking.connect(user).extendStake(0, 12, 0, []))
+        .to.emit(staking, "StakeExtended")
+        .withArgs(user.address, 0, _100_YOP, 13, []);
+    });
+
+    it("should extend amount only", async () => {
+      await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
+      await expect(staking.connect(user).extendStake(0, 0, _100_YOP, []))
+        .to.emit(staking, "StakeExtended")
+        .withArgs(user.address, 0, _100_YOP.mul(2), 1, []);
+    });
   });
 
   describe("stakeAndBoost", async () => {

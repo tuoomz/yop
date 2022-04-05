@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, setNextBlockTimestamp } from "../shared/setup";
+import { setupVaultV2, impersonate, setEthBalance, setNextBlockTimestamp, reset, prepareUseAccount } from "../shared/setup";
 import { ethers } from "hardhat";
-import { SingleAssetVault } from "../../../types/SingleAssetVault";
+import { SingleAssetVaultV2 } from "../../../types/SingleAssetVaultV2";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import IWethABI from "../../../abi/contracts/interfaces/IWeth.sol/IWETH.json";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json";
@@ -9,7 +9,7 @@ import { AccessControlManager, IWETH, VaultStrategyDataStore } from "../../../ty
 import { YOPRewards } from "../../../types/YOPRewards";
 import { BigNumber } from "ethers";
 import { ERC20 } from "../../../types/ERC20";
-import { Staking } from "../../../types/Staking";
+import { StakingV2 } from "../../../types/StakingV2";
 import { FeeCollection } from "../../../types/FeeCollection";
 import { CONST } from "../../constants";
 
@@ -25,45 +25,168 @@ let currentEmissionRate = INITIAL_RATE;
 let currentRateForVaults = currentEmissionRate * 0.5; // split between vaults and staking
 let currentRateForStaking = currentEmissionRate * 0.5;
 const ONE_THOUSAND_YOP = ethers.utils.parseUnits("1000", 8);
+const ONE_YOP = ethers.utils.parseUnits("1", 8);
 const THREE_THOUSAND_YOP = ethers.utils.parseUnits("3000", 8);
 
+const yopToFull = (yop) => ethers.utils.parseUnits(`${yop}`, 8);
+
 describe("yopRewards [@skip-on-coverage]", async () => {
-  let vault: SingleAssetVault;
+  let vault: SingleAssetVaultV2;
   let governance: SignerWithAddress;
   let gatekeeper: SignerWithAddress;
   let feeCollection: FeeCollection;
   let vaultStrategyDataStore: VaultStrategyDataStore;
   let accessManager: AccessControlManager;
   let yopRewards: YOPRewards;
-  let yopStaking: Staking;
+  let yopStaking: StakingV2;
   let yopWalletAccount: SignerWithAddress;
-  let user: SignerWithAddress;
+  let user1: SignerWithAddress;
   let user2: SignerWithAddress;
   let wethContract: IWETH;
   let yopContract: ERC20;
 
   beforeEach(async () => {
+    await reset(14356555);
     // setup the vault
     ({ vault, governance, gatekeeper, yopRewards, yopWalletAccount, yopStaking, feeCollection, vaultStrategyDataStore, accessManager } =
-      await setupVault(WETH_ADDRESS));
+      await setupVaultV2(WETH_ADDRESS));
+
     // deploy the strategy
-    [user, user2] = (await ethers.getSigners()).reverse();
+    [user1, user2] = (await ethers.getSigners()).reverse();
     await vault.connect(governance).unpause();
 
     // send some weth to the user
     wethContract = (await ethers.getContractAt(IWethABI, WETH_ADDRESS)) as IWETH;
     await setEthBalance(WETH_WHALE_ADDRESS, ethers.utils.parseEther("10"));
-    await wethContract.connect(await impersonate(WETH_WHALE_ADDRESS)).transfer(user.address, ethers.utils.parseEther("100"));
+    await wethContract.connect(await impersonate(WETH_WHALE_ADDRESS)).transfer(user1.address, ethers.utils.parseEther("100"));
     await wethContract.connect(await impersonate(WETH_WHALE_ADDRESS)).transfer(user2.address, ethers.utils.parseEther("100"));
-    await wethContract.connect(user).approve(vault.address, ethers.constants.MaxUint256);
+    await wethContract.connect(user1).approve(vault.address, ethers.constants.MaxUint256);
     await wethContract.connect(user2).approve(vault.address, ethers.constants.MaxUint256);
     yopContract = (await ethers.getContractAt(ERC20ABI, CONST.TOKENS.YOP.ADDRESS)) as ERC20;
-    await yopContract.connect(yopWalletAccount).transfer(user.address, ONE_THOUSAND_YOP);
+    await yopContract.connect(yopWalletAccount).transfer(user1.address, ONE_THOUSAND_YOP.mul(10));
     await yopContract.connect(yopWalletAccount).transfer(user2.address, THREE_THOUSAND_YOP);
-    await yopContract.connect(user).approve(yopStaking.address, ethers.constants.MaxUint256);
+    await yopContract.connect(user1).approve(yopStaking.address, ethers.constants.MaxUint256);
     await yopContract.connect(user2).approve(yopStaking.address, ethers.constants.MaxUint256);
   });
 
+  describe("extend stake", async () => {
+    describe("extend total working supply", async () => {
+      beforeEach(async () => {
+        blockTime += 60;
+        await setNextBlockTimestamp(blockTime);
+        // user1 stake 1000 yop for 6 months
+        await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 5);
+        blockTime += 60 * 60 * 2;
+        await setNextBlockTimestamp(blockTime);
+      });
+
+      it("should check baseline", async () => {
+        const expectedTWS1 = yopToFull(1000 * 5);
+        expect(expectedTWS1).to.equal(await yopStaking.totalWorkingSupply());
+      });
+
+      it("should extend duration only", async () => {
+        await yopStaking.connect(user1).extendStake(0, 1, 0, []);
+        const expectedTWS = yopToFull(1000 * 6);
+        expect(BigNumber.from(expectedTWS)).to.equal(await yopStaking.totalWorkingSupply(), "extend duration only");
+      });
+      it("should extend amount only", async () => {
+        await yopStaking.connect(user1).extendStake(0, 0, ONE_THOUSAND_YOP, []);
+        const expectedTWS = yopToFull(2000 * 5);
+        expect(BigNumber.from(expectedTWS)).to.equal(await yopStaking.totalWorkingSupply(), "extend amount only");
+      });
+      it("should extend amount and duration", async () => {
+        await yopStaking.connect(user1).extendStake(0, 6, ONE_THOUSAND_YOP, []);
+        const expectedTWS = yopToFull(2000 * 11);
+        expect(BigNumber.from(expectedTWS)).to.equal(await yopStaking.totalWorkingSupply(), "extend amount and duration");
+      });
+    });
+
+    it("should extend user's stake", async () => {
+      blockTime += 60;
+      await setNextBlockTimestamp(blockTime);
+      // user1 stake 1000 yop for 6 months
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 6); // stakeId 0
+      blockTime += 60 * 60 * 2;
+      await setNextBlockTimestamp(blockTime);
+      // after 2 hours user2 stake 3000 yop for 3 months
+      await yopStaking.connect(user2).stake(THREE_THOUSAND_YOP, 3); // stakeId 2
+
+      await expect(yopStaking.connect(user1).extendStake(0, 18, ONE_THOUSAND_YOP, [])).to.emit(yopStaking, "StakeExtended");
+
+      await expect(yopStaking.connect(user2).extendStake(1, 7, 0, [])).to.emit(yopStaking, "StakeExtended");
+      const [user1stakeAfter, user2stakeAfter] = await Promise.all([yopStaking.stakes(0), yopStaking.stakes(1)]);
+      blockTime += 60 * 60 * 2;
+      await setNextBlockTimestamp(blockTime);
+
+      expect(await yopContract.balanceOf(yopStaking.address)).to.be.equal(ONE_THOUSAND_YOP.add(THREE_THOUSAND_YOP).add(ONE_THOUSAND_YOP));
+      expect(user1stakeAfter.amount).to.equal(ONE_THOUSAND_YOP.mul(2));
+      expect(user1stakeAfter.lockPeriod).to.equal(6 + 18);
+      expect(user2stakeAfter.amount).to.equal(THREE_THOUSAND_YOP);
+      expect(user2stakeAfter.lockPeriod).to.equal(3 + 7);
+    });
+
+    it("should revert when balance is not enough", async () => {
+      blockTime += 60;
+      await setNextBlockTimestamp(blockTime);
+      // user1 stake 1000 yop for 6 months
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 6);
+      blockTime += 60 * 60 * 2;
+      await setNextBlockTimestamp(blockTime);
+      await expect(yopStaking.connect(user1).extendStake(0, 18, THREE_THOUSAND_YOP.mul(10), [])).to.be.revertedWith("!balance");
+    });
+
+    it("should increase reward user's stake", async () => {
+      blockTime += 60;
+      await setNextBlockTimestamp(blockTime);
+      // user1 stake 1000 yop for 6 months
+      await yopStaking.connect(user2).stake(THREE_THOUSAND_YOP, 3); // 0
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 6); // 1
+
+      blockTime += 60 * 60 * 2;
+      await setNextBlockTimestamp(blockTime);
+
+      // empty extend to recalculate staking rewards
+      await yopStaking.connect(user1).extendStake(1, 0, 1, []);
+      const rewards1Per2Hours = await yopRewards.unclaimedStakingRewards([1]);
+      const expectedRew1Per2Hours = Math.round((currentRateForStaking * 60 * 60 * 2 * (1000 * 6)) / (1000 * 6 + 3000 * 3) / SECONDS_PER_MONTH);
+      expect(rewards1Per2Hours).to.closeTo(BigNumber.from(expectedRew1Per2Hours), ONE_UNIT);
+
+      await yopRewards.connect(user1).claimStakingRewards(user1.address);
+      await yopStaking.connect(user1).extendStake(1, 18, ONE_THOUSAND_YOP, []);
+
+      blockTime += 60 * 60 * 2;
+      await setNextBlockTimestamp(blockTime);
+      const expectedRew2Per2Hours = Math.round((currentRateForStaking * 60 * 60 * 2 * (2000 * 24)) / (2000 * 24 + 3000 * 3) / SECONDS_PER_MONTH);
+      // empty extend to recalculate staking rewards
+      await yopStaking.connect(user1).extendStake(1, 0, 1, []);
+      const rewards2Per2Hours = await yopRewards.unclaimedStakingRewards([1]);
+      expect(rewards2Per2Hours.toNumber()).to.be.closeTo(expectedRew2Per2Hours, ONE_UNIT);
+    });
+
+    it("should increase boosted balance", async () => {
+      await vault.connect(user1).deposit(ethers.utils.parseEther("1"), user1.address);
+      await vault.connect(user2).deposit(ethers.utils.parseEther("10"), user2.address);
+      const balance1 = ethers.utils.parseUnits((await vault.boostedBalanceOf(user1.address)).toString(), 8);
+
+      await yopStaking.connect(user2).stakeAndBoost(ethers.utils.parseUnits("100", 8), 6, [vault.address]);
+      await yopStaking.connect(user1).stakeAndBoost(ethers.utils.parseUnits("1", 8), 6, [vault.address]);
+
+      blockTime += 60;
+      await setNextBlockTimestamp(blockTime);
+
+      await yopStaking.connect(user1).stakeAndBoost(ONE_YOP, 6, [vault.address]);
+      const balance2 = ethers.utils.parseUnits((await vault.boostedBalanceOf(user1.address)).toString(), 8);
+      expect(balance2).to.be.above(balance1);
+
+      blockTime += 60 * 60 * 2;
+      await setNextBlockTimestamp(blockTime);
+
+      await yopStaking.connect(user1).extendStake(1, 50, ONE_THOUSAND_YOP, [vault.address]);
+      const balance3 = ethers.utils.parseUnits((await vault.boostedBalanceOf(user1.address)).toString(), 8);
+      expect(balance3).to.be.above(balance2);
+    });
+  });
   describe("check yop rewards amount", async () => {
     const depositAmount = ethers.utils.parseEther("100");
 
@@ -75,12 +198,12 @@ describe("yopRewards [@skip-on-coverage]", async () => {
       const expectedRewards = Math.round((currentRateForVaults / SECONDS_PER_MONTH) * 60 * 60 * 2);
       await setNextBlockTimestamp(blockTime);
       // deposit to the vault a month after the rewards emission begins
-      await vault.connect(user).deposit(depositAmount, user.address);
+      await vault.connect(user1).deposit(depositAmount, user1.address);
       blockTime += 60 * 60 * 2;
       await setNextBlockTimestamp(blockTime);
       // withdraw after 2 hours
-      await vault.connect(user).withdraw(ethers.constants.MaxUint256, user.address, 100);
-      const claimableRewards = await yopRewards.connect(user).unclaimedVaultRewards(user.address, [vault.address]);
+      await vault.connect(user1).withdraw(ethers.constants.MaxUint256, user1.address, 100);
+      const claimableRewards = await yopRewards.connect(user1).unclaimedVaultRewards(user1.address, [vault.address]);
       // rewards should be for only the 2 hours that liquidity was provided
       expect(claimableRewards).to.closeTo(BigNumber.from(expectedRewards), ONE_UNIT);
     });
@@ -88,22 +211,22 @@ describe("yopRewards [@skip-on-coverage]", async () => {
     it("should update rewards when vault LP tokens are transferred", async () => {
       blockTime += 60;
       await setNextBlockTimestamp(blockTime);
-      await vault.connect(user).deposit(depositAmount, user.address);
-      const b1 = await vault.balanceOf(user.address);
+      await vault.connect(user1).deposit(depositAmount, user1.address);
+      const b1 = await vault.balanceOf(user1.address);
       blockTime += 60 * 60 * 2;
       await setNextBlockTimestamp(blockTime);
       // after 2 hours, transfer half of the LP tokens to another user
-      await vault.connect(user).transfer(user2.address, b1.div(2));
+      await vault.connect(user1).transfer(user2.address, b1.div(2));
       blockTime += 60 * 60 * 2;
       await setNextBlockTimestamp(blockTime);
       // both withdraw after 2 hours
-      await vault.connect(user).withdraw(ethers.constants.MaxUint256, user.address, 100);
+      await vault.connect(user1).withdraw(ethers.constants.MaxUint256, user1.address, 100);
       await vault.connect(user2).withdraw(ethers.constants.MaxUint256, user2.address, 100);
       // user 1 rewards: full emission for the first 2 hours + half of the mission for the 2 hours
       const expectedUserRewards = Math.round(
         (currentRateForVaults * 60 * 60 * 2) / SECONDS_PER_MONTH + ((currentRateForVaults / 2) * 60 * 60 * 2) / SECONDS_PER_MONTH
       );
-      const userClaimableRewards = await yopRewards.connect(user).unclaimedVaultRewards(user.address, [vault.address]);
+      const userClaimableRewards = await yopRewards.connect(user1).unclaimedVaultRewards(user1.address, [vault.address]);
       expect(userClaimableRewards).to.closeTo(BigNumber.from(expectedUserRewards), ONE_UNIT);
       // user 2 rewards: half of the missions for 2 hours
       const expectedUser2Rewards = Math.round((currentRateForVaults / 2 / SECONDS_PER_MONTH) * 60 * 60 * 2);
@@ -115,17 +238,17 @@ describe("yopRewards [@skip-on-coverage]", async () => {
       blockTime += 60;
       await setNextBlockTimestamp(blockTime);
       // user1 stake 1000 yop for 6 months
-      await yopStaking.connect(user).stake(ONE_THOUSAND_YOP, 6);
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 6);
       blockTime += 60 * 60 * 2;
       await setNextBlockTimestamp(blockTime);
       // after 2 hours user2 stake 3000 yop for 3 months
       await yopStaking.connect(user2).stake(THREE_THOUSAND_YOP, 3);
-      const user1BalanceBefore = await yopContract.balanceOf(user.address);
+      const user1BalanceBefore = await yopContract.balanceOf(user1.address);
       const user2BalanceBefore = await yopContract.balanceOf(user2.address);
       // wait for another hour and claim rewards
       blockTime += 60 * 60;
       await setNextBlockTimestamp(blockTime);
-      await yopRewards.connect(user).claimStakingRewards(user.address);
+      await yopRewards.connect(user1).claimStakingRewards(user1.address);
       await yopRewards.connect(user2).claimStakingRewards(user2.address);
 
       const user1ExpectedRewards = Math.round(
@@ -133,7 +256,7 @@ describe("yopRewards [@skip-on-coverage]", async () => {
           (currentRateForStaking * 60 * 60 * (1000 * 6)) / (1000 * 6 + 3000 * 3) / SECONDS_PER_MONTH
       );
       const user2ExpectedRewards = Math.round((currentRateForStaking * 60 * 60 * (3000 * 3)) / (1000 * 6 + 3000 * 3) / SECONDS_PER_MONTH);
-      const user1Claimed = (await yopContract.balanceOf(user.address)).sub(user1BalanceBefore);
+      const user1Claimed = (await yopContract.balanceOf(user1.address)).sub(user1BalanceBefore);
       const user2Claimed = (await yopContract.balanceOf(user2.address)).sub(user2BalanceBefore);
       expect(user1Claimed).to.closeTo(BigNumber.from(user1ExpectedRewards), ONE_UNIT);
       expect(user2Claimed).to.closeTo(BigNumber.from(user2ExpectedRewards), ONE_UNIT);
@@ -143,19 +266,19 @@ describe("yopRewards [@skip-on-coverage]", async () => {
       blockTime += 60;
       await setNextBlockTimestamp(blockTime);
       // user1 stake 1000 yop for 6 months
-      await yopStaking.connect(user).stake(ONE_THOUSAND_YOP, 6);
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 6);
       blockTime += 60 * 60 * 2;
       await setNextBlockTimestamp(blockTime);
       // after 2 hours user2 stake 3000 yop for 3 months
       await yopStaking.connect(user2).stake(THREE_THOUSAND_YOP, 3);
       // and user 1 transfer the stake to user2
-      await yopStaking.connect(user).safeTransferFrom(user.address, user2.address, 0, 1, []);
-      const user1BalanceBefore = await yopContract.balanceOf(user.address);
+      await yopStaking.connect(user1).safeTransferFrom(user1.address, user2.address, 0, 1, []);
+      const user1BalanceBefore = await yopContract.balanceOf(user1.address);
       const user2BalanceBefore = await yopContract.balanceOf(user2.address);
       // wait for another hour and both user claim rewards
       blockTime += 60 * 60;
       await setNextBlockTimestamp(blockTime);
-      await expect(yopRewards.connect(user).claimStakingRewards(user.address)).to.be.revertedWith("nothing to claim");
+      await expect(yopRewards.connect(user1).claimStakingRewards(user1.address)).to.be.revertedWith("nothing to claim");
       await yopRewards.connect(user2).claimStakingRewards(user2.address);
       const user2Claimed = (await yopContract.balanceOf(user2.address)).sub(user2BalanceBefore);
       const user2ExpectedRewards = Math.round((currentRateForStaking * 60 * 60 * 3) / SECONDS_PER_MONTH);
@@ -165,16 +288,16 @@ describe("yopRewards [@skip-on-coverage]", async () => {
     it("claim all rewards", async () => {
       blockTime += 60;
       await setNextBlockTimestamp(blockTime);
-      await vault.connect(user).deposit(depositAmount, user.address);
+      await vault.connect(user1).deposit(depositAmount, user1.address);
       await vault.connect(user2).deposit(depositAmount, user2.address);
-      await yopStaking.connect(user).stake(ONE_THOUSAND_YOP, 6);
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 6);
       await yopStaking.connect(user2).stake(THREE_THOUSAND_YOP, 3);
-      const balanceBefore = await yopContract.balanceOf(user.address);
+      const balanceBefore = await yopContract.balanceOf(user1.address);
       // wait for another hour and then claim all rewards
       blockTime += 60 * 60;
       await setNextBlockTimestamp(blockTime);
-      await yopRewards.connect(user).claimAll(user.address);
-      const claimedAmount = (await yopContract.balanceOf(user.address)).sub(balanceBefore);
+      await yopRewards.connect(user1).claimAll(user1.address);
+      const claimedAmount = (await yopContract.balanceOf(user1.address)).sub(balanceBefore);
       const expectedAmount = Math.round(
         (currentRateForVaults * 60 * 60 * 0.5) / SECONDS_PER_MONTH +
           (currentRateForStaking * 60 * 60 * (1000 * 6)) / (1000 * 6 + 3000 * 3) / SECONDS_PER_MONTH
@@ -184,19 +307,19 @@ describe("yopRewards [@skip-on-coverage]", async () => {
   });
 
   describe("add new vaults", async () => {
-    let newVault: SingleAssetVault;
+    let newVault: SingleAssetVaultV2;
     let wbtcContract: ERC20;
     beforeEach(async () => {
       const VaultUtils = await ethers.getContractFactory("VaultUtils");
       const vaultUtils = await VaultUtils.deploy();
-      const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVault", {
+      const SingleAssetVaultFactory = await ethers.getContractFactory("SingleAssetVaultV2", {
         libraries: {
           VaultUtils: vaultUtils.address,
         },
       });
-      newVault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVault;
+      newVault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVaultV2;
       await newVault.deployed();
-      await newVault.initialize(
+      await newVault["initialize(string,string,address,address,address,address,address,address,address,address)"](
         "vault2",
         "v2",
         governance.address,
@@ -205,25 +328,27 @@ describe("yopRewards [@skip-on-coverage]", async () => {
         vaultStrategyDataStore.address,
         WBTC_ADDRESS,
         accessManager.address,
-        yopRewards.address
+        yopRewards.address,
+        yopStaking.address
       );
+
       await newVault.connect(governance).unpause();
       wbtcContract = (await ethers.getContractAt(ERC20ABI, WBTC_ADDRESS)) as ERC20;
       await setEthBalance(WBTC_WHALE_ADDRESS, ethers.utils.parseEther("10"));
       const whaleAccount = await impersonate(WBTC_WHALE_ADDRESS);
-      await wbtcContract.connect(whaleAccount).transfer(user.address, ethers.utils.parseUnits("100", 8));
-      await wbtcContract.connect(user).approve(newVault.address, ethers.constants.MaxUint256);
+      await wbtcContract.connect(whaleAccount).transfer(user1.address, ethers.utils.parseUnits("100", 8));
+      await wbtcContract.connect(user1).approve(newVault.address, ethers.constants.MaxUint256);
     });
 
     it("rewards should start from when the vault is added to the rewards contract", async () => {
       blockTime += 60;
       await setNextBlockTimestamp(blockTime);
-      await vault.connect(user).deposit(ethers.utils.parseEther("100"), user.address);
+      await vault.connect(user1).deposit(ethers.utils.parseEther("100"), user1.address);
       blockTime += 60 * 60 * 24 * 7; // 7 days later
       await setNextBlockTimestamp(blockTime);
       // add the new vault, set weight to 100, which is the same as the first one. So emission should be split from this point
       await yopRewards.connect(governance).setPerVaultRewardsWeight([newVault.address], [100]);
-      await newVault.connect(user).deposit(ethers.utils.parseUnits("10", 8), user.address);
+      await newVault.connect(user1).deposit(ethers.utils.parseUnits("10", 8), user1.address);
       blockTime += 60 * 60 * 24 * 3; // 3 days later
       await setNextBlockTimestamp(blockTime);
       await yopRewards.connect(governance).setPerVaultRewardsWeight([vault.address, newVault.address], [100, 100]); // trigger to add new checkpoints for vaults

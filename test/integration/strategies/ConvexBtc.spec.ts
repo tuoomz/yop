@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, jumpForward, setupWBTCVault } from "../shared/setup";
+import { setupVault, impersonate, setEthBalance, jumpForward, setupWBTCVault, reset } from "../shared/setup";
 import { ethers, waffle, network } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
@@ -42,6 +42,7 @@ describe("ConvexBTCStrategy [@skip-on-coverage]", async () => {
   let startTime: number;
 
   beforeEach(async () => {
+    await reset(13612911);
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupWBTCVault());
     // deploy the strategy

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { setupVault, impersonate, setEthBalance, jumpForward } from "../shared/setup";
+import { setupVault, impersonate, setEthBalance, jumpForward, reset } from "../shared/setup";
 import { ethers, waffle } from "hardhat";
 import { SingleAssetVault } from "../../../types/SingleAssetVault";
 import { VaultStrategyDataStore } from "../../../types/VaultStrategyDataStore";
@@ -36,6 +36,7 @@ describe("ConvexStEthStrategy [@skip-on-coverage]", async () => {
   let allocatedFund: BigNumber;
 
   beforeEach(async () => {
+    await reset(13612911);
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupVault(WETH_ADDRESS));
     // deploy the strategy

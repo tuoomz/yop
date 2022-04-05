@@ -40,3 +40,7 @@ interface IYOPRewards {
       uint256 stakingRewards
     );
 }
+
+interface IYOPRewardsV2 {
+  function claimRewardsForStakes(uint256[] calldata _stakeIds) external returns (uint256);
+}

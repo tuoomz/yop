@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers, waffle } from "hardhat";
 import { MockContract } from "ethereum-waffle";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
-import YOPRewardsABI from "../../../abi/contracts/rewards/YOPRewards.sol/YOPRewards.json";
+import YOPRewardsABI from "../../../abi/contracts/rewards/YOPRewardsV2.sol/YOPRewardsV2.json";
 import SingleAssetVaultV2ABI from "../../../abi/contracts/vaults/SingleAssetVaultV2.sol/SingleAssetVaultV2.json";
 import { StakingV2Mock } from "../../../types";
 import { BigNumber, ContractFactory } from "ethers";
@@ -48,6 +48,7 @@ describe("StakingV2", async () => {
     );
     await staking.setToken(stakeToken.address);
     await yopReward.mock.calculateStakingRewards.returns();
+    await yopReward.mock.claimRewardsForStakes.returns(0);
     vault1 = await deployMockContract(deployer, SingleAssetVaultV2ABI);
     vault2 = await deployMockContract(deployer, SingleAssetVaultV2ABI);
   });

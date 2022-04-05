@@ -5,9 +5,14 @@ import "./YOPRewards.sol";
 
 /// @dev This version of the reward contract will calculate the user's vault rewards using their boosted vault balances (taking staking into account)
 ///  rather than just their vault balances.
-contract YOPRewardsV2 is YOPRewards {
+contract YOPRewardsV2 is IYOPRewardsV2, YOPRewards {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using ConvertUtils for *;
+
+  modifier onlyStaking() {
+    require(stakingContract != address(0) && _msgSender() == stakingContract, "staking only");
+    _;
+  }
 
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
@@ -30,6 +35,21 @@ contract YOPRewardsV2 is YOPRewards {
     uint256 _emissionStartTime
   ) internal onlyInitializing {
     __YOPRewards_init(_governance, _gatekeeper, _wallet, _yopContract, _emissionStartTime);
+  }
+
+  /// @notice Called by the staking contract to claim rewards for a stake id when it is burnt (unstaked). The claimed rewards will be transferred to the staking contract which will then transfer to the user. Can only be called by the staking contract.
+  /// @return The amount of rewards
+  function claimRewardsForStakes(uint256[] calldata _stakeIds)
+    external
+    whenNotPaused
+    nonReentrant
+    onlyStaking
+    returns (uint256)
+  {
+    _updateStateForStaking(_stakeIds);
+    bytes32[] memory accounts = ConvertUtils.uint256ArrayToBytes32Array(_stakeIds);
+    uint256 amount = _claim(accounts, stakingContract);
+    return amount;
   }
 
   function _getVaultTotalSupply(address _vault) internal view virtual override returns (uint256) {

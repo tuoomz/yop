@@ -278,7 +278,7 @@ describe("yopRewards [@skip-on-coverage]", async () => {
       // wait for another hour and both user claim rewards
       blockTime += 60 * 60;
       await setNextBlockTimestamp(blockTime);
-      await expect(yopRewards.connect(user1).claimStakingRewards(user1.address)).to.be.revertedWith("nothing to claim");
+      await expect(yopRewards.connect(user1).claimStakingRewards(user1.address)).not.to.be.reverted;
       await yopRewards.connect(user2).claimStakingRewards(user2.address);
       const user2Claimed = (await yopContract.balanceOf(user2.address)).sub(user2BalanceBefore);
       const user2ExpectedRewards = Math.round((currentRateForStaking * 60 * 60 * 3) / SECONDS_PER_MONTH);
@@ -303,6 +303,41 @@ describe("yopRewards [@skip-on-coverage]", async () => {
           (currentRateForStaking * 60 * 60 * (1000 * 6)) / (1000 * 6 + 3000 * 3) / SECONDS_PER_MONTH
       );
       expect(claimedAmount).to.closeTo(BigNumber.from(expectedAmount), ONE_UNIT);
+    });
+
+    it("claim all rewards when unstake", async () => {
+      blockTime += 60;
+      await setNextBlockTimestamp(blockTime);
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 1);
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 1);
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 1);
+      const balanceBefore = await yopContract.balanceOf(user1.address);
+      // wait for another hour and then claim all rewards
+      blockTime += SECONDS_PER_MONTH;
+      currentEmissionRate = currentEmissionRate * 0.99;
+      currentRateForVaults = currentEmissionRate * 0.5;
+      currentRateForStaking = currentEmissionRate * 0.5;
+      await setNextBlockTimestamp(blockTime);
+      await setEthBalance(yopStaking.address, ethers.utils.parseEther("10"));
+
+      await yopRewards.connect(await impersonate(yopStaking.address)).calculateStakingRewards(0);
+      let expectedRewards = await yopRewards.unclaimedStakingRewards([0]);
+      expect(expectedRewards).to.gt(ethers.constants.Zero);
+      await yopStaking.connect(user1).unstakeSingle(0, user1.address);
+      const balanceAfterFirstUnstake = await yopContract.balanceOf(user1.address);
+      let claimedAmount = balanceAfterFirstUnstake.sub(balanceBefore);
+      let expectedAmount = expectedRewards.add(ONE_THOUSAND_YOP);
+      expect(claimedAmount).to.closeTo(expectedAmount, ONE_UNIT);
+
+      await yopRewards.connect(await impersonate(yopStaking.address)).calculateStakingRewards(1);
+      await yopRewards.connect(await impersonate(yopStaking.address)).calculateStakingRewards(2);
+      expectedRewards = await yopRewards.unclaimedStakingRewards([1, 2]);
+      expect(expectedRewards).to.gt(ethers.constants.Zero);
+      await yopStaking.connect(user1).unstakeAll(user1.address);
+      const balanceAfterUnstakeAll = await yopContract.balanceOf(user1.address);
+      claimedAmount = balanceAfterUnstakeAll.sub(balanceAfterFirstUnstake);
+      expectedAmount = expectedRewards.add(ONE_THOUSAND_YOP).add(ONE_THOUSAND_YOP);
+      expect(claimedAmount).to.closeTo(expectedAmount, ONE_UNIT);
     });
   });
 

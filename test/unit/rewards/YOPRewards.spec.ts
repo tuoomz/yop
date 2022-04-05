@@ -697,8 +697,8 @@ describe("YOPReward", () => {
         await yopRewardsContract.connect(governance).pause();
         expect(yopRewardsContract.connect(user1).claimVaultRewards([vault1.address], user1.address)).to.be.revertedWith("Pausable: paused");
       });
-      it("should revert when nothing to claim", async () => {
-        await expect(yopRewardsContract.claimVaultRewards([vault2.address], user1.address)).to.be.revertedWith("nothing to claim");
+      it("should not revert when nothing to claim", async () => {
+        await expect(yopRewardsContract.claimVaultRewards([vault2.address], user1.address)).not.to.be.reverted;
       });
       it("should revert when vaults are not empty", async () => {
         await expect(yopRewardsContract.claimVaultRewards([], user1.address)).to.be.revertedWith("no vaults");
@@ -756,15 +756,15 @@ describe("YOPReward", () => {
     describe("claimStakingRewards", async () => {
       it("should revert when the contract is paused", async () => {
         await yopRewardsContract.connect(governance).pause();
-        expect(yopRewardsContract.connect(user2).claimStakingRewards(user2.address)).to.be.revertedWith("Pausable: paused");
+        await expect(yopRewardsContract.connect(user2).claimStakingRewards(user2.address)).to.be.revertedWith("Pausable: paused");
       });
 
       it("should revert when to address is not valid", async () => {
-        expect(yopRewardsContract.connect(user2).claimStakingRewards(ethers.constants.AddressZero)).to.be.revertedWith("!input");
+        await expect(yopRewardsContract.connect(user2).claimStakingRewards(ethers.constants.AddressZero)).to.be.revertedWith("!input");
       });
 
-      it("should revert when there is nothing to claim", async () => {
-        expect(yopRewardsContract.connect(user3).claimStakingRewards(user3.address)).to.be.revertedWith("nothing to claim");
+      it("should not revert when there is nothing to claim", async () => {
+        await expect(yopRewardsContract.connect(user3).claimStakingRewards(user3.address)).not.to.be.reverted;
       });
 
       it("should allow users to claim their staking rewards", async () => {
@@ -782,7 +782,7 @@ describe("YOPReward", () => {
         const newYopRewards = (await YOPRewards.deploy()) as YOPRewardsMock;
         await newYopRewards.deployed();
         await newYopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
-        expect(newYopRewards.connect(user2).claimStakingRewards(user2.address)).to.be.revertedWith("nothing to claim");
+        await expect(newYopRewards.connect(user2).claimStakingRewards(user2.address)).not.to.be.reverted;
       });
     });
 
@@ -807,7 +807,7 @@ describe("YOPReward", () => {
         const newYopRewards = (await YOPRewards.deploy()) as YOPRewardsMock;
         await newYopRewards.deployed();
         await newYopRewards.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
-        expect(newYopRewards.connect(user2).claimAll(user2.address)).to.be.revertedWith("nothing to claim");
+        await expect(newYopRewards.connect(user2).claimAll(user2.address)).not.to.be.reverted;
       });
     });
 

@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "../vaults/roles/Governable.sol";
+import "../security/BaseUpgradeable.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IYOPRegistry.sol";
 
 /// @notice The main on-chain registry to allow querying addresses of YOP components.
 ///  For now it supports querying vault addresses, or query vault addresses using token addresses.
 ///  Will add more features in the future.
-contract YOPRegistry is IYOPRegistry, GovernableUpgradeable, UUPSUpgradeable {
+contract YOPRegistry is IYOPRegistry, BaseUpgradeable {
   event VaultRegistered(address _token, address _vault);
   /// @notice addresses for all the YOP vaults
   address[] public allVaults;
@@ -24,7 +23,7 @@ contract YOPRegistry is IYOPRegistry, GovernableUpgradeable, UUPSUpgradeable {
   }
 
   function __YOPRegistry_init(address _governance) internal onlyInitializing {
-    __Governable_init(_governance);
+    __BaseUpgradeable_init(_governance);
     __UUPSUpgradeable_init();
   }
 
@@ -69,7 +68,4 @@ contract YOPRegistry is IYOPRegistry, GovernableUpgradeable, UUPSUpgradeable {
     tokenForVault[_vault] = token;
     emit VaultRegistered(token, _vault);
   }
-
-  // solhint-disable-next-line no-unused-vars no-empty-blocks
-  function _authorizeUpgrade(address) internal view override onlyGovernance {}
 }

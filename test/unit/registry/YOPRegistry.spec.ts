@@ -2,7 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers, waffle } from "hardhat";
 import { MockContract } from "ethereum-waffle";
-import { YOPRegistryMock } from "../../../types";
+import { YOPRegistry } from "../../../types";
 import SingleAssetVaultABI from "../../../abi/contracts/vaults/SingleAssetVaultV2.sol/SingleAssetVaultV2.json";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 
@@ -11,7 +11,7 @@ const { deployMockContract } = waffle;
 describe("YOPRegistry", async () => {
   let deployer: SignerWithAddress;
   let governance: SignerWithAddress;
-  let yopRegistry: YOPRegistryMock;
+  let yopRegistry: YOPRegistry;
   let vault: MockContract;
   let vaultToken: MockContract;
 
@@ -20,8 +20,8 @@ describe("YOPRegistry", async () => {
     vault = await deployMockContract(deployer, SingleAssetVaultABI);
     vaultToken = await deployMockContract(deployer, ERC20ABI);
     await vault.mock.token.returns(vaultToken.address);
-    const YOPRegistryFactory = await ethers.getContractFactory("YOPRegistryMock");
-    yopRegistry = (await YOPRegistryFactory.deploy()) as YOPRegistryMock;
+    const YOPRegistryFactory = await ethers.getContractFactory("YOPRegistry");
+    yopRegistry = (await YOPRegistryFactory.deploy()) as YOPRegistry;
     await yopRegistry.initialize(governance.address);
   });
 
@@ -60,16 +60,6 @@ describe("YOPRegistry", async () => {
     });
     it("should return isVault info", async () => {
       expect(await yopRegistry.isVault(vault.address)).to.equal(true);
-    });
-  });
-
-  describe("upgrade", async () => {
-    it("should revert if upgrade by non-governance", async () => {
-      await expect(yopRegistry.connect(deployer).authorizeUpgrade(yopRegistry.address)).to.be.revertedWith("governance only");
-    });
-
-    it("should success if upgrade by governance", async () => {
-      await yopRegistry.connect(governance).authorizeUpgrade(yopRegistry.address);
     });
   });
 });

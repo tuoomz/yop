@@ -9,7 +9,7 @@ import YOPRegistryABI from "../../../abi/contracts/registry/YOPRegistry.sol/YOPR
 import IWETHABI from "../../../abi/contracts/interfaces/IWeth.sol/IWETH.json";
 import SingleAssetVaultABI from "../../../abi/contracts/vaults/SingleAssetVaultV2.sol/SingleAssetVaultV2.json";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
-import { YOPRouterMock } from "../../../types";
+import { YOPRouter } from "../../../types";
 import { BigNumber, ContractFactory } from "ethers";
 
 const FUTER_TIME = 2532717587; // 2050-4-4
@@ -28,7 +28,7 @@ describe("YOPRouter", async () => {
   let yopToken: MockContract;
   let wethToken: MockContract;
   let YOPRouterFactory: ContractFactory;
-  let yopRouter: YOPRouterMock;
+  let yopRouter: YOPRouter;
 
   beforeEach(async () => {
     [deployer, governance, user] = await ethers.getSigners();
@@ -39,8 +39,8 @@ describe("YOPRouter", async () => {
     yopRegistry = await deployMockContract(deployer, YOPRegistryABI);
     yopToken = await deployMockContract(deployer, ERC20ABI);
     wethToken = await deployMockContract(deployer, IWETHABI);
-    YOPRouterFactory = await ethers.getContractFactory("YOPRouterMock");
-    yopRouter = (await YOPRouterFactory.deploy()) as YOPRouterMock;
+    YOPRouterFactory = await ethers.getContractFactory("YOPRouter");
+    yopRouter = (await YOPRouterFactory.deploy()) as YOPRouter;
     await yopRouter.initialize(
       governance.address,
       stakingContract.address,
@@ -53,81 +53,26 @@ describe("YOPRouter", async () => {
     await yopRegistry.mock.currentVault.returns(vaultContract.address);
   });
 
-  describe("previewSwapForStakeERC20", async () => {
-    it("should revert if token address is not valid", async () => {
-      await expect(yopRouter.previewSwapForStakeERC20(ethers.constants.AddressZero, BigNumber.from("2000"))).to.be.revertedWith("!token");
-    });
-
-    it("should revert if amount in is valid", async () => {
-      await expect(yopRouter.previewSwapForStakeERC20(yopToken.address, ethers.constants.Zero)).to.be.revertedWith("!amount");
-    });
-
-    it("should return preview amount when there is a pool for the pair", async () => {
-      await uniswapFactory.mock.getPair.returns(yopToken.address); // any address that is not address(0) will do
-      const amountOut = BigNumber.from("1800");
-      await uniswapContract.mock.getAmountsOut.returns([0, amountOut]);
-      expect(await yopRouter.previewSwapForStakeERC20(yopToken.address, BigNumber.from("2000"))).to.equal(amountOut);
-    });
-
-    it("should return preview amount when there is no pool for the pair", async () => {
-      await uniswapFactory.mock.getPair.returns(ethers.constants.AddressZero);
-      const amountOut = BigNumber.from("1800");
-      await uniswapContract.mock.getAmountsOut.returns([0, 0, amountOut]);
-      expect(await yopRouter.previewSwapForStakeERC20(yopToken.address, BigNumber.from("2000"))).to.equal(amountOut);
-    });
-  });
-
-  describe("previewSwapForStakeETH", async () => {
-    it("should revert if amount in is valid", async () => {
-      await expect(yopRouter.previewSwapForStakeETH(ethers.constants.Zero)).to.be.revertedWith("!amount");
-    });
-
-    it("should return preview amount when there is a pool for the pair", async () => {
-      await uniswapFactory.mock.getPair.returns(yopToken.address); // any address that is not address(0) will do
-      const amountOut = BigNumber.from("1800");
-      await uniswapContract.mock.getAmountsOut.returns([0, amountOut]);
-      expect(await yopRouter.previewSwapForStakeETH(BigNumber.from("2000"))).to.equal(amountOut);
-    });
-  });
-
   describe("previewSwapForDepositERC20", async () => {
     it("should revert if token address is not valid", async () => {
-      await expect(
-        yopRouter.previewSwapForDepositERC20(ethers.constants.AddressZero, BigNumber.from("2000"), yopToken.address)
-      ).to.be.revertedWith("!token");
-      await expect(
-        yopRouter.previewSwapForDepositERC20(yopToken.address, BigNumber.from("2000"), ethers.constants.AddressZero)
-      ).to.be.revertedWith("!token");
+      await expect(yopRouter.previewSwap(ethers.constants.AddressZero, BigNumber.from("2000"), yopToken.address)).to.be.revertedWith("!token");
+      await expect(yopRouter.previewSwap(yopToken.address, BigNumber.from("2000"), ethers.constants.AddressZero)).to.be.revertedWith("!token");
     });
 
     it("should revert if amount in is valid", async () => {
-      await expect(yopRouter.previewSwapForDepositERC20(wethToken.address, ethers.constants.Zero, yopToken.address)).to.be.revertedWith(
-        "!amount"
-      );
+      await expect(yopRouter.previewSwap(wethToken.address, ethers.constants.Zero, yopToken.address)).to.be.revertedWith("!amount");
+    });
+
+    it("should return preview amount if tokenIn and tokenOut addresses are the same", async () => {
+      const amount = BigNumber.from("2000");
+      expect(await yopRouter.previewSwap(wethToken.address, amount, wethToken.address)).to.equal(amount);
     });
 
     it("should return preview amount when there is no pool for the pair", async () => {
       await uniswapFactory.mock.getPair.returns(ethers.constants.AddressZero);
       const amountOut = BigNumber.from("1800");
       await uniswapContract.mock.getAmountsOut.returns([0, 0, amountOut]);
-      expect(await yopRouter.previewSwapForDepositERC20(wethToken.address, BigNumber.from("2000"), yopToken.address)).to.equal(amountOut);
-    });
-  });
-
-  describe("previewSwapForDepositETH", async () => {
-    it("should revert if token address is not valid", async () => {
-      await expect(yopRouter.previewSwapForDepositETH(BigNumber.from("2000"), ethers.constants.AddressZero)).to.be.revertedWith("!token");
-    });
-
-    it("should revert if amount in is valid", async () => {
-      await expect(yopRouter.previewSwapForDepositETH(ethers.constants.Zero, yopToken.address)).to.be.revertedWith("!amount");
-    });
-
-    it("should return preview amount when there is no pool for the pair", async () => {
-      await uniswapFactory.mock.getPair.returns(ethers.constants.AddressZero);
-      const amountOut = BigNumber.from("1800");
-      await uniswapContract.mock.getAmountsOut.returns([0, 0, amountOut]);
-      expect(await yopRouter.previewSwapForDepositETH(BigNumber.from("2000"), yopToken.address)).to.equal(amountOut);
+      expect(await yopRouter.previewSwap(wethToken.address, BigNumber.from("2000"), yopToken.address)).to.equal(amountOut);
     });
   });
 
@@ -417,16 +362,6 @@ describe("YOPRouter", async () => {
       await yopToken.mock.approve.returns(true);
       await vaultContract.mock.deposit.returns(outAmount);
       await yopRouter.connect(user).swapAndDepositETH(yopToken.address, 0, inAmount, FUTER_TIME, { value: inAmount });
-    });
-  });
-
-  describe("upgrade", async () => {
-    it("should revert if upgrade by non-governance", async () => {
-      await expect(yopRouter.connect(user).authorizeUpgrade(yopRouter.address)).to.be.revertedWith("governance only");
-    });
-
-    it("should success if upgrade by governance", async () => {
-      await yopRouter.connect(governance).authorizeUpgrade(yopRouter.address);
     });
   });
 });

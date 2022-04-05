@@ -3,8 +3,7 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "../vaults/roles/Governable.sol";
+import "../security/BaseUpgradeable.sol";
 import "../libraries/SwapUtils.sol";
 import "../interfaces/IStaking.sol";
 import "../interfaces/IYOPRegistry.sol";
@@ -14,7 +13,7 @@ import "../interfaces/IWeth.sol";
 /// @notice This contract allow users to use any tokens against the YOP platform.
 ///  The contract will swap the tokens from users using Uniswap and then deposit the tokens to vaults or staking.
 ///  The returned receipt tokens will be forwarded to the user.
-contract YOPRouter is GovernableUpgradeable, UUPSUpgradeable {
+contract YOPRouter is BaseUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   address public stakingContract;
@@ -67,8 +66,7 @@ contract YOPRouter is GovernableUpgradeable, UUPSUpgradeable {
     address _yopAddress,
     address _wethAddress
   ) internal onlyInitializing {
-    __Governable_init(_governance);
-    __UUPSUpgradeable_init();
+    __BaseUpgradeable_init(_governance);
     __YOPRouter_init_unchained(_stakingContract, _uniswapAddress, _yopRegistry, _yopAddress, _wethAddress);
   }
 
@@ -86,52 +84,20 @@ contract YOPRouter is GovernableUpgradeable, UUPSUpgradeable {
     wethAddress = _wethAddress;
   }
 
-  /// @notice Get a quote of YOP tokens when swaping from another token
+  /// @notice Get a quote of swapping from one token to another using Uniswap. If one of the token is ETH, use the address of WETH instead.
   /// @param _tokenIn The address of the token to be swapped from
   /// @param _amountIn The amount of the token to be swapped
+  /// @param _tokenOut The address of the token to be swapped to
   /// @return The amount of YOP tokens
-  function previewSwapForStakeERC20(address _tokenIn, uint256 _amountIn)
-    external
-    view
-    ensureToken(_tokenIn)
-    ensureAmount(_amountIn)
-    returns (uint256)
-  {
-    return SwapUtils.getAmountsOut(uniswapAddress, wethAddress, _tokenIn, _amountIn, yopAddress);
-  }
-
-  /// @notice Get a quote of the YOP tokens when swapping from ETH
-  /// @param _amountIn The ETH amount
-  /// @return The amount of YOP token
-  function previewSwapForStakeETH(uint256 _amountIn) external view ensureAmount(_amountIn) returns (uint256) {
-    return SwapUtils.getAmountsOut(uniswapAddress, wethAddress, wethAddress, _amountIn, yopAddress);
-  }
-
-  /// @notice Get a quote of swaping from an input token to another token for depositing
-  /// @param _tokenIn The address of the token to swap from
-  /// @param _amountIn The amount of input token
-  /// @param _tokenOut The address of the output token
-  /// @return The amount of output token
-  function previewSwapForDepositERC20(
+  function previewSwap(
     address _tokenIn,
     uint256 _amountIn,
     address _tokenOut
-  ) external view ensureToken(_tokenIn) ensureAmount(_amountIn) ensureToken(_tokenOut) returns (uint256) {
+  ) external view ensureToken(_tokenIn) ensureToken(_tokenOut) ensureAmount(_amountIn) returns (uint256) {
+    if (_tokenIn == _tokenOut) {
+      return _amountIn;
+    }
     return SwapUtils.getAmountsOut(uniswapAddress, wethAddress, _tokenIn, _amountIn, _tokenOut);
-  }
-
-  /// @notice Get a quote of swaping from ETH to another token for depositing
-  /// @param _amountIn The amount of ETH
-  /// @param _tokenOut The address of the output token
-  /// @return The amount of output token
-  function previewSwapForDepositETH(uint256 _amountIn, address _tokenOut)
-    external
-    view
-    ensureAmount(_amountIn)
-    ensureToken(_tokenOut)
-    returns (uint256)
-  {
-    return SwapUtils.getAmountsOut(uniswapAddress, wethAddress, wethAddress, _amountIn, _tokenOut);
   }
 
   /// @notice Swap the input token to YOP and stake the YOP tokens on behave of the calling user.
@@ -343,7 +309,4 @@ contract YOPRouter is GovernableUpgradeable, UUPSUpgradeable {
       return amounts;
     }
   }
-
-  // solhint-disable-next-line no-unused-vars no-empty-blocks
-  function _authorizeUpgrade(address) internal view override onlyGovernance {}
 }

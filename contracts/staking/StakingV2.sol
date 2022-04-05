@@ -185,7 +185,7 @@ contract StakingV2 is IStakingV2, Staking {
 
     IYOPRewards(yopRewards).calculateStakingRewards(_stakeId);
     totalWorkingSupply = newTotalWorkingSupply;
-    _updateVaults(_vaultsToUpdate);
+    _updateVaults(_vaultsToUpdate, _msgSender());
     emit StakeExtended(_msgSender(), _stakeId, newAmount, newLockPeriod, _vaultsToUpdate);
   }
 }

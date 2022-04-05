@@ -34,7 +34,7 @@ describe("YOPRouter [@skip-on-coverage]", async () => {
     it("can swap USDC to YOP and stake", async () => {
       expect(await yopStaking.balanceOf(user1.address, 0)).to.equal(ethers.constants.Zero);
       const usdcAmount = ethers.utils.parseUnits("2000", CONST.TOKENS.USDC.DECIMALS);
-      const expectedYopAmount = await yopRouter.previewSwapForStakeERC20(CONST.TOKENS.USDC.ADDRESS, usdcAmount);
+      const expectedYopAmount = await yopRouter.previewSwap(CONST.TOKENS.USDC.ADDRESS, usdcAmount, CONST.TOKENS.YOP.ADDRESS);
       const existingYopAmount = ethers.utils.parseUnits("5000", CONST.TOKENS.YOP.DECIMALS);
       await expect(
         await yopRouter
@@ -56,7 +56,7 @@ describe("YOPRouter [@skip-on-coverage]", async () => {
     it("can swap ETH to YOP and stake", async () => {
       expect(await yopStaking.balanceOf(user1.address, 0)).to.equal(ethers.constants.Zero);
       const ethAmount = ethers.utils.parseEther("1");
-      const expectedYopAmount = await yopRouter.previewSwapForStakeETH(ethAmount);
+      const expectedYopAmount = await yopRouter.previewSwap(CONST.WETH_ADDRESS, ethAmount, CONST.TOKENS.YOP.ADDRESS);
       const existingYopAmount = ethers.utils.parseUnits("5000", CONST.TOKENS.YOP.DECIMALS);
       await expect(
         await yopRouter.connect(user1).swapAndStakeETH(expectedYopAmount, existingYopAmount, 12, minutesInSeconds(20), [vault.address], {
@@ -90,7 +90,7 @@ describe("YOPRouter [@skip-on-coverage]", async () => {
     it("can swap WBTC to USDC and stake", async () => {
       expect(await vault.balanceOf(user1.address)).to.equal(ethers.constants.Zero);
       const wbtcAmount = ethers.utils.parseUnits("1", CONST.TOKENS.WBTC.DECIMALS);
-      const expectedUSDCAmount = await yopRouter.previewSwapForDepositERC20(CONST.TOKENS.WBTC.ADDRESS, wbtcAmount, CONST.TOKENS.USDC.ADDRESS);
+      const expectedUSDCAmount = await yopRouter.previewSwap(CONST.TOKENS.WBTC.ADDRESS, wbtcAmount, CONST.TOKENS.USDC.ADDRESS);
       const existingUSDCAmount = ethers.utils.parseUnits("5000", CONST.TOKENS.USDC.DECIMALS);
       await expect(
         await yopRouter
@@ -116,7 +116,7 @@ describe("YOPRouter [@skip-on-coverage]", async () => {
     it("can swap ETH to USDC and deposit", async () => {
       expect(await vault.balanceOf(user1.address)).to.equal(ethers.constants.Zero);
       const ethAmount = ethers.utils.parseEther("1");
-      const expectedUSDCAmount = await yopRouter.previewSwapForDepositETH(ethAmount, CONST.TOKENS.USDC.ADDRESS);
+      const expectedUSDCAmount = await yopRouter.previewSwap(CONST.WETH_ADDRESS, ethAmount, CONST.TOKENS.USDC.ADDRESS);
       const existingUSDCAmount = ethers.utils.parseUnits("5000", CONST.TOKENS.USDC.DECIMALS);
       await expect(
         await yopRouter

@@ -398,4 +398,107 @@ describe("yopRewards [@skip-on-coverage]", async () => {
       expect(vaultRewards).to.closeTo(BigNumber.from(expectedVaultRewards), ONE_UNIT);
     });
   });
+
+  describe("compound", async () => {
+    beforeEach(async () => {
+      blockTime += 60;
+      await setNextBlockTimestamp(blockTime);
+      await yopStaking.connect(user1).stake(ONE_THOUSAND_YOP, 2);
+      await yopStaking.connect(user1).stake(THREE_THOUSAND_YOP, 2);
+      await vault.connect(user1).deposit(ethers.utils.parseEther("1"), user1.address);
+      await vault.connect(user2).deposit(ethers.utils.parseEther("10"), user2.address);
+    });
+
+    it("compoundForStaking", async () => {
+      blockTime += SECONDS_PER_MONTH;
+      await setNextBlockTimestamp(blockTime);
+      currentEmissionRate = currentEmissionRate * 0.99;
+      currentRateForVaults = currentEmissionRate * 0.5;
+      currentRateForStaking = currentEmissionRate * 0.5;
+      const yopStakingSigner = await impersonate(yopStaking.address);
+      await yopRewards.connect(yopStakingSigner).calculateStakingRewards(0);
+      await yopRewards.connect(yopStakingSigner).calculateStakingRewards(1);
+      const stake0Rewards = await yopRewards.unclaimedStakingRewards([0]);
+      const stake1Rewards = await yopRewards.unclaimedStakingRewards([1]);
+      expect(stake0Rewards).to.gt(ethers.constants.Zero);
+      expect(stake1Rewards).to.gt(ethers.constants.Zero);
+      const stake0WorkingBalanceBefore = await yopStaking.workingBalanceOfStake(0);
+      const stake1WorkingBalanceBefore = await yopStaking.workingBalanceOfStake(1);
+      const yopBalanceBefore = await yopContract.balanceOf(yopStaking.address);
+      await yopStaking.connect(governance).compoundForStaking([0, 1]);
+      const yopBalanceAfter = await yopContract.balanceOf(yopStaking.address);
+      expect(yopBalanceAfter.sub(yopBalanceBefore)).closeTo(stake0Rewards.add(stake1Rewards), ONE_UNIT);
+      const stake0Amount = (await yopStaking.stakes(0)).amount;
+      const stake1Amount = (await yopStaking.stakes(1)).amount;
+      expect(stake0Amount).closeTo(ONE_THOUSAND_YOP.add(stake0Rewards), ONE_UNIT);
+      expect(stake1Amount).closeTo(THREE_THOUSAND_YOP.add(stake1Rewards), ONE_UNIT);
+      const totalWorkingSupplyAfter = await yopStaking.totalWorkingSupply();
+      const stake0WorkingBalanceAfter = await yopStaking.workingBalanceOfStake(0);
+      const stake1WorkingBalanceAfter = await yopStaking.workingBalanceOfStake(1);
+      expect(stake0WorkingBalanceAfter.sub(stake0WorkingBalanceBefore)).to.closeTo(stake0Rewards.mul(2), ONE_UNIT);
+      expect(stake1WorkingBalanceAfter.sub(stake1WorkingBalanceBefore)).to.closeTo(stake1Rewards.mul(2), ONE_UNIT);
+      expect(totalWorkingSupplyAfter).to.closeTo(
+        ONE_THOUSAND_YOP.add(stake0Rewards).mul(2).add(THREE_THOUSAND_YOP.add(stake1Rewards).mul(2)),
+        ONE_UNIT
+      );
+    });
+
+    it("compoundWithVaultRewards", async () => {
+      blockTime += SECONDS_PER_MONTH;
+      await setNextBlockTimestamp(blockTime);
+      currentEmissionRate = currentEmissionRate * 0.99;
+      currentRateForVaults = currentEmissionRate * 0.5;
+      currentRateForStaking = currentEmissionRate * 0.5;
+      const vaultSigner = await impersonate(vault.address);
+      await yopRewards.connect(vaultSigner).calculateVaultRewards(user1.address);
+      const vaultRewards = await yopRewards.unclaimedVaultRewards(user1.address, [vault.address]);
+      expect(vaultRewards).to.gt(ethers.constants.Zero);
+      const stake0WorkingBalanceBefore = await yopStaking.workingBalanceOfStake(0);
+      const yopBalanceBefore = await yopContract.balanceOf(yopStaking.address);
+      await yopStaking.compoundWithVaultRewards([user1.address], [0]);
+      const yopBalanceAfter = await yopContract.balanceOf(yopStaking.address);
+      expect(yopBalanceAfter.sub(yopBalanceBefore)).closeTo(vaultRewards, ONE_UNIT);
+      const totalWorkingSupplyAfter = await yopStaking.totalWorkingSupply();
+      const stake0WorkingBalanceAfter = await yopStaking.workingBalanceOfStake(0);
+      const stake0Amount = (await yopStaking.stakes(0)).amount;
+      expect(stake0Amount.sub(ONE_THOUSAND_YOP)).closeTo(vaultRewards, ONE_UNIT);
+      expect(stake0WorkingBalanceAfter.sub(stake0WorkingBalanceBefore)).closeTo(vaultRewards.mul(2), ONE_UNIT);
+      expect(totalWorkingSupplyAfter).closeTo(ONE_THOUSAND_YOP.add(vaultRewards).mul(2).add(THREE_THOUSAND_YOP.mul(2)), ONE_UNIT);
+    });
+
+    it("compoundForUser", async () => {
+      blockTime += SECONDS_PER_MONTH;
+      await setNextBlockTimestamp(blockTime);
+      currentEmissionRate = currentEmissionRate * 0.99;
+      currentRateForVaults = currentEmissionRate * 0.5;
+      currentRateForStaking = currentEmissionRate * 0.5;
+      const vaultSigner = await impersonate(vault.address);
+      await yopRewards.connect(vaultSigner).calculateVaultRewards(user1.address);
+      const yopStakingSigner = await impersonate(yopStaking.address);
+      await yopRewards.connect(yopStakingSigner).calculateStakingRewards(0);
+      await yopRewards.connect(yopStakingSigner).calculateStakingRewards(1);
+      const vaultRewards = await yopRewards.unclaimedVaultRewards(user1.address, [vault.address]);
+      const stake0Rewards = await yopRewards.unclaimedStakingRewards([0]);
+      const stake1Rewards = await yopRewards.unclaimedStakingRewards([1]);
+      const yopBalanceBefore = await yopContract.balanceOf(yopStaking.address);
+      const stake0WorkingBalanceBefore = await yopStaking.workingBalanceOfStake(0);
+      const stake1WorkingBalanceBefore = await yopStaking.workingBalanceOfStake(1);
+      await yopStaking.compoundForUser(user1.address, 0);
+      const yopBalanceAfter = await yopContract.balanceOf(yopStaking.address);
+      expect(yopBalanceAfter.sub(yopBalanceBefore)).closeTo(vaultRewards.add(stake0Rewards).add(stake1Rewards), ONE_UNIT);
+      const stake0Amount = (await yopStaking.stakes(0)).amount;
+      const stake1Amount = (await yopStaking.stakes(1)).amount;
+      expect(stake0Amount).closeTo(ONE_THOUSAND_YOP.add(stake0Rewards).add(vaultRewards), ONE_UNIT);
+      expect(stake1Amount).closeTo(THREE_THOUSAND_YOP.add(stake1Rewards), ONE_UNIT);
+      const totalWorkingSupplyAfter = await yopStaking.totalWorkingSupply();
+      const stake0WorkingBalanceAfter = await yopStaking.workingBalanceOfStake(0);
+      const stake1WorkingBalanceAfter = await yopStaking.workingBalanceOfStake(1);
+      expect(stake0WorkingBalanceAfter.sub(stake0WorkingBalanceBefore)).to.closeTo(stake0Rewards.add(vaultRewards).mul(2), ONE_UNIT);
+      expect(stake1WorkingBalanceAfter.sub(stake1WorkingBalanceBefore)).to.closeTo(stake1Rewards.mul(2), ONE_UNIT);
+      expect(totalWorkingSupplyAfter).to.closeTo(
+        ONE_THOUSAND_YOP.add(stake0Rewards).add(vaultRewards).mul(2).add(THREE_THOUSAND_YOP.add(stake1Rewards).mul(2)),
+        ONE_UNIT
+      );
+    });
+  });
 });

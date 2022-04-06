@@ -42,5 +42,7 @@ interface IYOPRewards {
 }
 
 interface IYOPRewardsV2 {
-  function claimRewardsForStakes(uint256[] calldata _stakeIds) external returns (uint256);
+  function claimRewardsForStakes(uint256[] calldata _stakeIds) external returns (uint256, uint256[] memory);
+
+  function claimVaultRewardsForUsers(address[] calldata _users) external returns (uint256, uint256[] memory);
 }

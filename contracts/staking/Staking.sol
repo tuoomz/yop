@@ -368,7 +368,7 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable, Reen
     // This only needs to be called when NFT tokens are minted/burne. It doesn't need to be called again when NFTs are transferred as the balance of the token and the totalBalance are not changed when tokens are transferred
     uint256[] memory stakeIds = new uint256[](1);
     stakeIds[0] = _stakeId;
-    uint256 rewardsAmount = IYOPRewardsV2(yopRewards).claimRewardsForStakes(stakeIds);
+    (uint256 rewardsAmount, ) = IYOPRewardsV2(yopRewards).claimRewardsForStakes(stakeIds);
     // burn the NFT
     _burn(_msgSender(), _stakeId, 1);
     // transfer the tokens to _to
@@ -381,7 +381,7 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable, Reen
     uint256[] memory stakeIds = stakesForAddress[_msgSender()];
     uint256[] memory unlockedIds = _getUnlockedStakeIds(stakeIds);
     require(unlockedIds.length > 0, "!unlocked");
-    uint256 toTransfer = IYOPRewardsV2(yopRewards).claimRewardsForStakes(unlockedIds);
+    (uint256 toTransfer, ) = IYOPRewardsV2(yopRewards).claimRewardsForStakes(unlockedIds);
     uint256[] memory amounts = new uint256[](unlockedIds.length);
     for (uint256 i = 0; i < unlockedIds.length; i++) {
       amounts[i] = 1;

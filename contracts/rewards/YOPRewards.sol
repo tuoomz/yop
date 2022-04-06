@@ -548,20 +548,22 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpg
     }
   }
 
-  function _claim(bytes32[] memory _accounts, address _to) internal returns (uint256) {
+  function _claim(bytes32[] memory _accounts, address _to) internal returns (uint256, uint256[] memory) {
     require(_to != address(0), "!input");
     uint256 toTransfer = 0;
+    uint256[] memory claimedRewards = new uint256[](_accounts.length);
     for (uint256 i = 0; i < _accounts.length; i++) {
       ClaimRecord memory record = claimRecords[_accounts[i]];
       uint256 claimable = record.totalAvailable - record.totalClaimed;
       claimRecords[_accounts[i]].totalClaimed = record.totalAvailable;
+      claimedRewards[i] = claimable;
       toTransfer += claimable;
     }
     if (toTransfer > 0) {
       // this requires the reward contract is approved as a spender for the wallet
       IERC20Upgradeable(_getYOPAddress()).safeTransferFrom(rewardsWallet, _to, toTransfer);
     }
-    return toTransfer;
+    return (toTransfer, claimedRewards);
   }
 
   function _unclaimedVaultRewards(address[] memory _vaults, bytes32 _user) internal view returns (uint256) {

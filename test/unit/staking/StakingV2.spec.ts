@@ -48,7 +48,7 @@ describe("StakingV2", async () => {
     );
     await staking.setToken(stakeToken.address);
     await yopReward.mock.calculateStakingRewards.returns();
-    await yopReward.mock.claimRewardsForStakes.returns(0);
+    await yopReward.mock.claimRewardsForStakes.returns(0, []);
     vault1 = await deployMockContract(deployer, SingleAssetVaultV2ABI);
     vault2 = await deployMockContract(deployer, SingleAssetVaultV2ABI);
   });
@@ -108,16 +108,12 @@ describe("StakingV2", async () => {
 
     it("should extend duration only", async () => {
       await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
-      await expect(staking.connect(user).extendStake(0, 12, 0, []))
-        .to.emit(staking, "StakeExtended")
-        .withArgs(user.address, 0, _100_YOP, 13, []);
+      await expect(staking.connect(user).extendStake(0, 12, 0, [])).to.emit(staking, "StakeExtended").withArgs(0, _100_YOP, 13, []);
     });
 
     it("should extend amount only", async () => {
       await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
-      await expect(staking.connect(user).extendStake(0, 0, _100_YOP, []))
-        .to.emit(staking, "StakeExtended")
-        .withArgs(user.address, 0, _100_YOP.mul(2), 1, []);
+      await expect(staking.connect(user).extendStake(0, 0, _100_YOP, [])).to.emit(staking, "StakeExtended").withArgs(0, _100_YOP.mul(2), 1, []);
     });
   });
 
@@ -245,6 +241,55 @@ describe("StakingV2", async () => {
         staking.stakeAndBoostForUser(ethers.utils.parseUnits("100", TOKEN_DECIMALS), 1, user.address, [vault1.address, vault2.address])
       ).not.to.be.reverted;
       expect(await staking.balanceOf(user.address, 0)).to.equal(1);
+    });
+  });
+
+  describe("compoundForStaking", async () => {
+    const amount = ethers.utils.parseUnits("100", TOKEN_DECIMALS);
+    it("success", async () => {
+      await yopReward.mock.claimRewardsForStakes.returns(100, [50, 50]);
+      await stakeToken.mock.balanceOf.returns(amount);
+      await stakeToken.mock.transferFrom.returns(true);
+      await staking.connect(user).stake(amount, 3);
+      await staking.compoundForStaking([0]);
+    });
+  });
+
+  describe("compoundWithVaultRewards", async () => {
+    const amount = ethers.utils.parseUnits("100", TOKEN_DECIMALS);
+    it("should revert if user is not the owner of the stake", async () => {
+      await yopReward.mock.claimVaultRewardsForUsers.returns(100, [50, 50]);
+      await stakeToken.mock.balanceOf.returns(amount);
+      await stakeToken.mock.transferFrom.returns(true);
+      await staking.connect(user).stake(amount, 3);
+      await expect(staking.compoundWithVaultRewards([owner.address], [0])).to.be.revertedWith("!owner");
+    });
+    it("success", async () => {
+      await yopReward.mock.claimVaultRewardsForUsers.returns(100, [50, 50]);
+      await stakeToken.mock.balanceOf.returns(amount);
+      await stakeToken.mock.transferFrom.returns(true);
+      await staking.connect(user).stake(amount, 3);
+      await staking.compoundWithVaultRewards([user.address], [0]);
+    });
+  });
+
+  describe("compoundForUser", async () => {
+    const amount = ethers.utils.parseUnits("100", TOKEN_DECIMALS);
+    it("should revert if user is not the owner of the stake", async () => {
+      await yopReward.mock.claimRewardsForStakes.returns(100, [50, 50]);
+      await yopReward.mock.claimVaultRewardsForUsers.returns(100, [50, 50]);
+      await stakeToken.mock.balanceOf.returns(amount);
+      await stakeToken.mock.transferFrom.returns(true);
+      await staking.connect(user).stake(amount, 3);
+      await expect(staking.compoundForUser(owner.address, 0)).to.be.revertedWith("!owner");
+    });
+    it("success", async () => {
+      await yopReward.mock.claimRewardsForStakes.returns(100, [50, 50]);
+      await yopReward.mock.claimVaultRewardsForUsers.returns(100, [50, 50]);
+      await stakeToken.mock.balanceOf.returns(amount);
+      await stakeToken.mock.transferFrom.returns(true);
+      await staking.connect(user).stake(amount, 3);
+      await staking.compoundForUser(user.address, 0);
     });
   });
 });

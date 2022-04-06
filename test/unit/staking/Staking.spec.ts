@@ -260,7 +260,7 @@ describe("Staking", async () => {
       const bt = monthsInSeconds(3);
       await staking.setBlocktime(bt);
       await stakeToken.mock.transfer.returns(true);
-      await yopReward.mock.claimRewardsForStakes.returns(0);
+      await yopReward.mock.claimRewardsForStakes.returns(0, []);
       await expect(await staking.connect(user).unstakeSingle(0, user.address))
         .to.emit(staking, "Unstaked")
         .withArgs(user.address, 0, amount1, 2, blockTime);
@@ -276,7 +276,7 @@ describe("Staking", async () => {
       const bt = monthsInSeconds(3);
       await staking.setBlocktime(bt);
       await stakeToken.mock.transfer.returns(true);
-      await yopReward.mock.claimRewardsForStakes.returns(0);
+      await yopReward.mock.claimRewardsForStakes.returns(0, []);
 
       await staking.connect(user).safeTransferFrom(user.address, user2.address, 0, 1, [0]);
       expect(await staking.balanceOf(user.address, 0)).to.equal(0);
@@ -324,7 +324,7 @@ describe("Staking", async () => {
       await staking.connect(user).stake(amount1, 2);
       await staking.connect(user).stake(amount2, 4);
 
-      await yopReward.mock.claimRewardsForStakes.returns(0);
+      await yopReward.mock.claimRewardsForStakes.returns(0, []);
     });
 
     it("should revert if contract is paused", async () => {

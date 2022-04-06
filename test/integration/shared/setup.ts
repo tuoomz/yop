@@ -338,6 +338,7 @@ export async function impersonate(account: string) {
     method: "hardhat_impersonateAccount",
     params: [account],
   });
+  await setEthBalance(account, ethers.utils.parseEther("10"));
   const signer = await ethers.getSigner(account);
   return signer;
 }

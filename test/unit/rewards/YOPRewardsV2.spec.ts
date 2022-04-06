@@ -92,8 +92,34 @@ describe("YOPRewardsV2", async () => {
       await yopRewardsV2Contract.setEpochStartTime(start);
       await yopRewardsV2Contract.setEpochEndTime(end);
       await yopRewardsV2Contract.setBlocktimestamp(blockTimestamp);
-      await yopRewardsV2Contract.connect(await impersonate(stakingContract.address)).calculateStakingRewards(0);
       await yopRewardsV2Contract.connect(await impersonate(stakingContract.address)).claimRewardsForStakes([0]);
+    });
+  });
+
+  describe("claimVaultRewardsForUsers", async () => {
+    it("should revert if not called by the staking contract", async () => {
+      expect(await yopRewardsV2Contract.stakingContract()).to.equal(ethers.constants.AddressZero);
+      await expect(yopRewardsV2Contract.connect(governance).claimVaultRewardsForUsers([user1.address])).to.be.revertedWith("staking only");
+      await yopRewardsV2Contract.connect(governance).setStakingContractAddress(stakingContract.address);
+      expect(await yopRewardsV2Contract.stakingContract()).to.equal(stakingContract.address);
+      await expect(yopRewardsV2Contract.connect(governance).claimVaultRewardsForUsers([user1.address])).to.be.revertedWith("staking only");
+    });
+    it("will claim rewards", async () => {
+      await yopRewardsV2Contract.connect(governance).setStakingContractAddress(stakingContract.address);
+      await vault1.mock.totalSupply.returns(1000);
+      await vault1.mock.balanceOf.returns(100);
+      await vault1.mock.decimals.returns(8);
+      await vault1.mock.updateBoostedBalancesForUsers.returns();
+      await vault2.mock.totalSupply.returns(500);
+      await vault2.mock.balanceOf.returns(0);
+      await vault2.mock.decimals.returns(8);
+      const start = monthsInSeconds(0);
+      const end = monthsInSeconds(120);
+      const blockTimestamp = monthsInSeconds(1); // the end of first month
+      await yopRewardsV2Contract.setEpochStartTime(start);
+      await yopRewardsV2Contract.setEpochEndTime(end);
+      await yopRewardsV2Contract.setBlocktimestamp(blockTimestamp);
+      await yopRewardsV2Contract.connect(await impersonate(stakingContract.address)).claimVaultRewardsForUsers([user1.address]);
     });
   });
 });

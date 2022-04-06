@@ -37,19 +37,38 @@ contract YOPRewardsV2 is IYOPRewardsV2, YOPRewards {
     __YOPRewards_init(_governance, _gatekeeper, _wallet, _yopContract, _emissionStartTime);
   }
 
-  /// @notice Called by the staking contract to claim rewards for a stake id when it is burnt (unstaked). The claimed rewards will be transferred to the staking contract which will then transfer to the user. Can only be called by the staking contract.
+  /// @notice Called by the staking contract to claim rewards for a stake id when it is burnt (unstaked) or compounded. The claimed rewards will be transferred to the staking contract which will then decide what to do. Can only be called by the staking contract.
+  /// @param _stakeIds The stake ids to claim rewards for
   /// @return The amount of rewards
   function claimRewardsForStakes(uint256[] calldata _stakeIds)
     external
     whenNotPaused
     nonReentrant
     onlyStaking
-    returns (uint256)
+    returns (uint256, uint256[] memory)
   {
     _updateStateForStaking(_stakeIds);
     bytes32[] memory accounts = ConvertUtils.uint256ArrayToBytes32Array(_stakeIds);
-    uint256 amount = _claim(accounts, stakingContract);
-    return amount;
+    return _claim(accounts, stakingContract);
+  }
+
+  /// @notice Called by the staking contract to claim vault rewards for the given users for compounding the stakes. Can only be called by the staking contract.
+  /// @param _users The addreses of users to claim rewards for
+  /// @return The amount of rewards
+  function claimVaultRewardsForUsers(address[] calldata _users)
+    external
+    whenNotPaused
+    nonReentrant
+    onlyStaking
+    returns (uint256, uint256[] memory)
+  {
+    bytes32[] memory accounts = new bytes32[](_users.length);
+    for (uint256 i = 0; i < _users.length; i++) {
+      bytes32 acc = _users[i].addressToBytes32();
+      accounts[i] = acc;
+      _updateStateForVaults(vaultAddresses.values(), acc);
+    }
+    return _claim(accounts, stakingContract);
   }
 
   function _getVaultTotalSupply(address _vault) internal view virtual override returns (uint256) {

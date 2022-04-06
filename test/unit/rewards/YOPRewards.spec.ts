@@ -290,10 +290,7 @@ describe("YOPReward", () => {
 
     it("can not be called by unauthorised", async () => {
       await expect(yopRewardsContract.connect(user1).calculateVaultRewards(user1.address)).to.be.revertedWith("not authorised");
-      await expect(await yopRewardsContract.connect(await impersonate(vault1.address)).calculateVaultRewards(user1.address)).to.emit(
-        yopRewardsContract,
-        "RewardsDistributed"
-      );
+      await expect(yopRewardsContract.connect(await impersonate(vault1.address)).calculateVaultRewards(user1.address)).not.to.be.reverted;
     });
 
     it("inside the same epoch", async () => {
@@ -521,10 +518,8 @@ describe("YOPReward", () => {
           SECONDS_PER_MONTH) *
           (100 / 150)
       );
-      await expect(await yopRewardsContract.connect(await impersonate(vault1.address)).calculateVaultRewards(user1.address)).to.emit(
-        yopRewardsContract,
-        "RewardsDistributed"
-      );
+      // between now and the last time `calculateVaultRewards` is called, the user has no balance in vault so this time there won't be any rewards available to the user
+      await expect(yopRewardsContract.connect(await impersonate(vault1.address)).calculateVaultRewards(user1.address)).not.to.be.reverted;
       const user1Rewards = await (await yopRewardsContract.claimRecordForAddress(user1.address)).totalAvailable;
       console.log("diff = %s", user1Rewards.sub(expectedUser1Rewards));
       expect(user1Rewards).to.closeTo(BigNumber.from(expectedUser1Rewards), ONE_UNIT);

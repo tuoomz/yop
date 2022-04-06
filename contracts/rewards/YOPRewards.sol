@@ -408,15 +408,22 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpg
 
   function _updatePoolState(address _pool) internal {
     _updateCurrentEpoch();
-    poolRewardsState[_pool] = _calculatePoolState(_pool);
+    PoolRewardsState memory state = _calculatePoolState(_pool);
+    if (state.timestamp != poolRewardsState[_pool].timestamp) {
+      poolRewardsState[_pool] = state;
+    }
   }
 
   function _updateUserState(address _pool, bytes32 _user) internal {
     PoolRewardsState memory poolState = poolRewardsState[_pool];
     uint256 tokenDelta = _calculateUserState(_pool, _user, poolState);
-    userRewardsState[_pool][_user] = poolState.index; // store the new value so it will be used the next time as the previous value
-    claimRecords[_user].totalAvailable = claimRecords[_user].totalAvailable + tokenDelta;
-    emit RewardsDistributed(_pool, _user, tokenDelta);
+    if (userRewardsState[_pool][_user].value != poolState.index.value) {
+      userRewardsState[_pool][_user] = poolState.index; // store the new value so it will be used the next time as the previous value
+    }
+    if (tokenDelta > 0) {
+      claimRecords[_user].totalAvailable = claimRecords[_user].totalAvailable + tokenDelta;
+      emit RewardsDistributed(_pool, _user, tokenDelta);
+    }
   }
 
   function _calculatePoolState(address _pool) internal view returns (PoolRewardsState memory) {
@@ -426,6 +433,10 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpg
       // Use the vault decimal here to improve the calculation precision as this value will be devided by the totalSupply of the vault.
       // If there is a big different between the YOP decimals and the vault decimals then the calculation won't be very accurate.
       poolState.epochRate = FIRST_EPOCH_EMISSION * (10**_getPoolDecimals(_pool));
+    }
+    if (poolState.timestamp == _getBlockTimestamp()) {
+      // poolState data is up to date, just return it
+      return poolState;
     }
     uint256 start = poolState.timestamp;
     uint256 end = _getBlockTimestamp();
@@ -494,15 +505,17 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpg
     uint256 poolDecimal = _getPoolDecimals(_pool);
     PRBMath.UD60x18 memory currentVaultIndex = _poolState.index; // = T2 * R / V
     PRBMath.UD60x18 memory previousUserIndex = userRewardsState[_pool][_user]; // = T1 * R /V
-    uint256 userBalance = _balanceFor(_pool, _user);
-    // = U * (T2 * R / V  - T1 * R /V) = U * R / V * (T2 - T1)
-    uint256 tokenDelta = PRBMathUD60x18Typed.toUint(
-      PRBMathUD60x18Typed
-        .fromUint(userBalance)
-        .mul(currentVaultIndex.sub(previousUserIndex))
-        .div(PRBMathUD60x18Typed.fromUint(10**poolDecimal))
-        .mul(PRBMathUD60x18Typed.fromUint(10**YOP_DECIMAL))
-    ); // prevent phantom overflow
+    PRBMath.UD60x18 memory diff = currentVaultIndex.sub(previousUserIndex);
+    uint256 tokenDelta;
+    if (diff.value > 0) {
+      uint256 userBalance = _balanceFor(_pool, _user);
+      // = U * (T2 * R / V  - T1 * R /V) = U * R / V * (T2 - T1)
+      tokenDelta = PRBMathUD60x18Typed.toUint(
+        PRBMathUD60x18Typed.fromUint(userBalance).mul(diff).div(PRBMathUD60x18Typed.fromUint(10**poolDecimal)).mul(
+          PRBMathUD60x18Typed.fromUint(10**YOP_DECIMAL)
+        )
+      ); // prevent phantom overflow
+    }
     return tokenDelta;
   }
 

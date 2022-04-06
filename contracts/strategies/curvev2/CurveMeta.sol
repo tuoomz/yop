@@ -60,7 +60,7 @@ contract CurveMeta is CurveBaseV2 {
     return uint256(indexOfWantInPool);
   }
 
-  function _balanceOfPool() internal view override returns (uint256) {
+  function _balanceOfPool() internal view virtual override returns (uint256) {
     uint256 lpTokens = curveGauge.balanceOf(address(this));
     if (lpTokens > 0) {
       return _quoteWantInMetapoolLp(lpTokens);

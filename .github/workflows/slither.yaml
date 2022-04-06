@@ -1,66 +1,66 @@
-name: Static Analysis
-on:
-  push:
-    branches: [main]
-    paths:
-      - "contracts/**"
-      - ".github/workflows/slither.yaml"
-      - "**.py"
-  pull_request:
-    branches: [main]
-    paths:
-      - "contracts/**"
-      - ".github/workflows/slither.yaml"
+# name: Static Analysis
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - "contracts/**"
+#       - ".github/workflows/slither.yaml"
+#       - "**.py"
+#   pull_request:
+#     branches: [main]
+#     paths:
+#       - "contracts/**"
+#       - ".github/workflows/slither.yaml"
 
-jobs:
-  slither:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9.8]
-        node-version: [14.x]
+# jobs:
+#   slither:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         python-version: [3.9.8]
+#         node-version: [14.x]
 
-    steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js 14
-        uses: actions/setup-node@v2
-        with:
-          node-version: "14"
-      - run: npm ci
-      - run: |
-          # Hack to get setup-python to work on act
-          if [ ! -f "/etc/lsb-release" ] ; then
-            echo "DISTRIB_RELEASE=18.04" > /etc/lsb-release
-          fi
+#     steps:
+#       - uses: actions/checkout@v2
+#       - name: Use Node.js 14
+#         uses: actions/setup-node@v2
+#         with:
+#           node-version: "14"
+#       - run: npm ci
+#       - run: |
+#           # Hack to get setup-python to work on act
+#           if [ ! -f "/etc/lsb-release" ] ; then
+#             echo "DISTRIB_RELEASE=18.04" > /etc/lsb-release
+#           fi
 
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.x" # Version range or exact version of a Python version to use, using SemVer's version range syntax
-          architecture: "x64"
+#       - name: Set up Python 3.x
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: "3.x" # Version range or exact version of a Python version to use, using SemVer's version range syntax
+#           architecture: "x64"
 
-      - name: Install dependencies
-        run: |
-          sudo snap install solc
-          python -m pip install --upgrade pip
-          pip install slither-analyzer
+#       - name: Install dependencies
+#         run: |
+#           sudo snap install solc
+#           python -m pip install --upgrade pip
+#           pip install slither-analyzer
 
-          # if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-      - name: Summary of static analysis
-        run: |
-          echo "Running slither human-summary"
-          slither . --print human-summary
+#           # if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+#       - name: Summary of static analysis
+#         run: |
+#           echo "Running slither human-summary"
+#           slither . --print human-summary
 
-      - name: Contract summary of static analysis
-        run: |
-          echo "Running slither contract-summary"
-          slither . --print contract-summary
-      - name: Function summary
-        run: |
-          slither . --print function-summary
-      - name: Data dependency
-        run: |
-          slither . --print data-dependency
-      - name: Inheritance
-        run: |
-          slither . --print inheritance
+#       - name: Contract summary of static analysis
+#         run: |
+#           echo "Running slither contract-summary"
+#           slither . --print contract-summary
+#       - name: Function summary
+#         run: |
+#           slither . --print function-summary
+#       - name: Data dependency
+#         run: |
+#           slither . --print data-dependency
+#       - name: Inheritance
+#         run: |
+#           slither . --print inheritance

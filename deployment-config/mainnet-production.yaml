@@ -80,7 +80,7 @@ constants:
   wbtc_vault:
     rewards_weight: &wbtc_vault_rewards_weight 39125
     limit: &wbtc_vault_limit 1.2 # ~$50000
-    paused: &wbtc_vault_paused true
+    paused: &wbtc_vault_paused false
     curve_strategy:
       allocation: &curve_wbtc_allocation 1900 #20%
     convex_strategy:
@@ -90,9 +90,9 @@ constants:
     limit: &usdc_vault_limit 50000
     paused: &usdc_vault_paused false
     curve_strategy:
-      allocation: &curve_usdc_allocation 1897 #20%
+      allocation: &curve_usdc_allocation 0 #20%
     convex_strategy:
-      allocation: &convex_usdc_allocation 7595 #80%
+      allocation: &convex_usdc_allocation 0 #80%
   dai_vault:
     rewards_weight: &dai_vault_rewards_weight 29782
     limit: &dai_vault_limit 50000

@@ -71,28 +71,28 @@ describe("StakingV2", async () => {
     });
     it("should revert on extension by non-owner", async () => {
       await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
-      await expect(staking.connect(governance).extendStake(0, 12, _100_YOP, [])).to.be.revertedWith("!stake owner");
+      await expect(staking.connect(governance).extendStake(0, 12, _100_YOP, [])).to.be.revertedWith("!owner");
     });
     it("should revert on zero extension", async () => {
       await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
-      await expect(staking.connect(user).extendStake(0, 0, 0, [])).to.be.revertedWith("!invalid parameters");
+      await expect(staking.connect(user).extendStake(0, 0, 0, [])).to.be.revertedWith("!parameters");
     });
 
     it("should revert if new lock period is greater than max", async () => {
       await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
-      await expect(staking.connect(user).extendStake(0, 60, _100_YOP, [])).to.be.revertedWith("!max lock period");
+      await expect(staking.connect(user).extendStake(0, 60, _100_YOP, [])).to.be.revertedWith("!duration");
     });
 
     it("should revert if new amount less than min", async () => {
       await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
       await staking.connect(governance).setMinStakeAmount(_500_YOP);
-      await expect(staking.connect(user).extendStake(0, 12, _200_YOP, [])).to.be.revertedWith("!min stake amount");
+      await expect(staking.connect(user).extendStake(0, 12, _200_YOP, [])).to.be.revertedWith("!amount");
     });
 
     it("should revert if new amount greater than max", async () => {
       await staking.connect(user).stakeAndBoost(_100_YOP, 1, [vault1.address, vault2.address]);
       await staking.connect(governance).setStakingLimit(_200_YOP);
-      await expect(staking.connect(user).extendStake(0, 12, _200_YOP, [])).to.be.revertedWith("limit reached");
+      await expect(staking.connect(user).extendStake(0, 12, _200_YOP, [])).to.be.revertedWith("limit");
     });
 
     it("should revert if not enough balance", async () => {

@@ -98,7 +98,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 30,
+            runs: 10,
           },
           outputSelection: {
             "*": {

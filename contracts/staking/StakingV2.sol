@@ -4,7 +4,6 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol";
 import "./Staking.sol";
 import "../interfaces/IVault.sol";
-import "hardhat/console.sol";
 
 /// @dev Add a new stake function that will update the user's boost balance in selected vaults immediately after staking
 contract StakingV2 is IStakingV2, Staking {
@@ -27,30 +26,6 @@ contract StakingV2 is IStakingV2, Staking {
     address _owner,
     address _accessControlManager
   ) external virtual override initializer {
-    __StakingV2_init(
-      _name,
-      _symbol,
-      _governance,
-      _gatekeeper,
-      _yopRewards,
-      _uri,
-      _contractURI,
-      _owner,
-      _accessControlManager
-    );
-  }
-
-  function __StakingV2_init(
-    string memory _name,
-    string memory _symbol,
-    address _governance,
-    address _gatekeeper,
-    address _yopRewards,
-    string memory _uri,
-    string memory _contractURI,
-    address _owner,
-    address _accessControlManager
-  ) internal onlyInitializing {
     __Staking_init(
       _name,
       _symbol,
@@ -79,7 +54,8 @@ contract StakingV2 is IStakingV2, Staking {
     uint248 _amount,
     uint8 _lockPeriod,
     address[] calldata _vaultsToBoost
-  ) external whenNotPaused nonReentrant returns (uint256) {
+  ) external nonReentrant returns (uint256) {
+    _notPaused();
     uint256 tokenId = _mintStake(_amount, _lockPeriod, _msgSender());
     _updateVaults(_vaultsToBoost, _msgSender());
     return tokenId;
@@ -95,6 +71,7 @@ contract StakingV2 is IStakingV2, Staking {
     uint8 _lockPeriod,
     address _to
   ) external returns (uint256) {
+    _notPaused();
     return _mintStake(_amount, _lockPeriod, _to);
   }
 
@@ -109,7 +86,8 @@ contract StakingV2 is IStakingV2, Staking {
     uint8 _lockPeriod,
     address _to,
     address[] calldata _vaultsToBoost
-  ) external whenNotPaused nonReentrant returns (uint256) {
+  ) external nonReentrant returns (uint256) {
+    _notPaused();
     uint256 tokenId = _mintStake(_amount, _lockPeriod, _to);
     _updateVaults(_vaultsToBoost, _to);
     return tokenId;
@@ -123,7 +101,8 @@ contract StakingV2 is IStakingV2, Staking {
     uint256 _stakeId,
     address _to,
     address[] calldata _vaultsToBoost
-  ) external whenNotPaused nonReentrant {
+  ) external nonReentrant {
+    _notPaused();
     _burnSingle(_stakeId, _to);
     _updateVaults(_vaultsToBoost, _msgSender());
   }
@@ -131,7 +110,8 @@ contract StakingV2 is IStakingV2, Staking {
   /// @notice Exit all unlocked staking position, claim all remaining rewards associated with the stakes, and adjust the boost values in vaults
   /// @param _to The recipient address that will receive the YOP tokens
   /// @param _vaultsToBoost The list of vaults that will have the boost updated
-  function unstakeAllAndBoost(address _to, address[] calldata _vaultsToBoost) external whenNotPaused nonReentrant {
+  function unstakeAllAndBoost(address _to, address[] calldata _vaultsToBoost) external nonReentrant {
+    _notPaused();
     _burnAll(_to);
     _updateVaults(_vaultsToBoost, _msgSender());
   }
@@ -146,29 +126,30 @@ contract StakingV2 is IStakingV2, Staking {
     uint8 _additionalDuration,
     uint248 _additionalAmount,
     address[] calldata _vaultsToUpdate
-  ) external whenNotPaused nonReentrant {
-    require(_additionalAmount > 0 || _additionalDuration > 0, "!invalid parameters");
+  ) external nonReentrant {
+    _notPaused();
+    require(_additionalAmount > 0 || _additionalDuration > 0, "!parameters");
 
     Stake storage stake = stakes[_stakeId];
-    require(owners[_stakeId] == _msgSender(), "!stake owner");
+    require(owners[_stakeId] == _msgSender(), "!owner");
 
     uint8 newLockPeriod = stake.lockPeriod;
     if (_additionalDuration > 0) {
       newLockPeriod = stake.lockPeriod + _additionalDuration;
-      require(newLockPeriod <= MAX_LOCK_PERIOD, "!max lock period");
+      require(newLockPeriod <= MAX_LOCK_PERIOD, "!duration");
     }
 
     uint248 newAmount = stake.amount;
     if (_additionalAmount > 0) {
       require(IERC20Upgradeable(_getYOPAddress()).balanceOf(_msgSender()) >= _additionalAmount, "!balance");
       newAmount = stake.amount + _additionalAmount;
-      require(newAmount >= minStakeAmount, "!min stake amount");
+      require(newAmount >= minStakeAmount, "!amount");
     }
 
     uint256 newTotalWorkingSupply = (totalWorkingSupply +
       (newAmount * newLockPeriod - stake.amount * stake.lockPeriod));
 
-    require(newTotalWorkingSupply <= stakingLimit, "limit reached");
+    require(newTotalWorkingSupply <= stakingLimit, "limit");
 
     IYOPRewards(yopRewards).calculateStakingRewards(_stakeId);
 
@@ -188,7 +169,8 @@ contract StakingV2 is IStakingV2, Staking {
   /// @dev For each stake, this will basically claim the rewards for that stake, and add the rewards to the amount of that stake. No changes to the stake duration.
   ///    This is built with automation in mind so that we can build an auto-compounding feature for users if we want. However, users can call this to claim & topup their existing stakes too.
   /// @param _stakeIds The ids of the stakes that will be compounded
-  function compoundForStaking(uint256[] calldata _stakeIds) external whenNotPaused nonReentrant {
+  function compoundForStaking(uint256[] calldata _stakeIds) external {
+    _notPaused();
     uint256 totalIncreasedSupply = _compoundForStakes(_stakeIds);
     totalWorkingSupply += totalIncreasedSupply;
   }
@@ -198,11 +180,8 @@ contract StakingV2 is IStakingV2, Staking {
   /// @param _users List of user address to claim vault rewards from.
   /// @param _topupStakes The list of stakes to top up with the vault rewards. Each stake in the list should be owned by the address in the corresponding position in the `_users` list.
   ///   E.g. `_users[0]` should own `_topupStakes[0]`, `_users[1]` should own `_topupStakes[1]` and so on.
-  function compoundWithVaultRewards(address[] calldata _users, uint256[] calldata _topupStakes)
-    external
-    whenNotPaused
-    nonReentrant
-  {
+  function compoundWithVaultRewards(address[] calldata _users, uint256[] calldata _topupStakes) external {
+    _notPaused();
     uint256 totalIncreasedSupply = _compoundWithVaultRewards(_users, _topupStakes);
     totalWorkingSupply += totalIncreasedSupply;
   }
@@ -213,7 +192,8 @@ contract StakingV2 is IStakingV2, Staking {
   /// @dev This is mainly to be called by the user, or a smart contract that will call this on a user's behalf.
   /// @param _user The user address
   /// @param _topupStakeId The stake id to add the vault rewards
-  function compoundForUser(address _user, uint256 _topupStakeId) external whenNotPaused nonReentrant {
+  function compoundForUser(address _user, uint256 _topupStakeId) external {
+    _notPaused();
     require(owners[_topupStakeId] == _user, "!owner");
     uint256[] memory stakeIds = stakesForAddress[_user];
     uint256 totalIncreasedSupply = _compoundForStakes(stakeIds);
@@ -265,5 +245,9 @@ contract StakingV2 is IStakingV2, Staking {
       emit StakeExtended(stakeId, newAmount, stakes[stakeId].lockPeriod, vaults);
     }
     return totalIncreasedSupply;
+  }
+
+  function _notPaused() internal view {
+    require(!paused(), "Pausable: paused");
   }
 }

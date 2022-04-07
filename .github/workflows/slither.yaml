@@ -1,3 +1,4 @@
+# This is disabled for now as we are not currently using the results from this scan and it takes quite long to run.
 # name: Static Analysis
 # on:
 #   push:

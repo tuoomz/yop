@@ -142,7 +142,8 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     disambiguatePaths: false,
     runOnCompile: process.env.REPORT_CONTRACT_SIZE === "true",
-    strict: false,
+    strict: true,
+    except: [".*Mock$"],
   },
   mocha: {
     timeout: 500000,

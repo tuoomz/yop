@@ -3,7 +3,7 @@ import { ethers, waffle } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { CurveMetaStrategyMock } from "../../../../types/CurveMetaStrategyMock";
 import { MockContract, solidity } from "ethereum-waffle";
-import { BigNumber } from "ethers";
+import { BigNumber, ContractFactory } from "ethers";
 import { setupCurve, setupMockVault } from "../../fixtures/setup";
 import curvePlainPoolTrio from "../../../abis/curvePlainPoolTrio.json";
 
@@ -35,6 +35,7 @@ describe("CurveMeta strategy", async () => {
   let mockDex: MockContract;
 
   let curveMetaStrategy: CurveMetaStrategyMock;
+  let curveMetaStrategyFactory: ContractFactory;
 
   beforeEach(async () => {
     [governance, deployer, gatekeeper, proposer, developer] = await ethers.getSigners();
@@ -294,7 +295,7 @@ describe("CurveMeta strategy", async () => {
           proposer.address,
           developer.address,
           gatekeeper.address,
-          ethers.constants.AddressZero,
+          CONST.ADDRESS_ZERO,
           poolLpToken.address,
           mockCurveMetaPool.address,
           curveMetaPoolLPToken.address,
@@ -304,6 +305,101 @@ describe("CurveMeta strategy", async () => {
           curveToken.address
         )
       ).to.be.revertedWith("!pool");
+    });
+    it("Should fail with zero address metapool", async () => {
+      const curveMetaStrategyFactory = await ethers.getContractFactory("CurveMetaStrategyMock");
+      await expect(
+        curveMetaStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          poolLpToken.address,
+          CONST.ADDRESS_ZERO,
+          curveMetaPoolLPToken.address,
+          CONST.THREE_POOL.COINS.USDC,
+          CONST.THREE_POOL.NO_OF_COINS,
+          mockCurveGauge.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!metaPool");
+    });
+    it("Should fail with zero address basePoolLpToken", async () => {
+      const curveMetaStrategyFactory = await ethers.getContractFactory("CurveMetaStrategyMock");
+      await expect(
+        curveMetaStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          CONST.ADDRESS_ZERO,
+          mockCurveMetaPool.address,
+          curveMetaPoolLPToken.address,
+          CONST.THREE_POOL.COINS.USDC,
+          CONST.THREE_POOL.NO_OF_COINS,
+          mockCurveGauge.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!token");
+    });
+    it("Should fail with zero address metaPoolLpToken", async () => {
+      const curveMetaStrategyFactory = await ethers.getContractFactory("CurveMetaStrategyMock");
+      await expect(
+        curveMetaStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          poolLpToken.address,
+          mockCurveMetaPool.address,
+          CONST.ADDRESS_ZERO,
+          CONST.THREE_POOL.COINS.USDC,
+          CONST.THREE_POOL.NO_OF_COINS,
+          mockCurveGauge.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!token");
+    });
+    it("Should fail with incorrect noPoolCoins", async () => {
+      const curveMetaStrategyFactory = await ethers.getContractFactory("CurveMetaStrategyMock");
+      await expect(
+        curveMetaStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          poolLpToken.address,
+          mockCurveMetaPool.address,
+          curveMetaPoolLPToken.address,
+          CONST.THREE_POOL.COINS.USDC,
+          5,
+          mockCurveGauge.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!poolToken");
+    });
+    it("Should fail with incorrect indexOfWantInPool", async () => {
+      const curveMetaStrategyFactory = await ethers.getContractFactory("CurveMetaStrategyMock");
+      await expect(
+        curveMetaStrategyFactory.deploy(
+          mockVault.address,
+          proposer.address,
+          developer.address,
+          gatekeeper.address,
+          mockCurvePool.address,
+          poolLpToken.address,
+          mockCurveMetaPool.address,
+          curveMetaPoolLPToken.address,
+          5,
+          CONST.THREE_POOL.NO_OF_COINS,
+          mockCurveGauge.address,
+          curveToken.address
+        )
+      ).to.be.revertedWith("!wantIndex");
     });
   });
 

@@ -43,15 +43,18 @@ contract ConvexCurveMeta is CurveMeta, ConvexBase {
       address(1) // address(1) for the gauge as we don't use it fot the convex strategy
     )
     ConvexBase(_poolId, _convexBooster)
-  {
-    _approveDexExtra(dex);
-  }
+  {}
 
   function name() external view virtual override returns (string memory) {
     return string("ConvexCurveMeta");
   }
 
   function _approveBasic() internal virtual override {}
+
+  function _approveDex() internal virtual override {
+    super._approveDex();
+    _approveDexExtra(dex);
+  }
 
   function _balanceOfPool() internal view override returns (uint256) {
     uint256 lpTokens = _getConvexBalance();
@@ -81,6 +84,15 @@ contract ConvexCurveMeta is CurveMeta, ConvexBase {
     _withdrawFromConvex(_amount);
   }
 
-  // no need to do anything
+  function protectedTokens() internal view virtual override returns (address[] memory) {
+    address[] memory protected = new address[](4);
+    protected[0] = _getCurveTokenAddress();
+    protected[1] = _getConvexTokenAddress();
+    protected[2] = lpToken;
+    protected[3] = metaPoolLpToken;
+    return protected;
+  }
+
+  //override this function as it is only used for the curveGage in the parent contract.
   function onHarvest() internal virtual override {}
 }

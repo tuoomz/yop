@@ -21,15 +21,15 @@ contract CurveMeta is CurveBaseV2 {
   using Address for address;
 
   // the address of the meta pool
-  ICurveDeposit public immutable metaPool;
+  ICurveDepositV2 public immutable metaPool;
 
   address public immutable metaPoolLpToken;
   address public immutable basePoolLpToken;
 
   // the index of the want token in the curve base pool
-  uint128 public indexOfWantInPool;
+  uint128 public immutable indexOfWantInPool;
   // the number of coins in the base pool
-  uint8 internal noPoolCoins;
+  uint8 internal immutable noPoolCoins;
 
   constructor(
     address _vault,
@@ -44,11 +44,16 @@ contract CurveMeta is CurveBaseV2 {
     uint8 _noPoolCoins,
     address _metaPoolGauge
   ) CurveBaseV2(_vault, _proposer, _developer, _keeper, _pool, _metaPoolGauge) {
+    require(_metapool != address(0), "!metaPool");
+    require(_basePoolLpToken != address(0), "!token");
+    require(_metaPoolLpToken != address(0), "!token");
+    require(_noPoolCoins >= 2 && _noPoolCoins <= 4, "!poolToken");
+    require(_indexOfWantInPool < _noPoolCoins, "!wantIndex");
     indexOfWantInPool = _indexOfWantInPool;
     metaPoolLpToken = _metaPoolLpToken;
     basePoolLpToken = _basePoolLpToken;
     noPoolCoins = _noPoolCoins;
-    metaPool = ICurveDeposit(_metapool);
+    metaPool = ICurveDepositV2(_metapool);
     _approveCurveExtra();
   }
 

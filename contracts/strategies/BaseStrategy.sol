@@ -409,7 +409,7 @@ abstract contract BaseStrategy is IStrategy, ERC165 {
    *
    * See comments regarding `_debtOutstanding` on `prepareReturn()`.
    */
-  function adjustPosition(uint256 _debtOutstanding) internal virtual;
+  function adjustPosition(uint256 _debtOutstanding, bool claimRewards) internal virtual;
 
   /**
    * Liquidate up to `_amountNeeded` of `want` of this strategy's positions,
@@ -460,8 +460,7 @@ abstract contract BaseStrategy is IStrategy, ERC165 {
    *  This may only be called by governance, the strategist, or the keeper.
    */
   function tend() external onlyKeepers {
-    // Don't take profits with this call, but adjust for better gains
-    adjustPosition(IVault(vault).debtOutstanding(address(this)));
+    adjustPosition(0, true);
   }
 
   /**
@@ -578,7 +577,7 @@ abstract contract BaseStrategy is IStrategy, ERC165 {
     debtOutstanding = IVault(vault).report(profit, loss, debtPayment);
 
     // Check if free returns are left, and re-invest them
-    adjustPosition(debtOutstanding);
+    adjustPosition(debtOutstanding, false);
 
     emit Harvested(profit, loss, debtPayment, debtOutstanding);
   }

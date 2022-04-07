@@ -52,7 +52,7 @@ contract TestnetStrategyMock is BaseStrategy {
     }
   }
 
-  function adjustPosition(uint256 _debtOutstanding) internal override {
+  function adjustPosition(uint256 _debtOutstanding, bool claimRewards) internal override {
     uint256 currentBalance = estimatedTotalAssets();
     previousBalance = currentBalance;
   }

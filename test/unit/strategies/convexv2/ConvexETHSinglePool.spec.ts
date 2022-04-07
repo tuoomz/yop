@@ -161,6 +161,11 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockCurvePool.mock.add_liquidity.returns(1);
       await mockConvexBooster.mock.depositAll.returns(true);
 
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseEther("0.5")]);
+      await mockConvexRewards.mock.getReward.returns(true);
+      await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       // need to make sure the strategy have some ether in order to deposit.
       // sending eth can't be mocked
       await network.provider.send("hardhat_setBalance", [strategy.address, ethers.utils.parseEther("10").toHexString()]);
@@ -173,6 +178,12 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockVaultToken.mock.balanceOf.returns(balance);
       await poolLpToken.mock.balanceOf.returns(balance);
       await mockConvexBooster.mock.depositAll.returns(true);
+
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseEther("0.5")]);
+      await mockConvexRewards.mock.getReward.returns(true);
+      await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
 
       await expect(strategy.connect(developer).tend()).not.to.be.reverted;
     });

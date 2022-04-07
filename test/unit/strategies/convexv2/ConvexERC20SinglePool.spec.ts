@@ -301,6 +301,11 @@ describe("ConvexERC20SinglePool strategy", async () => {
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock.add_liquidity.returns(1);
       await mockConvexBooster.mock.depositAll.returns(true);
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseUnits("0.5", TOKEN_DECIMALS)]);
+      await mockConvexRewards.mock.getReward.returns(true);
+      await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+      await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
       await expect(strategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -310,6 +315,12 @@ describe("ConvexERC20SinglePool strategy", async () => {
       await mockVaultToken.mock.balanceOf.returns(balance);
       await poolLpToken.mock.balanceOf.returns(balance);
       await mockConvexBooster.mock.depositAll.returns(true);
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseUnits("0.5", TOKEN_DECIMALS)]);
+      await mockConvexRewards.mock.getReward.returns(true);
+      await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+      await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+
       await expect(strategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -338,6 +349,9 @@ describe("ConvexERC20SinglePool strategy", async () => {
       )) as ConvexERC20SinglePoolMock;
       await strategy.deployed();
       await strategy.setDex(mockDex.address);
+      await strategy.setConvexTokenAddress(mockConvexToken.address);
+      await strategy.setCurve(mockCurveMinter.address, curveToken.address);
+
       const balance = ethers.utils.parseUnits("1", TOKEN_DECIMALS);
       await mockVault.mock.debtOutstanding.returns(0);
       await mockVaultToken.mock.balanceOf.returns(balance);
@@ -345,6 +359,13 @@ describe("ConvexERC20SinglePool strategy", async () => {
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock["add_liquidity(uint256[3],uint256)"].returns();
       await mockConvexBooster.mock.depositAll.returns(true);
+
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseUnits("0.5", TOKEN_DECIMALS)]);
+      await mockConvexRewards.mock.getReward.returns(true);
+      await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+      await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+
       await expect(strategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -366,6 +387,8 @@ describe("ConvexERC20SinglePool strategy", async () => {
       )) as ConvexERC20SinglePoolMock;
       await strategy.deployed();
       await strategy.setDex(mockDex.address);
+      await strategy.setConvexTokenAddress(mockConvexToken.address);
+      await strategy.setCurve(mockCurveMinter.address, curveToken.address);
       const balance = ethers.utils.parseUnits("1", TOKEN_DECIMALS);
       await mockVault.mock.debtOutstanding.returns(0);
       await mockVaultToken.mock.balanceOf.returns(balance);
@@ -373,6 +396,14 @@ describe("ConvexERC20SinglePool strategy", async () => {
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock["add_liquidity(uint256[4],uint256)"].returns(1);
       await mockConvexBooster.mock.depositAll.returns(true);
+
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseUnits("0.5", TOKEN_DECIMALS)]);
+      await mockConvexRewards.mock.getReward.returns(true);
+      await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+      await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+
+      await strategy.connect(developer).tend();
       await expect(strategy.connect(developer).tend()).not.to.be.reverted;
     });
   });

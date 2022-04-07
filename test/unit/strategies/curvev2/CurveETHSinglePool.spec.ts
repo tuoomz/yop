@@ -138,6 +138,10 @@ describe("CurveETHSinglePool strategy", async () => {
       await poolLpToken.mock.balanceOf.returns(balance);
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock.add_liquidity.returns(1);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(balance);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, balance]);
+
       // need to make sure the strategy have some ether in order to deposit.
       // sending eth can't be mocked
       await network.provider.send("hardhat_setBalance", [curveEthStrategy.address, ethers.utils.parseEther("10").toHexString()]);
@@ -149,6 +153,9 @@ describe("CurveETHSinglePool strategy", async () => {
       await mockVault.mock.debtOutstanding.returns(0);
       await mockVaultToken.mock.balanceOf.returns(balance);
       await poolLpToken.mock.balanceOf.returns(balance);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(balance);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, balance]);
       await expect(curveEthStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -299,7 +306,37 @@ describe("CurveETHSinglePool strategy", async () => {
   //     await expect(await curveEthStrategy.getCoinsCount()).to.be.equal(2);
   //   });
   // });
+  describe("harvest", async () => {
+    it("should set the user checkpoint", async () => {
+      const balance = ethers.utils.parseEther("0");
+      await mockVault.mock.debtOutstanding.returns(0);
+      await mockVaultToken.mock.balanceOf.returns(balance);
+      await mockVaultToken.mock.withdraw.returns();
+      await poolLpToken.mock.balanceOf.returns(balance);
+      await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
+      await mockCurvePool.mock.add_liquidity.returns(1);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(balance);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, balance]);
+      await mockCurveGauge.mock.user_checkpoint.returns(true);
+      const tokenAmount = ethers.utils.parseEther("0");
+      const crvAmount = ethers.utils.parseEther("20");
+      const exchangeAmountOut = ethers.utils.parseEther("10");
+      const gaugeBalance = ethers.utils.parseEther("5");
+      const withdrawAmountOut = ethers.utils.parseEther("5");
+      await mockVaultToken.mock.balanceOf.returns(tokenAmount);
+      await mockCurveGauge.mock.integrate_fraction.returns(crvAmount);
+      await mockCurveMinter.mock.minted.returns(ethers.constants.Zero);
+      await mockDex.mock.getAmountsOut.returns([0, exchangeAmountOut]);
+      await mockCurveGauge.mock.balanceOf.returns(gaugeBalance);
+      await mockCurvePool.mock.calc_withdraw_one_coin.returns(withdrawAmountOut);
+      const res = { activation: 0, totalDebt: ethers.utils.parseEther("2"), lastReport: 0, totalGain: 0, totalLoss: 0 };
+      await mockVault.mock.strategy.returns(res);
+      await mockVault.mock.report.returns(50);
 
+      await expect(curveEthStrategy.connect(governance).harvest()).not.to.be.reverted;
+    });
+  });
   describe("withdrawSome", async () => {
     beforeEach(async () => {
       await mockCurveGauge.mock.balanceOf.returns(0);

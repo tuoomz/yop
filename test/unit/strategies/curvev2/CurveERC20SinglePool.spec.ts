@@ -265,6 +265,10 @@ describe("CurveERC20SinglePool strategy", async () => {
       await poolLpToken.mock.balanceOf.returns(balance);
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock.add_liquidity.returns(1);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(balance);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, balance]);
+
       await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -273,6 +277,10 @@ describe("CurveERC20SinglePool strategy", async () => {
       await mockVault.mock.debtOutstanding.returns(0);
       await mockVaultToken.mock.balanceOf.returns(balance);
       await poolLpToken.mock.balanceOf.returns(balance);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(balance);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, balance]);
+
       await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -307,6 +315,10 @@ describe("CurveERC20SinglePool strategy", async () => {
       await poolLpToken.mock.balanceOf.returns(balance);
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock["add_liquidity(uint256[3],uint256)"].returns();
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(balance);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, balance]);
+
       await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -334,6 +346,10 @@ describe("CurveERC20SinglePool strategy", async () => {
       await poolLpToken.mock.balanceOf.returns(balance);
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock["add_liquidity(uint256[4],uint256)"].returns(1);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(balance);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, balance]);
+
       await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
     });
   });

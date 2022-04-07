@@ -55,7 +55,7 @@ contract BaseStrategyMock is BaseStrategy {
     return (prepareReturnProfit, prepareReturnLoss, prepareReturnDebtpayment);
   }
 
-  function adjustPosition(uint256 _debtOutstanding) internal override {}
+  function adjustPosition(uint256 _debtOutstanding, bool claimRewards) internal override {}
 
   function setLiquidateResult(uint256 _liquidatedAmount, uint256 _loss) external {
     liquidatedAmount = _liquidatedAmount;

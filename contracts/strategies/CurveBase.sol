@@ -97,9 +97,13 @@ abstract contract CurveBase is BaseStrategy {
   // solhint-disable-next-line no-unused-vars
   /// @dev This will perform the actual invest steps.
   ///   For both Curve & Convex, it will add liquidity to Curve pool(s) first, and then deposit the LP tokens to either Curve gauges or Convex booster.
-  function adjustPosition(uint256) internal virtual override {
+  function adjustPosition(uint256, bool claimRewards) internal virtual override {
     if (emergencyExit) {
       return;
+    }
+
+    if (claimRewards) {
+      _claimRewards();
     }
     _addLiquidityToCurvePool();
     _depositLPTokens();

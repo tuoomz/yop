@@ -140,6 +140,10 @@ describe("CurveBtc strategy", async () => {
       await poolLpToken.mock.balanceOf.returns(balance);
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock.add_liquidity.returns(1);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseUnits("1", TOKEN_DECIMALS)]);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+
       await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -148,6 +152,10 @@ describe("CurveBtc strategy", async () => {
       await mockVault.mock.debtOutstanding.returns(0);
       await mockVaultToken.mock.balanceOf.returns(balance);
       await poolLpToken.mock.balanceOf.returns(balance);
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseUnits("1", TOKEN_DECIMALS)]);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+
       await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
     });
 
@@ -155,6 +163,10 @@ describe("CurveBtc strategy", async () => {
       await mockVault.mock.revokeStrategy.returns();
       await mockVault.mock.debtOutstanding.returns(0);
       await curveStrategy.connect(governance).setEmergencyExit();
+      await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseUnits("1", TOKEN_DECIMALS)]);
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseUnits("1", TOKEN_DECIMALS));
+
       await expect(curveStrategy.connect(developer).tend()).not.to.be.reverted;
     });
   });

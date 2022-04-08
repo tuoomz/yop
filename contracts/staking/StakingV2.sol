@@ -15,30 +15,6 @@ contract StakingV2 is IStakingV2, Staking {
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
 
-  function initialize(
-    string memory _name,
-    string memory _symbol,
-    address _governance,
-    address _gatekeeper,
-    address _yopRewards,
-    string memory _uri,
-    string memory _contractURI,
-    address _owner,
-    address _accessControlManager
-  ) external virtual override initializer {
-    __Staking_init(
-      _name,
-      _symbol,
-      _governance,
-      _gatekeeper,
-      _yopRewards,
-      _uri,
-      _contractURI,
-      _owner,
-      _accessControlManager
-    );
-  }
-
   /// @notice Return the total number of stakes created so far
   function totalSupply() external view returns (uint256) {
     return stakes.length;

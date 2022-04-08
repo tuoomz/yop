@@ -17,26 +17,6 @@ contract YOPRewardsV2 is IYOPRewardsV2, YOPRewards {
   // solhint-disable-next-line no-empty-blocks
   constructor() {}
 
-  function initialize(
-    address _governance,
-    address _gatekeeper,
-    address _wallet,
-    address _yopContract,
-    uint256 _emissionStartTime
-  ) external virtual override initializer {
-    __YOPRewardsV2_init(_governance, _gatekeeper, _wallet, _yopContract, _emissionStartTime);
-  }
-
-  function __YOPRewardsV2_init(
-    address _governance,
-    address _gatekeeper,
-    address _wallet,
-    address _yopContract,
-    uint256 _emissionStartTime
-  ) internal onlyInitializing {
-    __YOPRewards_init(_governance, _gatekeeper, _wallet, _yopContract, _emissionStartTime);
-  }
-
   /// @notice Called by the staking contract to claim rewards for a stake id when it is burnt (unstaked) or compounded. The claimed rewards will be transferred to the staking contract which will then decide what to do. Can only be called by the staking contract.
   /// @param _stakeIds The stake ids to claim rewards for
   /// @return The amount of rewards

@@ -14,6 +14,10 @@ on:
     paths:
       - "contracts/**"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sol-hint:
     name: Run Solhint

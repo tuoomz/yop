@@ -21,7 +21,8 @@ contract ConvexETHSinglePoolMock is ConvexETHSinglePool {
     address _gauge,
     uint8 _inputTokenIndex,
     uint256 _convexPoolId,
-    address _convexBooster
+    address _convexBooster,
+    address _ldoAddress
   )
     ConvexETHSinglePool(
       _vault,
@@ -32,7 +33,8 @@ contract ConvexETHSinglePoolMock is ConvexETHSinglePool {
       _gauge,
       _inputTokenIndex,
       _convexPoolId,
-      _convexBooster
+      _convexBooster,
+      _ldoAddress
     )
   {}
 

@@ -12,6 +12,7 @@ import { ConvexETHSinglePool } from "../../../../types/ConvexETHSinglePool";
 import ConvexRewardsABI from "../../../abis/convexBaseRewards.json";
 
 const WETH_ADDRESS = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+const LDO_ADDRESS = "0x5a98fcbea516cf06857215779fd812ca3bef1b32";
 const CONVEX_BOOSTER_ADDRESS = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 // curve stETH pool
 const CURVE_STETH_POOL_ADDRESS = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
@@ -38,7 +39,8 @@ describe("ConvexETHSinglePoolStrategy [@skip-on-coverage]", async () => {
   let curveAnkrEthPool: ICurveDeposit;
 
   beforeEach(async () => {
-    await reset();
+    // await reset(13612911);
+    await reset(14212231);
     // setup the vault
     ({ vault, vaultStrategyDataStore, governance } = await setupVault(WETH_ADDRESS));
     // deploy the strategy
@@ -53,7 +55,8 @@ describe("ConvexETHSinglePoolStrategy [@skip-on-coverage]", async () => {
       CURVE_STETH_GAUGE_ADDRESS,
       0,
       CONVEX_STETH_POOL_ID,
-      CONVEX_BOOSTER_ADDRESS
+      CONVEX_BOOSTER_ADDRESS,
+      LDO_ADDRESS
     )) as ConvexETHSinglePool;
     convexAnkrEthStrategy = (await strategyFactory.deploy(
       vault.address,
@@ -64,7 +67,8 @@ describe("ConvexETHSinglePoolStrategy [@skip-on-coverage]", async () => {
       CURVE_ANKRETH_GAUGE_ADDRESS,
       0,
       CONVEX_ANKRETH_POOL_ID,
-      CONVEX_BOOSTER_ADDRESS
+      CONVEX_BOOSTER_ADDRESS,
+      LDO_ADDRESS
     )) as ConvexETHSinglePool;
     // add the strategy to the vault
     await vaultStrategyDataStore

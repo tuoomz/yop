@@ -31,6 +31,7 @@ describe("ConvexETHSinglePool strategy", async () => {
   let mockConvexBooster: MockContract;
   let mockConvexRewards: MockContract;
   let mockConvexToken: MockContract;
+  let mockLdoToken: MockContract;
 
   let strategy: ConvexETHSinglePoolMock;
   let strategyFactory: ContractFactory;
@@ -40,7 +41,7 @@ describe("ConvexETHSinglePool strategy", async () => {
     ({ mockVault } = await loadFixture(setupMockVault));
     // don't run another `loadFixture` as it will cause some wired issues with hardhat.
     ({ mockCurveMinter, mockCurvePool, mockCurveGauge, mockDex, poolLpToken, curveToken } = await setupCurve());
-    ({ mockConvexBooster, mockConvexRewards, mockConvexToken } = await setupConvex());
+    ({ mockConvexBooster, mockConvexRewards, mockConvexToken, mockLdoToken } = await setupConvex());
     mockVaultToken = await deployMockContract(deployer, IWethABI);
     await mockVault.mock.token.returns(mockVaultToken.address);
     await mockVault.mock.approve.returns(true);
@@ -48,6 +49,8 @@ describe("ConvexETHSinglePool strategy", async () => {
     await mockVault.mock.gatekeeper.returns(gatekeeper.address);
     await mockVaultToken.mock.allowance.returns(0);
     await mockVaultToken.mock.approve.returns(true);
+    await mockLdoToken.mock.allowance.returns(0);
+    await mockLdoToken.mock.approve.returns(true);
     await mockConvexToken.mock.allowance.returns(0);
     await mockConvexToken.mock.approve.returns(true);
     await poolLpToken.mock.allowance.returns(0);
@@ -72,7 +75,8 @@ describe("ConvexETHSinglePool strategy", async () => {
       mockCurveGauge.address,
       1,
       CONVEX_STETH_POOL_ID,
-      mockConvexBooster.address
+      mockConvexBooster.address,
+      mockLdoToken.address
     )) as ConvexETHSinglePoolMock;
     await strategy.deployed();
     await strategy.setConvexTokenAddress(mockConvexToken.address);
@@ -98,7 +102,8 @@ describe("ConvexETHSinglePool strategy", async () => {
           mockCurveGauge.address,
           2,
           CONVEX_STETH_POOL_ID,
-          mockConvexBooster.address
+          mockConvexBooster.address,
+          mockLdoToken.address
         )
       ).to.be.revertedWith("!inputTokenIndex");
     });
@@ -160,7 +165,7 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockCurveGauge.mock["deposit(uint256)"].withArgs(balance.toString()).returns();
       await mockCurvePool.mock.add_liquidity.returns(1);
       await mockConvexBooster.mock.depositAll.returns(true);
-
+      await mockLdoToken.mock.balanceOf.returns(0);
       await curveToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseEther("0.5")]);
       await mockConvexRewards.mock.getReward.returns(true);
@@ -178,7 +183,7 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockVaultToken.mock.balanceOf.returns(balance);
       await poolLpToken.mock.balanceOf.returns(balance);
       await mockConvexBooster.mock.depositAll.returns(true);
-
+      await mockLdoToken.mock.balanceOf.returns(0);
       await curveToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       await mockDex.mock.swapExactTokensForTokens.returns([0, 0, ethers.utils.parseEther("0.5")]);
       await mockConvexRewards.mock.getReward.returns(true);
@@ -224,6 +229,7 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockConvexRewards.mock.earned.returns(ethers.utils.parseEther("1"));
       await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockLdoToken.mock.balanceOf.returns(ethers.utils.parseEther("0.5"));
       // no profit to report as we can't change the balanceOf what based the number of calls, so it will always be 0
       // no loss here as the debt value (2) is smaller than the estmiated total value (3.5)
       // no debt payment either
@@ -248,6 +254,7 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockConvexRewards.mock.earned.returns(ethers.utils.parseEther("0"));
       await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseEther("0"));
       await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockLdoToken.mock.balanceOf.returns(ethers.utils.parseEther("0.5"));
       // no profit to report as we can't change the balanceOf what based the number of calls, so it will always be 0
       // there is loss here as the debt value (4) is bigger than the estmiated total value (3.5)
       // no debt payment either
@@ -277,7 +284,7 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockConvexRewards.mock.earned.returns(ethers.utils.parseEther("0"));
       await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseEther("0"));
       await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
-
+      await mockLdoToken.mock.balanceOf.returns(ethers.utils.parseEther("0.5"));
       // needed to exchange eth to weth
       await network.provider.send("hardhat_setBalance", [strategy.address, ethers.utils.parseEther("10").toHexString()]);
       // no profit to report as we can't change the balanceOf what based the number of calls, so it will always be 0
@@ -309,6 +316,8 @@ describe("ConvexETHSinglePool strategy", async () => {
       await network.provider.send("hardhat_setBalance", [strategy.address, ethers.utils.parseEther("10").toHexString()]);
       await mockVaultToken.mock.deposit.returns();
       await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockLdoToken.mock.balanceOf.returns(ethers.utils.parseEther("0.5"));
+      await strategy.testPrepareMigration(newStrategy.address);
       await expect(strategy.testPrepareMigration(newStrategy.address)).not.to.be.reverted;
     });
   });
@@ -327,6 +336,7 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockConvexRewards.mock.earned.returns(ethers.utils.parseEther("1"));
       await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockLdoToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       // want is less than balance, so no withdraw is needed
       await expect(await strategy.testLiquidatePosition(ethers.utils.parseEther("2")))
         .to.emit(strategy, "LiquidationReported")
@@ -350,6 +360,7 @@ describe("ConvexETHSinglePool strategy", async () => {
       await network.provider.send("hardhat_setBalance", [strategy.address, ethers.utils.parseEther("10").toHexString()]);
       await mockVaultToken.mock.deposit.returns();
       await mockConvexToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockLdoToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       // want is more than balance, so withdraw is needed
       // total liquidated = balance + remove_liquidity_one_coin = 1.5
       // total want = 2
@@ -382,6 +393,7 @@ describe("ConvexETHSinglePool strategy", async () => {
       await mockConvexRewards.mock.withdrawAndUnwrap.returns(true);
       await mockConvexRewards.mock.earned.returns(ethers.utils.parseEther("1"));
       await mockConvexRewards.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockLdoToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
       await mockVaultToken.mock.deposit.returns();
     });
     it("should not revert with 2", async () => {

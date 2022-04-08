@@ -185,12 +185,14 @@ export async function setupConvex(): Promise<{
   mockConvexBooster: MockContract;
   mockConvexRewards: MockContract;
   mockConvexToken: MockContract;
+  mockLdoToken: MockContract;
 }> {
   const [deployer] = await ethers.getSigners();
   const mockConvexBooster = await deployMockContract(deployer, convexBoosterABI);
   const mockConvexRewards = await deployMockContract(deployer, convexRewardsABI);
   const mockConvexToken = await deployMockContract(deployer, ERC20ABI);
-  return { mockConvexBooster, mockConvexRewards, mockConvexToken };
+  const mockLdoToken = await deployMockContract(deployer, ERC20ABI);
+  return { mockConvexBooster, mockConvexRewards, mockConvexToken, mockLdoToken };
 }
 
 export async function setupConvexMocks() {

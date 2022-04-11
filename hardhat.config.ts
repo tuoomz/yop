@@ -147,6 +147,7 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     timeout: 500000,
+    parallel: process.env.RUN_TEST_IN_PARALLEL === "true",
   },
 };
 

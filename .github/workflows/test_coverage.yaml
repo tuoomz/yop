@@ -13,6 +13,8 @@ on:
     paths:
       - "contracts/**"
       - "test/**"
+      - ".solcover.js"
+      - ".github/workflows/test_coverage.yaml"
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -42,6 +44,8 @@ jobs:
 
       - name: Run unit test
         run: npm run test/unit
+        env:
+          RUN_TEST_IN_PARALLEL: true
 
   coverage:
     name: coverage
@@ -98,6 +102,7 @@ jobs:
           export NODE_OPTIONS="--max_old_space_size=6144" 
           npm run test/integration
         env:
+          RUN_TEST_IN_PARALLEL: true
           ENABLE_FORKING: true
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
 

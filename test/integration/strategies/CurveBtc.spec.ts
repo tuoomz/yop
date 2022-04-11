@@ -9,12 +9,13 @@ import CurvePoolZapDepositor from "../../abis/curvePoolZapDepositor.json";
 import CurveBasePoolABI from "../../abis/curvePlainPoolTrio.json";
 import { ICurveDeposit } from "../../../types/ICurveDeposit";
 import { CurveBtc, ERC20 } from "../../../types";
+import { CONST } from "../../constants";
 
-const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
-const CURVE_OBTC_ZAP_POOL_ADDRESS = "0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D";
+const WBTC_ADDRESS = CONST.TOKENS.WBTC.ADDRESS;
+const CURVE_OBTC_ZAP_POOL_ADDRESS = CONST.OBTC_ZAP.ADDRESS;
 const CURVE_BTC_BASE_POOL_ADDRESS = "0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714";
-const WBTC_WHALE_ADDRESS = "0xbf72da2bd84c5170618fbe5914b0eca9638d5eb5";
-const WBTC_DECIMALS = 8;
+const WBTC_WHALE_ADDRESS = CONST.TOKENS.WBTC.WHALE;
+const WBTC_DECIMALS = CONST.TOKENS.WBTC.DECIMALS;
 
 describe("CurveBTCStrategy [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;

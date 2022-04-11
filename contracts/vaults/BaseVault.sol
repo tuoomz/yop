@@ -163,7 +163,7 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
     strategies[_newVersion] = StrategyInfo({
       activation: info.activation,
       lastReport: info.lastReport,
-      totalDebt: info.lastReport,
+      totalDebt: info.totalDebt,
       totalGain: 0,
       totalLoss: 0
     });

@@ -10,17 +10,18 @@ import CurveBasePoolABI from "../../../abis/curvePlainPoolTrio.json";
 import CurveStableSwapABI from "../../../abis/curvePlainPool.json";
 import { ICurveDeposit } from "../../../../types/ICurveDeposit";
 import { CurveERC20SinglePool, ERC20 } from "../../../../types";
+import { CONST } from "../../../constants";
 
-const WBTC_ADDRESS = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+const WBTC_ADDRESS = CONST.TOKENS.WBTC.ADDRESS;
 // a zap depositor
-const CURVE_OBTC_ZAP_POOL_ADDRESS = "0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D";
+const CURVE_OBTC_ZAP_POOL_ADDRESS = CONST.OBTC_ZAP.ADDRESS;
 const CURVE_OBTC_BASE_POOL_ADDRESS = "0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714";
-const CURVE_OBTAC_GAUGE_ADDRESS = "0x11137B10C210b579405c21A07489e28F3c040AB1";
+const CURVE_OBTC_GAUGE_ADDRESS = CONST.OBTC_ZAP.GAUGE;
 // a plain pool
 const CURVE_RENBTC_POOL_ADDRESS = "0x93054188d876f558f4a66B2EF1d97d16eDf0895B";
 const CURVE_RENBTC_GAUGE_ADDRESS = "0xB1F2cdeC61db658F091671F5f199635aEF202CAC";
-const WBTC_WHALE_ADDRESS = "0xbf72da2bd84c5170618fbe5914b0eca9638d5eb5";
-const WBTC_DECIMALS = 8;
+const WBTC_WHALE_ADDRESS = CONST.TOKENS.WBTC.WHALE;
+const WBTC_DECIMALS = CONST.TOKENS.WBTC.DECIMALS;
 
 describe("CurveERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
   let vault: SingleAssetVault;
@@ -50,7 +51,7 @@ describe("CurveERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
       developer.address,
       keeper.address,
       CURVE_OBTC_ZAP_POOL_ADDRESS,
-      CURVE_OBTAC_GAUGE_ADDRESS,
+      CURVE_OBTC_GAUGE_ADDRESS,
       4,
       2,
       WBTC_ADDRESS,

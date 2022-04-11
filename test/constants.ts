@@ -50,6 +50,14 @@ export const CONST: any = {
     } as Token,
   },
 
+  // Curve zap depositors
+  OBTC_ZAP: {
+    ADDRESS: "0xd5BCf53e2C81e1991570f33Fa881c49EEa570C8D",
+    LP_TOKEN: "", // not needed
+    COINS: { WBTC: 2 },
+    NO_OF_COINS: 4,
+    GAUGE: "0x11137B10C210b579405c21A07489e28F3c040AB1",
+  },
   // Curve base pools
   THREE_POOL: {
     ADDRESS: "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7",

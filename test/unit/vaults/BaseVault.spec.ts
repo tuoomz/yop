@@ -297,12 +297,19 @@ describe("BaseVault", function () {
       const MockStrategy = await ethers.getContractFactory("StrategyMock");
       const mockStrategy1 = (await MockStrategy.deploy(ethers.constants.AddressZero)) as StrategyMock;
       await mockStrategy1.deployed();
+      const info = await baseVault.strategy(mockStrategy.address);
       expect(baseVault.connect(governance).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith("!strategyStore");
       expect(baseVault.connect(gatekeeper).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith("!strategyStore");
       expect(baseVault.connect(user1).migrateStrategy(mockStrategy.address, mockStrategy1.address)).to.be.revertedWith("!strategyStore");
       expect(await baseVault.connect(vaultStrategyDataStoreSigner).migrateStrategy(mockStrategy.address, mockStrategy1.address))
         .to.emit(baseVault, "StrategyMigrated")
         .withArgs(mockStrategy.address, mockStrategy1.address);
+      const migratedInfo = await baseVault.strategy(mockStrategy1.address);
+      expect(migratedInfo.activation).to.equal(info.activation);
+      expect(migratedInfo.lastReport).to.equal(info.lastReport);
+      expect(migratedInfo.totalDebt).to.equal(info.totalDebt);
+      expect(info.totalLoss).to.equal(0);
+      expect(info.totalGain).to.equal(0);
     });
 
     it("test revokeStrategy", async () => {

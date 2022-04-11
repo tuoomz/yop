@@ -363,7 +363,6 @@ export async function setNextBlockTimestamp(ts: number) {
 
 export async function transferERC20Tokens(tokenAddress: string, from: string, to: string, amount: BigNumber) {
   const tokenContract = (await ethers.getContractAt(ERC20ABI, tokenAddress)) as ERC20;
-  await setEthBalance(from, ethers.utils.parseEther("10"));
   await tokenContract.connect(await impersonate(from)).transfer(to, amount);
 }
 

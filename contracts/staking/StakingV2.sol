@@ -2,11 +2,12 @@
 pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./Staking.sol";
 import "../interfaces/IVault.sol";
 
 /// @dev Add a new stake function that will update the user's boost balance in selected vaults immediately after staking
-contract StakingV2 is IStakingV2, Staking {
+contract StakingV2 is IStakingV2, Staking, ReentrancyGuardUpgradeable {
   using ERC165CheckerUpgradeable for address;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -14,6 +15,31 @@ contract StakingV2 is IStakingV2, Staking {
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() initializer {}
+
+  function initialize(
+    string memory _name,
+    string memory _symbol,
+    address _governance,
+    address _gatekeeper,
+    address _yopRewards,
+    string memory _uri,
+    string memory _contractURI,
+    address _owner,
+    address _accessControlManager
+  ) external virtual override initializer {
+    __ReentrancyGuard_init();
+    __Staking_init(
+      _name,
+      _symbol,
+      _governance,
+      _gatekeeper,
+      _yopRewards,
+      _uri,
+      _contractURI,
+      _owner,
+      _accessControlManager
+    );
+  }
 
   /// @notice Return the total number of stakes created so far
   function totalSupply() external view returns (uint256) {

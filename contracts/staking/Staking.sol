@@ -3,7 +3,6 @@ pragma solidity =0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../security/BasePauseableUpgradeable.sol";
 import "../interfaces/IYOPRewards.sol";
 import "../interfaces/IAccessControlManager.sol";
@@ -13,7 +12,7 @@ import "../interfaces/IStaking.sol";
 ///  Users can stake as many times as they want, but each stake can't be modified/extended once it is created.
 ///  For each stake, the user will recive an ERC1155 NFT token as the receipt. These NFT tokens can be transferred to other to still allow users to use the locked YOP tokens as a collateral.
 ///  When the NFT tokens are transferred, all the remaining unclaimed rewards will be transferred to the new owner as well.
-contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable, ReentrancyGuardUpgradeable {
+contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event Staked(
@@ -123,7 +122,6 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable, Reen
     address _accessControlManager
   ) internal onlyInitializing {
     __ERC1155_init(_uri);
-    __ReentrancyGuard_init();
     __BasePauseableUpgradeable_init(_governance, _gatekeeper);
     __Staking_init_unchained(_name, _symbol, _yopRewards, _contractURI, _owner, _accessControlManager);
   }

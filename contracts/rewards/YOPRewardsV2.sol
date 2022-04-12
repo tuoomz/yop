@@ -23,7 +23,6 @@ contract YOPRewardsV2 is IYOPRewardsV2, YOPRewards {
   function claimRewardsForStakes(uint256[] calldata _stakeIds)
     external
     whenNotPaused
-    nonReentrant
     onlyStaking
     returns (uint256, uint256[] memory)
   {
@@ -38,7 +37,6 @@ contract YOPRewardsV2 is IYOPRewardsV2, YOPRewards {
   function claimVaultRewardsForUsers(address[] calldata _users)
     external
     whenNotPaused
-    nonReentrant
     onlyStaking
     returns (uint256, uint256[] memory)
   {

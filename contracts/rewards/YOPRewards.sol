@@ -35,7 +35,7 @@ interface IStaking {
 ///      and add them up over time.
 ///      The above equation can also be written as (T2 - T1) * R / V * U. So when U is not changed, we can calculate the sum of `(T2 - T1) * R / V` part and store it. And then multiply the U when U is about to change.
 ///      And this is how we do it in this contract.
-contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpgradeable {
+contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using PRBMathUD60x18Typed for PRBMath.UD60x18;
@@ -143,7 +143,6 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpg
     address _yopContract,
     uint256 _emissionStartTime
   ) internal {
-    __ReentrancyGuard_init();
     __BasePauseableUpgradeable_init(_governance, _gatekeeper);
     __YOPRewards_init_unchained(_wallet, _yopContract, _emissionStartTime);
   }
@@ -268,7 +267,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpg
 
   /// @notice Claim reward tokens for the caller across all the vaults and staking contract and send the rewards to the given address.
   /// @param _to The address to send the rewards to
-  function claimAll(address _to) external whenNotPaused nonReentrant {
+  function claimAll(address _to) external whenNotPaused {
     _updateStateForVaults(vaultAddresses.values(), _msgSender().addressToBytes32());
     uint256[] memory stakeIds;
     if (stakingContract != address(0)) {
@@ -286,7 +285,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpg
   /// @notice Claim reward tokens for the caller in the given vaults and send the rewards to the given address.
   /// @param _vaults The addresses of the vaults to claim rewards for
   /// @param _to The address that will receive the reward tokens
-  function claimVaultRewards(address[] calldata _vaults, address _to) external whenNotPaused nonReentrant {
+  function claimVaultRewards(address[] calldata _vaults, address _to) external whenNotPaused {
     require(_vaults.length > 0, "no vaults");
     _updateStateForVaults(_vaults, _msgSender().addressToBytes32());
     bytes32[] memory accounts = new bytes32[](1);
@@ -296,7 +295,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable, ReentrancyGuardUpg
 
   /// @notice Claim staking rewards for the caller. It will check what staking NFTs the caller has at the time of calling this function and transfer the available rewards for these NFTs.
   /// @param _to The address that will receive the rewards
-  function claimStakingRewards(address _to) external whenNotPaused nonReentrant {
+  function claimStakingRewards(address _to) external whenNotPaused {
     uint256[] memory stakeIds;
     if (stakingContract != address(0)) {
       stakeIds = IStaking(stakingContract).stakesFor(_msgSender());

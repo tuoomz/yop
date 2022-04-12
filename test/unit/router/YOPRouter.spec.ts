@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers, waffle } from "hardhat";
+import { ethers, upgrades, waffle } from "hardhat";
 import { MockContract } from "ethereum-waffle";
 import StakingV2ABI from "../../../abi/contracts/staking/StakingV2.sol/StakingV2.json";
 import UniswapV2ABI from "../../../abi/@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol/IUniswapV2Router01.json";
@@ -40,15 +40,18 @@ describe("YOPRouter", async () => {
     yopToken = await deployMockContract(deployer, ERC20ABI);
     wethToken = await deployMockContract(deployer, IWETHABI);
     YOPRouterFactory = await ethers.getContractFactory("YOPRouter");
-    yopRouter = (await YOPRouterFactory.deploy()) as YOPRouter;
-    await yopRouter.initialize(
+    const params = [
       governance.address,
       stakingContract.address,
       uniswapContract.address,
       yopRegistry.address,
       yopToken.address,
-      wethToken.address
-    );
+      wethToken.address,
+    ];
+    yopRouter = (await upgrades.deployProxy(YOPRouterFactory, params, {
+      kind: "uups",
+      unsafeAllow: ["constructor"],
+    })) as YOPRouter;
     await uniswapContract.mock.factory.returns(uniswapFactory.address);
     await yopRegistry.mock.currentVault.returns(vaultContract.address);
   });

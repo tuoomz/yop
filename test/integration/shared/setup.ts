@@ -220,17 +220,16 @@ export async function setupVaultV2(tokenAddress: string) {
     },
   });
 
-  const vault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVaultV2;
-  await vault.deployed();
-
   const VaultStrategyDataStoreFactory = await ethers.getContractFactory("VaultStrategyDataStore");
   const vaultStrategyDataStore = (await VaultStrategyDataStoreFactory.deploy(governance.address)) as VaultStrategyDataStore;
   await vaultStrategyDataStore.deployed();
 
   const YOPRewardsFactory = await ethers.getContractFactory("YOPRewardsV2");
-  const yopRewards = (await YOPRewardsFactory.deploy()) as YOPRewardsV2;
-  await yopRewards.deployed();
-  await yopRewards.initialize(governance.address, gatekeeper.address, CONST.TOKENS.YOP.WHALE, CONST.TOKENS.YOP.ADDRESS, now);
+  const yopRewards = (await upgrades.deployProxy(
+    YOPRewardsFactory,
+    [governance.address, gatekeeper.address, CONST.TOKENS.YOP.WHALE, CONST.TOKENS.YOP.ADDRESS, now],
+    { kind: "uups" }
+  )) as YOPRewardsV2;
 
   const AllowAnyAccessControlFactory = await ethers.getContractFactory("AllowAnyAccessControl");
   const allowAnyAccessControl = (await AllowAnyAccessControlFactory.deploy(governance.address)) as AllowAnyAccessControl;
@@ -247,36 +246,32 @@ export async function setupVaultV2(tokenAddress: string) {
   const accessManager = (await AccessManagerFactory.deploy(governance.address, [allowAnyAccessControl.address], [])) as AccessControlManager;
   await accessManager.deployed();
   const FeeCollectionFactory = await ethers.getContractFactory("FeeCollection");
-  const feeCollection = (await FeeCollectionFactory.deploy()) as FeeCollection;
-  await feeCollection.deployed();
-  await feeCollection.initialize(
-    governance.address,
-    gatekeeper.address,
-    rewardsWallet.address,
-    vaultStrategyDataStore.address,
-    2000, // 20%
-    1000, // 10%
-    1000 // 10%
-  );
+  const feeCollection = (await upgrades.deployProxy(
+    FeeCollectionFactory,
+    [governance.address, gatekeeper.address, rewardsWallet.address, vaultStrategyDataStore.address, 2000, 1000, 1000],
+    { kind: "uups" }
+  )) as FeeCollection;
 
   const StakingFactory = await ethers.getContractFactory("StakingV2");
-  const yopStaking = (await StakingFactory.deploy()) as StakingV2;
-  await yopStaking.deployed();
-  await yopStaking.initialize(
-    "Yop staking",
-    "syop",
-    governance.address,
-    gatekeeper.address,
-    yopRewards.address,
-    "https://example.com",
-    "https://example.com",
-    owner.address,
-    accessManager.address
-  );
+  const yopStaking = (await upgrades.deployProxy(
+    StakingFactory,
+    [
+      "Yop staking",
+      "syop",
+      governance.address,
+      gatekeeper.address,
+      yopRewards.address,
+      "https://example.com",
+      "https://example.com",
+      owner.address,
+      accessManager.address,
+    ],
+    { kind: "uups" }
+  )) as StakingV2;
 
   const yopWalletAccount = await impersonate(CONST.TOKENS.YOP.WHALE);
   await setEthBalance(CONST.TOKENS.YOP.WHALE, ethers.utils.parseEther("10"));
-  await vault["initialize(string,string,address,address,address,address,address,address,address,address)"](
+  const vaultParams = [
     "test vault",
     "test",
     governance.address,
@@ -286,24 +281,24 @@ export async function setupVaultV2(tokenAddress: string) {
     tokenAddress,
     accessManager.address,
     yopRewards.address,
-    yopStaking.address
-  );
+    yopStaking.address,
+  ];
+  const vault = (await upgrades.deployProxy(SingleAssetVaultFactory, vaultParams, {
+    kind: "uups",
+    unsafeAllow: ["external-library-linking"],
+    initializer: "initializeV2",
+  })) as SingleAssetVaultV2;
 
   const YOPRegistryFactory = await ethers.getContractFactory("YOPRegistry");
-  const yopRegistry = (await YOPRegistryFactory.deploy()) as YOPRegistry;
-  await yopRegistry.initialize(governance.address);
+  const yopRegistry = (await upgrades.deployProxy(YOPRegistryFactory, [governance.address], { kind: "uups" })) as YOPRegistry;
   await yopRegistry.connect(governance).registerVault(vault.address);
 
   const YOPRouterFactory = await ethers.getContractFactory("YOPRouter");
-  const yopRouter = (await YOPRouterFactory.deploy()) as YOPRouter;
-  await yopRouter.initialize(
-    governance.address,
-    yopStaking.address,
-    CONST.UNISWAP_ADDRESS,
-    yopRegistry.address,
-    CONST.TOKENS.YOP.ADDRESS,
-    CONST.WETH_ADDRESS
-  );
+  const yopRouter = (await upgrades.deployProxy(
+    YOPRouterFactory,
+    [governance.address, yopStaking.address, CONST.UNISWAP_ADDRESS, yopRegistry.address, CONST.TOKENS.YOP.ADDRESS, CONST.WETH_ADDRESS],
+    { kind: "uups" }
+  )) as YOPRouter;
 
   await yopRewards.connect(governance).setStakingContractAddress(yopStaking.address);
   await yopRewards.connect(governance).setRewardsAllocationWeights(5000, 5000);

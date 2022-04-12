@@ -44,9 +44,7 @@ describe("SingleAssetVaultV2", async () => {
         VaultUtils: vaultUtils.address,
       },
     });
-    vault = (await SingleAssetVault.deploy()) as SingleAssetVaultV2BoostedMock;
-    await vault.deployed();
-    await vault["initialize(string,string,address,address,address,address,address,address,address,address)"](
+    const params = [
       name,
       symbol,
       governance.address,
@@ -56,27 +54,36 @@ describe("SingleAssetVaultV2", async () => {
       token.address,
       ethers.constants.AddressZero,
       yopRewards.address,
-      staking.address
-    );
+      staking.address,
+    ];
+    vault = (await upgrades.deployProxy(SingleAssetVault, params, {
+      kind: "uups",
+      unsafeAllow: ["external-library-linking", "constructor"],
+      initializer: "initializeV2",
+    })) as SingleAssetVaultV2BoostedMock;
+    await vault.deployed();
   });
 
   describe("initialize", async () => {
     it("should revert if staking contract is not valid", async () => {
-      const anotherVault = (await SingleAssetVault.deploy()) as SingleAssetVaultV2BoostedMock;
-      await anotherVault.deployed();
+      const params = [
+        name,
+        symbol,
+        governance.address,
+        gatekeeper.address,
+        feeCollection.address,
+        strategyDataStore.address,
+        token.address,
+        ethers.constants.AddressZero,
+        yopRewards.address,
+        ethers.constants.AddressZero,
+      ];
       await expect(
-        anotherVault["initialize(string,string,address,address,address,address,address,address,address,address)"](
-          name,
-          symbol,
-          governance.address,
-          gatekeeper.address,
-          feeCollection.address,
-          strategyDataStore.address,
-          token.address,
-          ethers.constants.AddressZero,
-          yopRewards.address,
-          ethers.constants.AddressZero
-        )
+        upgrades.deployProxy(SingleAssetVault, params, {
+          kind: "uups",
+          unsafeAllow: ["external-library-linking", "constructor"],
+          initializer: "initializeV2",
+        })
       ).to.be.revertedWith("!staking");
     });
   });

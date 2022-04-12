@@ -18,6 +18,9 @@ contract YOPRegistry is IYOPRegistry, BaseUpgradeable {
   // vault => token look up, and also be used to check if a vault exists
   mapping(address => address) internal tokenForVault;
 
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() initializer {}
+
   function initialize(address _governance) external initializer {
     __YOPRegistry_init(_governance);
   }

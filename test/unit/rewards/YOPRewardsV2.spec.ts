@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ContractFactory } from "ethers";
-import { ethers, waffle } from "hardhat";
+import { ethers, upgrades, waffle } from "hardhat";
 import { MockContract } from "ethereum-waffle";
 import { YOPRewardsV2Mock } from "../../../types";
 import singleAssetVaultV2ABI from "../../../abi/contracts/vaults/SingleAssetVaultV2.sol/SingleAssetVaultV2.json";
@@ -30,9 +30,15 @@ describe("YOPRewardsV2", async () => {
   beforeEach(async () => {
     [deployer, governance, gatekeeper, wallet, user1] = await ethers.getSigners();
     YOPRewardsV2 = await ethers.getContractFactory("YOPRewardsV2Mock");
-    yopRewardsV2Contract = (await YOPRewardsV2.deploy()) as YOPRewardsV2Mock;
+    yopRewardsV2Contract = (await upgrades.deployProxy(
+      YOPRewardsV2,
+      [governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME],
+      {
+        kind: "uups",
+        unsafeAllow: ["constructor"],
+      }
+    )) as YOPRewardsV2Mock;
     await yopRewardsV2Contract.deployed();
-    await yopRewardsV2Contract.initialize(governance.address, gatekeeper.address, wallet.address, YOP_CONTRACT_ADDRESS, EPOCH_START_TIME);
     vault1 = await deployMockContract(deployer, singleAssetVaultV2ABI);
     vault2 = await deployMockContract(deployer, singleAssetVaultV2ABI);
     stakingContract = await deployMockContract(deployer, StakingV2ABI);

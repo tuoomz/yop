@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers, waffle } from "hardhat";
+import { ethers, upgrades, waffle } from "hardhat";
 import { MockContract } from "ethereum-waffle";
 import ERC20ABI from "../../../abi/@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol/ERC20Upgradeable.json";
 import YOPRewardsABI from "../../../abi/contracts/rewards/YOPRewardsV2.sol/YOPRewardsV2.json";
@@ -33,9 +33,7 @@ describe("StakingV2", async () => {
     stakeToken = await deployMockContract(deployer, ERC20ABI);
     yopReward = await deployMockContract(deployer, YOPRewardsABI);
     StakingContractFactory = await ethers.getContractFactory("StakingV2Mock");
-    staking = (await StakingContractFactory.deploy()) as StakingV2Mock;
-    await staking.deployed();
-    await staking.initialize(
+    const params = [
       "staking",
       "sta",
       governance.address,
@@ -44,8 +42,13 @@ describe("StakingV2", async () => {
       "https://example.com",
       CONTRACT_URI,
       owner.address,
-      ethers.constants.AddressZero
-    );
+      ethers.constants.AddressZero,
+    ];
+    staking = (await upgrades.deployProxy(StakingContractFactory, params, {
+      kind: "uups",
+      unsafeAllow: ["constructor"],
+    })) as StakingV2Mock;
+    await staking.deployed();
     await staking.setToken(stakeToken.address);
     await yopReward.mock.calculateStakingRewards.returns();
     await yopReward.mock.claimRewardsForStakes.returns(0, []);

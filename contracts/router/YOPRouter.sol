@@ -47,6 +47,9 @@ contract YOPRouter is BaseUpgradeable {
     _;
   }
 
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() initializer {}
+
   function initialize(
     address _governance,
     address _stakingContract,

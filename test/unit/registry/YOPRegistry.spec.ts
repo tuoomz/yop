@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers, waffle } from "hardhat";
+import { ethers, upgrades, waffle } from "hardhat";
 import { MockContract } from "ethereum-waffle";
 import { YOPRegistry } from "../../../types";
 import SingleAssetVaultABI from "../../../abi/contracts/vaults/SingleAssetVaultV2.sol/SingleAssetVaultV2.json";
@@ -21,8 +21,10 @@ describe("YOPRegistry", async () => {
     vaultToken = await deployMockContract(deployer, ERC20ABI);
     await vault.mock.token.returns(vaultToken.address);
     const YOPRegistryFactory = await ethers.getContractFactory("YOPRegistry");
-    yopRegistry = (await YOPRegistryFactory.deploy()) as YOPRegistry;
-    await yopRegistry.initialize(governance.address);
+    yopRegistry = (await upgrades.deployProxy(YOPRegistryFactory, [governance.address], {
+      kind: "uups",
+      unsafeAllow: ["constructor"],
+    })) as YOPRegistry;
   });
 
   describe("registryVault", async () => {

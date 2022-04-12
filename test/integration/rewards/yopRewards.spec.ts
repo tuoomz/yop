@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { setupVaultV2, impersonate, setEthBalance, setNextBlockTimestamp, reset, prepareUseAccount } from "../shared/setup";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { SingleAssetVaultV2 } from "../../../types/SingleAssetVaultV2";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import IWethABI from "../../../abi/contracts/interfaces/IWeth.sol/IWETH.json";
@@ -352,20 +352,26 @@ describe("yopRewards [@skip-on-coverage]", async () => {
           VaultUtils: vaultUtils.address,
         },
       });
-      newVault = (await SingleAssetVaultFactory.deploy()) as SingleAssetVaultV2;
-      await newVault.deployed();
-      await newVault["initialize(string,string,address,address,address,address,address,address,address,address)"](
-        "vault2",
-        "v2",
-        governance.address,
-        gatekeeper.address,
-        feeCollection.address,
-        vaultStrategyDataStore.address,
-        WBTC_ADDRESS,
-        accessManager.address,
-        yopRewards.address,
-        yopStaking.address
-      );
+      newVault = (await upgrades.deployProxy(
+        SingleAssetVaultFactory,
+        [
+          "vault2",
+          "v2",
+          governance.address,
+          gatekeeper.address,
+          feeCollection.address,
+          vaultStrategyDataStore.address,
+          WBTC_ADDRESS,
+          accessManager.address,
+          yopRewards.address,
+          yopStaking.address,
+        ],
+        {
+          kind: "uups",
+          unsafeAllow: ["external-library-linking"],
+          initializer: "initializeV2",
+        }
+      )) as SingleAssetVaultV2;
 
       await newVault.connect(governance).unpause();
       wbtcContract = (await ethers.getContractAt(ERC20ABI, WBTC_ADDRESS)) as ERC20;

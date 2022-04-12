@@ -23,10 +23,10 @@ contract SingleAssetVaultV2 is SingleAssetVault {
   /// @dev Address of the staking contract
   address public stakingContract;
 
-  // solhint-disable-next-line no-empty-blocks
-  constructor() {}
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() initializer {}
 
-  function initialize(
+  function initializeV2(
     string memory _name,
     string memory _symbol,
     address _governance,

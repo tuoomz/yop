@@ -12,8 +12,8 @@ contract StakingV2 is IStakingV2, Staking {
 
   event StakeExtended(uint256 indexed _tokenId, uint248 indexed _newAmount, uint8 _newlockPeriod, address[] _vaults);
 
-  // solhint-disable-next-line no-empty-blocks
-  constructor() {}
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() initializer {}
 
   /// @notice Return the total number of stakes created so far
   function totalSupply() external view returns (uint256) {

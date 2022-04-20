@@ -104,7 +104,7 @@ constants:
   usdt_vault:
     rewards_weight: &usdt_vault_rewards_weight 26862
     limit: &usdt_vault_limit 50000
-    paused: &usdt_vault_paused true
+    paused: &usdt_vault_paused false
     curve_strategy:
       allocation: &curve_usdt_allocation 1900 #20%
     convex_strategy:

@@ -360,6 +360,7 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   /// @notice Set the address of the reward wallet that this contract can draw rewards from. Can only be called by governance.
   /// @param _wallet The address of the wallet that have reward tokens.
   function setRewardWallet(address _wallet) external onlyGovernance {
+    require(_wallet != address(0), "!wallet");
     rewardsWallet = _wallet;
   }
 

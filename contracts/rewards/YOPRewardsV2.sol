@@ -32,6 +32,9 @@ contract YOPRewardsV2 is IYOPRewardsV2, YOPRewards {
   }
 
   /// @notice Called by the staking contract to claim vault rewards for the given users for compounding the stakes. Can only be called by the staking contract.
+  /// @dev In this function the reward state of the users are not updated. This is because this function will call `updateBoostedBalancesForUsers` function on the vaults eventually,
+  ///  which in turn will call the `calculateVaultRewards` function on the rewards contract.
+  ///  However, in the future if this changes, then this function needs to be updated to ensure the reward state is updated here.
   /// @param _users The addreses of users to claim rewards for
   /// @return The amount of rewards
   function claimVaultRewardsForUsers(address[] calldata _users)

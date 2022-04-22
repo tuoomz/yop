@@ -232,6 +232,7 @@ describe("FeeCollection", () => {
     });
 
     it("should set the protocol wallet address", async () => {
+      await expect(feeCollection.connect(governance).setProtocolWallet(ethers.constants.AddressZero)).to.be.revertedWith("!wallet");
       await feeCollection.connect(governance).setProtocolWallet(protocolWalletUpdated.address);
       expect(await feeCollection.connect(await impersonate(vault.address)).protocolWallet()).to.be.equal(protocolWalletUpdated.address);
     });

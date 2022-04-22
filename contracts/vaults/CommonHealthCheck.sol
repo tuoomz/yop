@@ -2,6 +2,7 @@
 pragma solidity =0.8.9;
 pragma experimental ABIEncoderV2;
 
+import {IHealthCheck} from "../interfaces/IHealthCheck.sol";
 import {ICustomHealthCheck} from "../interfaces/ICustomHealthCheck.sol";
 import {IStrategy} from "../interfaces/IStrategy.sol";
 
@@ -11,7 +12,7 @@ struct Limits {
   bool exists;
 }
 
-contract CommonHealthCheck {
+contract CommonHealthCheck is IHealthCheck {
   // Default Settings for all strategies
   uint256 public constant MAX_BPS = 10_000;
   uint256 public profitLimitRatio;

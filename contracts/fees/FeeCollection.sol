@@ -4,13 +4,14 @@ import "../vaults/roles/Governable.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IVaultStrategyDataStore.sol";
+import "../interfaces/IFeeCollection.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../security/BasePauseableUpgradeable.sol";
 
 /// @notice This contract is used to distribute the fees to various participants
 /// @dev Given the token emission rate for a vault R, and f
-contract FeeCollection is BasePauseableUpgradeable {
+contract FeeCollection is IFeeCollection, BasePauseableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -155,7 +156,7 @@ contract FeeCollection is BasePauseableUpgradeable {
   /// @param _ratio The ratio value in basis points (100 = 1%, 10,000 = 100%)
   /// @param _vault The address of the vault you want to set the fee on
   function setVaultCreatorFeeRatio(address _vault, uint16 _ratio) external onlyGovernance {
-    require(_ratio >= 0 && _ratio <= MAX_BPS, "!ratio");
+    require(_ratio <= MAX_BPS, "!ratio");
     require(_vault != address(0), "!vault");
     vaultCreatorFeeRatioMap[_vault] = VaultCreatorFeeRatio(_ratio, true);
     emit VaultCreatorFeeRatioSet(_vault, _ratio);
@@ -178,6 +179,7 @@ contract FeeCollection is BasePauseableUpgradeable {
   /// @notice Set the protocol wallet. A portion of fees from management and strategy will be sent here. Can only be set by governance.
   /// @param _protocolWallet The wallet where the fees will be sent
   function setProtocolWallet(address _protocolWallet) external onlyGovernance {
+    require(_protocolWallet != address(0), "!wallet");
     protocolWallet = _protocolWallet;
   }
 
@@ -339,8 +341,8 @@ contract FeeCollection is BasePauseableUpgradeable {
   }
 
   function _setDefaultStrategyFeeRatio(uint16 _proposerRatio, uint16 _developerRatio) internal {
-    require(_proposerRatio >= 0 && _proposerRatio <= MAX_BPS, "!ratio");
-    require(_developerRatio >= 0 && _developerRatio <= MAX_BPS, "!ratio");
+    require(_proposerRatio <= MAX_BPS, "!ratio");
+    require(_developerRatio <= MAX_BPS, "!ratio");
     require(_proposerRatio + _developerRatio <= MAX_BPS, "!ratio");
     defaultStrategyProposerFeeRatio = _proposerRatio;
     defaultStrategyDeveloperFeeRatio = _developerRatio;
@@ -348,7 +350,7 @@ contract FeeCollection is BasePauseableUpgradeable {
   }
 
   function _setDefaultVaultCreatorFeeRatio(uint16 _ratio) internal {
-    require(_ratio >= 0 && _ratio <= MAX_BPS, "!ratio");
+    require(_ratio <= MAX_BPS, "!ratio");
     defaultVaultCreatorFeeRatio = _ratio;
     emit VaultCreatorFeeRatioSet(address(0), _ratio);
   }

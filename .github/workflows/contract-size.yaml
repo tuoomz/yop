@@ -6,11 +6,13 @@ on:
   push:
     branches:
       - main
+      - v2
     paths:
       - "contracts/**"
   pull_request:
     branches:
       - main
+      - v2
     paths:
       - "contracts/**"
 

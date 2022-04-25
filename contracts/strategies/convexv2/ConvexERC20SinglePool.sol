@@ -3,7 +3,6 @@ pragma solidity =0.8.9;
 
 import "../curvev2/CurveERC20SinglePool.sol";
 import "../ConvexBase.sol";
-import "hardhat/console.sol";
 
 contract ConvexERC20SinglePool is CurveERC20SinglePool, ConvexBase {
   using SafeERC20 for IERC20;

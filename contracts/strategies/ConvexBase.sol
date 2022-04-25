@@ -3,7 +3,6 @@ pragma solidity =0.8.9;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/convex/IConvexDeposit.sol";
 import "../interfaces/convex/IConvexRewards.sol";
-import "hardhat/console.sol";
 
 /// @notice This contract provides common functions that will be used by all Convex strategies.
 contract ConvexBase {

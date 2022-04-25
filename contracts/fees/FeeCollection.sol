@@ -341,8 +341,6 @@ contract FeeCollection is IFeeCollection, BasePauseableUpgradeable {
   }
 
   function _setDefaultStrategyFeeRatio(uint16 _proposerRatio, uint16 _developerRatio) internal {
-    require(_proposerRatio <= MAX_BPS, "!ratio");
-    require(_developerRatio <= MAX_BPS, "!ratio");
     require(_proposerRatio + _developerRatio <= MAX_BPS, "!ratio");
     defaultStrategyProposerFeeRatio = _proposerRatio;
     defaultStrategyDeveloperFeeRatio = _developerRatio;

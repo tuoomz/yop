@@ -71,7 +71,6 @@ abstract contract BaseStrategy is IStrategy, ERC165 {
   address public vault;
   address public strategyProposer;
   address public strategyDeveloper;
-  address public rewards;
   address public harvester;
   IERC20 public want;
 

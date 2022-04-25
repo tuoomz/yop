@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
-pragma experimental ABIEncoderV2;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../BaseStrategy.sol";
@@ -10,7 +10,6 @@ import "../../interfaces/curve/ICurveRegistry.sol";
 import "../../interfaces/curve/ICurveDeposit.sol";
 import "../../interfaces/curve/ICurveAddressProvider.sol";
 import "../../interfaces/sushiswap/IUniswapV2Router.sol";
-import "hardhat/console.sol";
 
 /// @dev The base implementation for all Curve strategies. All strategies will add liquidity to a Curve pool (could be a plain or meta pool), and then deposit the LP tokens to the corresponding gauge to earn Curve tokens.
 ///  When it comes to harvest time, the Curve tokens will be minted and sold, and the profit will be reported and moved back to the vault.

@@ -237,10 +237,6 @@ contract YOPRouter is BaseUpgradeable {
     IVault(vaultAddress).deposit(depositAmount, _msgSender());
   }
 
-  /// @dev This is needed in order to receive eth that will be returned by WETH contract
-  // solhint-disable-next-line
-  receive() external payable {}
-
   function _getBlockTimestamp() internal returns (uint256) {
     return block.timestamp;
   }

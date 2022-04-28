@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
-pragma experimental ABIEncoderV2;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -14,7 +14,6 @@ import "../interfaces/IStrategy.sol";
 import "../interfaces/IAccessControlManager.sol";
 import "../interfaces/IFeeCollection.sol";
 import "./SingleAssetVaultBase.sol";
-import "hardhat/console.sol";
 
 ///  @dev NOTE: do not add any new state variables to this contract. If needed, see {VaultDataStorage.sol} instead.
 contract SingleAssetVault is SingleAssetVaultBase, PausableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {

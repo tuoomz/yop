@@ -109,6 +109,7 @@ describe("YOPReward", () => {
 
   describe("setRewardWallet", async () => {
     it("can not be set by unauthorized", async () => {
+      await expect(yopRewardsContract.connect(governance).setRewardWallet(ethers.constants.AddressZero)).to.be.revertedWith("!wallet");
       await expect(yopRewardsContract.setRewardWallet(user3.address)).to.be.revertedWith("governance only");
       let addr = await yopRewardsContract.rewardsWallet();
       expect(addr).to.equal(wallet.address);

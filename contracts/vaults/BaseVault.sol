@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
-pragma experimental ABIEncoderV2;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -95,7 +95,7 @@ abstract contract BaseVault is ERC20PermitUpgradeable, VaultMetaDataStore {
 
   /// @dev It doesn't inherit openzepplin's ERC165 implementation to save on contract size
   ///  but it is compatible with ERC165
-  function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
+  function supportsInterface(bytes4 _interfaceId) external view virtual returns (bool) {
     // 0x01ffc9a7 is the interfaceId of IERC165 itself
     return _interfaceId == type(IVault).interfaceId || _interfaceId == 0x01ffc9a7;
   }

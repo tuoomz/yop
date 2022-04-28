@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
-pragma experimental ABIEncoderV2;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";

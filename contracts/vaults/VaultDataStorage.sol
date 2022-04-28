@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.9;
-pragma experimental ABIEncoderV2;
+pragma abicoder v2;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {StrategyInfo} from "../interfaces/IVault.sol";
 

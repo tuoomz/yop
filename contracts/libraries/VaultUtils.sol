@@ -21,7 +21,7 @@ library VaultUtils {
     address _vaultContract,
     uint128 _vaultBalanceWeight,
     uint128 _stakingBalanceWeight
-  ) public view returns (uint256) {
+  ) external view returns (uint256) {
     uint256 stakingPoolSize = IStaking(_stakingContract).workingBalanceOf(_user);
     uint256 totalStakingSize = IStaking(_stakingContract).totalWorkingSupply();
     uint256 userVaultBalance = IVault(_vaultContract).balanceOf(_user);
@@ -45,7 +45,7 @@ library VaultUtils {
     uint256 _debtPayment,
     uint256 _debtOutstanding,
     uint256 _totalDebt
-  ) public {
+  ) external {
     if (_healthCheck != address(0)) {
       IHealthCheck check = IHealthCheck(_healthCheck);
       if (check.doHealthCheck(_strategy)) {
@@ -112,7 +112,7 @@ library VaultUtils {
     uint256 _gain,
     uint256 _managementFee,
     uint256 _performanceFee
-  ) public returns (uint256) {
+  ) external returns (uint256) {
     uint256 totalFee_;
     uint256 performanceFee_;
     (totalFee_, performanceFee_) = calculateFees(_strategies, _strategy, _gain, _managementFee, _performanceFee);
@@ -160,7 +160,7 @@ library VaultUtils {
     IVaultStrategyDataStore _strategyDataStore,
     mapping(address => StrategyInfo) storage _strategies,
     address _strategy
-  ) public view returns (uint256) {
+  ) external view returns (uint256) {
     uint256 vaultTotalDebtLimit_ = (_totalAsset * _strategyDataStore.vaultTotalDebtRatio(address(this))) /
       MAX_BASIS_POINTS;
 
@@ -187,7 +187,7 @@ library VaultUtils {
     IVaultStrategyDataStore _strategyDataStore,
     mapping(address => StrategyInfo) storage _strategies,
     address _strategy
-  ) public view returns (uint256) {
+  ) external view returns (uint256) {
     if (_strategyDataStore.vaultTotalDebtRatio(address(this)) == 0) {
       return _strategies[_strategy].totalDebt;
     }
@@ -205,7 +205,7 @@ library VaultUtils {
   }
 
   function expectedReturn(mapping(address => StrategyInfo) storage _strategies, address _strategy)
-    public
+    external
     view
     returns (uint256)
   {

@@ -13,7 +13,6 @@ import "../ConvexBase.sol";
 contract ConvexCurveMeta is CurveMeta, ConvexBase {
   using SafeERC20 for IERC20;
   using Address for address;
-  address public convelpTokenxDepoist;
 
   constructor(
     address _vault,

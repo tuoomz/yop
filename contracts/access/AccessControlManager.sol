@@ -131,7 +131,9 @@ contract AccessControlManager is IAccessControlManager, Governable {
   function _hasAccess(address _user, address _vault) internal view returns (bool) {
     require(_user != address(0), "invalid user address");
     require(_vault != address(0), "invalid vault address");
-    for (uint256 i = 0; i < blockControlPolicies.length(); i++) {
+    uint256 blockPoliciesLength = blockControlPolicies.length();
+    uint256 accessPoliciesLength = accessControlPolicies.length();
+    for (uint256 i = 0; i < blockPoliciesLength; i++) {
       bool blocked = IBlockControlPolicy(blockControlPolicies.at(i)).blockedAccess(_user, _vault);
       if (blocked) {
         return false;
@@ -139,12 +141,12 @@ contract AccessControlManager is IAccessControlManager, Governable {
     }
 
     // disable access if no policies are set
-    if (accessControlPolicies.length() == 0) {
+    if (accessPoliciesLength == 0) {
       return false;
     }
 
     bool userHasAccess = false;
-    for (uint256 i = 0; i < accessControlPolicies.length(); i++) {
+    for (uint256 i = 0; i < accessPoliciesLength; i++) {
       if (IAccessControlPolicy(accessControlPolicies.at(i)).hasAccess(_user, _vault)) {
         userHasAccess = true;
         break;

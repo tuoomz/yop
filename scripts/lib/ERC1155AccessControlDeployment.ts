@@ -1,4 +1,4 @@
-import { ContractDeploymentUpdate, ContractFunctionCall, Wallet } from "./ContractDeployment";
+import { ContractDeploymentUpdate, ContractFunctionCall, Wallet, DeployCommonArgs, BaseConfig } from "./ContractDeployment";
 import ERC1155AccessControlABI from "../../abi/contracts/access/ERC1155AccessControl.sol/ERC1155AccessControl.json";
 
 type NFTConfig = {
@@ -9,19 +9,19 @@ type NFTConfig = {
 };
 
 // TODO: add support for per-vault config
-export type ERC1155AccessConfig = {
+export interface ERC1155AccessConfig extends BaseConfig {
   enabled: boolean;
   governance: Wallet;
   global: Array<NFTConfig>;
-};
+}
 
 export class ERC1155AccessControlDeployment extends ContractDeploymentUpdate {
   name = "ERC1155AccessControl";
   contractName = "ERC1155AccessControl";
   upgradeable = false;
   config: ERC1155AccessConfig;
-  constructor(env: string, dryrun: boolean, args: ERC1155AccessConfig) {
-    super(env, dryrun);
+  constructor(commonArgs: DeployCommonArgs, args: ERC1155AccessConfig) {
+    super(commonArgs, args.version);
     this.config = args;
   }
 

@@ -1,20 +1,20 @@
-import { ContractDeploymentUpdate, ContractFunctionCall, Wallet } from "./ContractDeployment";
+import { ContractDeploymentUpdate, ContractFunctionCall, Wallet, DeployCommonArgs, BaseConfig } from "./ContractDeployment";
 import AllowlistAccessControlABI from "../../abi/contracts/access/AllowListAccessControl.sol/AllowlistAccessControl.json";
 
 // TODO: add support for per-vault config
-export type AllowlistAccessConfig = {
+export interface AllowlistAccessConfig extends BaseConfig {
   enabled: boolean;
   governance: Wallet;
   global: Array<string>;
-};
+}
 
 export class AllowlistAccessControlDeployment extends ContractDeploymentUpdate {
   name = "AllowlistAccessControl";
   contractName = "AllowlistAccessControl";
   upgradeable = false;
   config: AllowlistAccessConfig;
-  constructor(env: string, args: AllowlistAccessConfig) {
-    super(env);
+  constructor(commonArgs: DeployCommonArgs, args: AllowlistAccessConfig) {
+    super(commonArgs, args.version);
     this.config = args;
   }
 

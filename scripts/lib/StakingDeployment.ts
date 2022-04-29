@@ -1,10 +1,10 @@
-import { ContractDeploymentUpdate, ContractFunctionCall, Wallet } from "./ContractDeployment";
+import { ContractDeploymentUpdate, ContractFunctionCall, Wallet, DeployCommonArgs, BaseConfig } from "./ContractDeployment";
 import StakingABI from "../../abi/contracts/staking/Staking.sol/Staking.json";
 import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
 import { Staking } from "../../types/Staking";
 
-export type StakingDeploymentConfig = {
+export interface StakingDeploymentConfig extends BaseConfig {
   governance: Wallet;
   gatekeeper: Wallet;
   name: string;
@@ -16,7 +16,7 @@ export type StakingDeploymentConfig = {
   // eslint-disable-next-line camelcase
   min_stake_amount: number;
   paused: boolean;
-};
+}
 
 type StakingCurrentState = {
   paused: boolean;
@@ -24,16 +24,18 @@ type StakingCurrentState = {
   min_stake_amount: BigNumber;
   // eslint-disable-next-line camelcase
   contract_uri: string;
+  // eslint-disable-next-line camelcase
+  access_control_manager: string;
 };
 
 export class StakingDeployment extends ContractDeploymentUpdate {
   name = "Staking";
-  contractName = "Staking";
+  contractName = "StakingV2";
   upgradeable = true;
   config: StakingDeploymentConfig;
 
-  constructor(env: string, config: StakingDeploymentConfig) {
-    super(env);
+  constructor(commonArgs: DeployCommonArgs, config: StakingDeploymentConfig) {
+    super(commonArgs, config.version);
     this.config = config;
   }
 
@@ -57,10 +59,12 @@ export class StakingDeployment extends ContractDeploymentUpdate {
       const paused = await contract.paused();
       const minStakeAmount = await contract.minStakeAmount();
       const contractURI = await contract.contractURI();
+      const accessManager = await contract.accessControlManager();
       return {
         paused: paused,
         min_stake_amount: minStakeAmount,
         contract_uri: contractURI,
+        access_control_manager: accessManager,
       };
     }
     return undefined;
@@ -71,11 +75,13 @@ export class StakingDeployment extends ContractDeploymentUpdate {
     let currentPaused;
     let currentMinStakeAmount;
     let currentContractURI;
+    let currentAccessControlManager;
     if (currentState) {
       const s = currentState as StakingCurrentState;
       currentPaused = s.paused;
       currentMinStakeAmount = s.min_stake_amount;
       currentContractURI = s.contract_uri;
+      currentAccessControlManager = s.access_control_manager;
     }
     if (currentPaused !== this.config.paused) {
       results.push({
@@ -105,6 +111,20 @@ export class StakingDeployment extends ContractDeploymentUpdate {
         signer: this.config.governance,
       });
     }
+    const latestAccessManger = await this.getAddressByName("AccessControlManager");
+    if (currentAccessControlManager !== latestAccessManger) {
+      results.push({
+        address: address,
+        abi: StakingABI,
+        methodName: "setAccessControlManager",
+        params: [latestAccessManger],
+        signer: this.config.governance,
+      });
+    }
     return Promise.resolve(results);
+  }
+
+  async upgradeSigner(): Promise<Wallet | undefined> {
+    return this.config.governance;
   }
 }

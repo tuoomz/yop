@@ -1,31 +1,31 @@
-import { ContractDeploymentUpdate, ContractFunctionCall, Wallet } from "./ContractDeployment";
-import { VaultStrategyDataStoreDeployment } from "./VaultStrategyDataStoreDeployment";
+import { ContractDeploymentUpdate, ContractFunctionCall, Wallet, DeployCommonArgs } from "../ContractDeployment";
+import { VaultStrategyDataStoreDeployment } from "../VaultStrategyDataStoreDeployment";
 import { ethers } from "hardhat";
-export type CurveStrategyDeploymentConfig = {
+export type MockStrategyDeploymentConfig = {
   name: string;
   contract: string;
   harvester: string;
-  pool: string;
   // eslint-disable-next-line camelcase
   performance_fee: number;
   allocation: number;
+  version: string;
 };
 
-export class CurveStrategyDeployment extends ContractDeploymentUpdate {
+export class MockStrategyDeployment extends ContractDeploymentUpdate {
   upgradeable = false;
   vaultStrategyDataStoreDeployment: VaultStrategyDataStoreDeployment;
-  config: CurveStrategyDeploymentConfig;
+  config: MockStrategyDeploymentConfig;
   vault: string;
   vaultManager: Wallet;
 
   constructor(
-    env: string,
+    commonArgs: DeployCommonArgs,
     vault: string,
     vaultManager: Wallet,
     vaultStrategyDataStoreDeployment: VaultStrategyDataStoreDeployment,
-    config: CurveStrategyDeploymentConfig
+    config: MockStrategyDeploymentConfig
   ) {
-    super(env);
+    super(commonArgs, config.version);
     this.vaultStrategyDataStoreDeployment = vaultStrategyDataStoreDeployment;
     this.config = config;
     this.vault = vault;
@@ -41,7 +41,7 @@ export class CurveStrategyDeployment extends ContractDeploymentUpdate {
   }
 
   async deployParams(): Promise<Array<any>> {
-    return Promise.resolve([this.vault, ethers.constants.AddressZero, ethers.constants.AddressZero, this.config.harvester, this.config.pool]);
+    return Promise.resolve([this.vault, ethers.constants.AddressZero, ethers.constants.AddressZero, this.config.harvester]);
   }
 
   async getCurrentState(address: string): Promise<any> {
@@ -55,7 +55,8 @@ export class CurveStrategyDeployment extends ContractDeploymentUpdate {
       this.vaultManager,
       address,
       this.config.performance_fee,
-      this.config.allocation
+      this.config.allocation,
+      undefined
     );
   }
 }

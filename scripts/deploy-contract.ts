@@ -1,4 +1,6 @@
+import { DeployOptions } from "@openzeppelin/hardhat-upgrades/dist/utils";
 import hre from "hardhat";
+import { Libraries } from "hardhat/types";
 import { readDeploymentFile, writeDeploymentFile, getTxn } from "./util";
 
 const NETWORK_NAME = hre.network.name;
@@ -19,6 +21,9 @@ export async function deployContract<Type>(
   name: string,
   contractFactory: string,
   upgradeable: boolean,
+  version: string,
+  libraries?: Libraries,
+  initializer?: string,
   ...contractParams: any
 ): Promise<Type> {
   const { ethers } = hre;
@@ -32,13 +37,15 @@ export async function deployContract<Type>(
   const deploymentRecordName = name;
   console.log(`Preparing ${deploymentRecordName} contract with params: ${contractParams}`);
 
-  const factory = await ethers.getContractFactory(contractFactory);
+  const factory = await ethers.getContractFactory(contractFactory, { libraries: libraries });
+  const options: DeployOptions = { kind: "uups", initializer: initializer };
+  if (libraries) {
+    options.unsafeAllow = ["external-library-linking"];
+  }
   let contract;
   if (upgradeable) {
     console.log(`Deploy ${deploymentRecordName} as upgradeable contract`);
-    contract = await hre.upgrades.deployProxy(factory, contractParams, {
-      kind: "uups",
-    });
+    contract = await hre.upgrades.deployProxy(factory, contractParams, options);
   } else {
     console.log(`Deploy ${deploymentRecordName} contract`);
     contract = await factory.deploy(...contractParams);
@@ -60,6 +67,7 @@ export async function deployContract<Type>(
       proxy: upgradeable,
       deployTransaction: deployTrans,
       contractParams: contractParams,
+      version: version,
     },
   };
 

@@ -1,12 +1,12 @@
-import { ContractDeploymentUpdate, ContractFunctionCall, Wallet } from "./ContractDeployment";
+import { BaseConfig, ContractDeploymentUpdate, ContractFunctionCall, DeployCommonArgs, Wallet } from "./ContractDeployment";
 import VaultStrategyDataStoreABI from "../../abi/contracts/vaults/VaultStrategyDataStore.sol/VaultStrategyDataStore.json";
 import { ethers } from "hardhat";
 import { VaultStrategyDataStore } from "../../types";
 import { BigNumber, BigNumberish } from "ethers";
 
-export type VaultStrategyDataStoreConfig = {
+export interface VaultStrategyDataStoreConfig extends BaseConfig {
   governance: Wallet;
-};
+}
 
 export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
   name = "VaultStrategyDataStore";
@@ -14,8 +14,8 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
   upgradeable = false;
   config: VaultStrategyDataStoreConfig;
 
-  constructor(env: string, config: VaultStrategyDataStoreConfig) {
-    super(env);
+  constructor(commonArgs: DeployCommonArgs, config: VaultStrategyDataStoreConfig) {
+    super(commonArgs, config.version);
     this.config = config;
   }
 
@@ -72,10 +72,11 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
     strategyAddress: string,
     performanceFee: number,
     debtRatio: number,
+    migrateFromAddress: string | undefined,
     minDebtPerHarvest: BigNumberish = ethers.constants.Zero,
     maxDebtPerHarvest: BigNumberish = ethers.constants.MaxUint256
   ): Promise<Array<ContractFunctionCall>> {
-    const results = new Array<ContractFunctionCall>();
+    let results = new Array<ContractFunctionCall>();
     let address = await this.currentAddress();
     let strategies: string[] = [];
     let currentPerformanceFee;
@@ -93,13 +94,17 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
       address = `$ADDRESS_FOR_${this.name}`;
     }
     if (strategies.indexOf(strategyAddress) === -1) {
-      results.push({
-        address: address,
-        abi: VaultStrategyDataStoreABI,
-        methodName: "addStrategy",
-        params: [vaultAddress, strategyAddress, debtRatio, minDebtPerHarvest, maxDebtPerHarvest, performanceFee],
-        signer: this.config.governance,
-      });
+      if (typeof migrateFromAddress !== "undefined") {
+        results = results.concat(await this.migrateStrategy(vaultAddress, migrateFromAddress, strategyAddress));
+      } else {
+        results.push({
+          address: address,
+          abi: VaultStrategyDataStoreABI,
+          methodName: "addStrategy",
+          params: [vaultAddress, strategyAddress, debtRatio, minDebtPerHarvest, maxDebtPerHarvest, performanceFee],
+          signer: this.config.governance,
+        });
+      }
       return results;
     }
     if (!currentPerformanceFee || currentPerformanceFee.toNumber() !== performanceFee) {
@@ -136,6 +141,24 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
         methodName: "updateStrategyMaxDebtHarvest",
         params: [vaultAddress, strategyAddress, maxDebtPerHarvest],
         signer: vaultManager,
+      });
+    }
+    return results;
+  }
+
+  async migrateStrategy(vault: string, fromStrategy: string, toStrategy: string): Promise<Array<ContractFunctionCall>> {
+    const results = new Array<ContractFunctionCall>();
+    const address = await this.currentAddress();
+    const contract = (await ethers.getContractAt(VaultStrategyDataStoreABI, address!)) as VaultStrategyDataStore;
+    const strategies = await contract.vaultStrategies(vault);
+    if (strategies.indexOf(fromStrategy) > -1) {
+      // the old strategy is not migrated yet
+      results.push({
+        address: address!,
+        abi: VaultStrategyDataStoreABI,
+        methodName: "migrateStrategy",
+        params: [vault, fromStrategy, toStrategy],
+        signer: this.config.governance,
       });
     }
     return results;

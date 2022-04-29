@@ -2,6 +2,7 @@ import { ethers } from "hardhat";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { readDeploymentFile, writeDeploymentFile } from "../util";
 import { randomBytes } from "crypto";
+import { Libraries } from "hardhat/types";
 
 export type DefaultWallet = {
   type: string;
@@ -23,13 +24,19 @@ export type DeploymentRecord = {
   deployTransaction: TransactionResponse;
   contractParams: Array<any>;
   configuration: any;
+  version?: string;
 };
 
 export type ContractDeploymentCall = {
   name: string;
   contractName: string;
   upgradeable: boolean;
-  params: Array<any>;
+  params?: Array<any>;
+  isUpgrade?: boolean;
+  version: string;
+  libraries?: Libraries;
+  signer?: Wallet;
+  initializer?: string;
 };
 
 export type ContractFunctionCall = {
@@ -40,6 +47,10 @@ export type ContractFunctionCall = {
   signer: Wallet;
 };
 
+export type BaseConfig = {
+  version: string;
+};
+
 export interface IContractDeployment {
   deploy(): Promise<Array<ContractDeploymentCall>>;
 }
@@ -47,17 +58,22 @@ export interface IContractDeployment {
 export interface IContractUpdate {
   update(): Promise<Array<ContractFunctionCall>>;
 }
-
+export type DeployCommonArgs = {
+  env: string;
+  dryrun?: boolean;
+};
 export abstract class ContractDeploymentUpdate implements IContractDeployment, IContractUpdate {
   abstract contractName: string;
   abstract name: string;
   abstract upgradeable: boolean;
   env: string;
   dryrun = false;
-  constructor(env: string, dryrun?: boolean) {
-    this.env = env;
-    if (dryrun !== undefined) {
-      this.dryrun = dryrun;
+  version: string;
+  constructor(args: DeployCommonArgs, version: string) {
+    this.env = args.env;
+    this.version = version;
+    if (args.dryrun) {
+      this.dryrun = args.dryrun;
     }
   }
 
@@ -75,7 +91,32 @@ export abstract class ContractDeploymentUpdate implements IContractDeployment, I
         contractName: this.contractName,
         params: params,
         upgradeable: this.upgradeable,
+        version: this.version,
       });
+    } else {
+      const currentVersion = await this.deployedVersion();
+      if (currentVersion.toString() !== this.version.toString()) {
+        if (this.upgradeable) {
+          results.push({
+            name: this.name,
+            contractName: this.contractName,
+            upgradeable: true,
+            isUpgrade: true,
+            version: this.version,
+            signer: await this.upgradeSigner(),
+          });
+        } else {
+          // contract is not upgradeable, so it will be another deployment
+          const params = await this.deployParams();
+          results.push({
+            name: this.name,
+            contractName: this.contractName,
+            params: params,
+            upgradeable: this.upgradeable,
+            version: this.version,
+          });
+        }
+      }
     }
     return Promise.resolve(results);
   }
@@ -105,6 +146,11 @@ export abstract class ContractDeploymentUpdate implements IContractDeployment, I
     } else {
       return Promise.resolve(undefined);
     }
+  }
+
+  async deployedVersion(): Promise<string> {
+    const records = await this.deploymentRecords();
+    return records[this.name].version || "1";
   }
 
   async getWalletAddress(wallet: Wallet): Promise<string> {
@@ -141,5 +187,13 @@ export abstract class ContractDeploymentUpdate implements IContractDeployment, I
     const privateKey = "0x" + id;
     const wallet = new ethers.Wallet(privateKey);
     return wallet.address;
+  }
+
+  async upgradeSigner(): Promise<Wallet | undefined> {
+    if (this.upgradeable) {
+      throw new Error("upgradeSigner should be overriden");
+    } else {
+      return undefined;
+    }
   }
 }

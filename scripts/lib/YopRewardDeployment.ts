@@ -1,9 +1,9 @@
-import { ContractDeploymentUpdate, ContractFunctionCall, Wallet } from "./ContractDeployment";
+import { BaseConfig, ContractDeploymentUpdate, ContractFunctionCall, DeployCommonArgs, Wallet } from "./ContractDeployment";
 import YOPRewardsABI from "../../abi/contracts/rewards/YOPRewards.sol/YOPRewards.json";
 import { ethers } from "hardhat";
 import { YOPRewards } from "../../types/YOPRewards";
 
-export type YopRewardsDeploymentConfig = {
+export interface YopRewardsDeploymentConfig extends BaseConfig {
   governance: Wallet;
   gatekeeper: Wallet;
   wallet: string;
@@ -16,7 +16,7 @@ export type YopRewardsDeploymentConfig = {
   // eslint-disable-next-line camelcase
   vaults_allocation_weight: Record<string, number>;
   paused: boolean;
-};
+}
 
 type YopRewardsCurrentState = {
   paused: boolean;
@@ -28,12 +28,12 @@ type YopRewardsCurrentState = {
 
 export class YopRewardDeployment extends ContractDeploymentUpdate {
   name = "YOPRewards";
-  contractName = "YOPRewards";
+  contractName = "YOPRewardsV2";
   upgradeable = true;
   config: YopRewardsDeploymentConfig;
 
-  constructor(env: string, config: YopRewardsDeploymentConfig) {
-    super(env);
+  constructor(commonArgs: DeployCommonArgs, config: YopRewardsDeploymentConfig) {
+    super(commonArgs, config.version);
     this.config = config;
   }
 
@@ -146,5 +146,9 @@ export class YopRewardDeployment extends ContractDeploymentUpdate {
       });
     }
     return Promise.resolve(results);
+  }
+
+  async upgradeSigner(): Promise<Wallet | undefined> {
+    return this.config.governance;
   }
 }

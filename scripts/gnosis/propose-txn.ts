@@ -40,7 +40,7 @@ export async function proposeTxn(
   const [deployer] = await ethers.getSigners();
 
   // Allows for an override keyid or use the hardhat configured deployer key
-  const keyId = process.env.GNOSIS_SIGNER_KMSID || hre.network.config.kmsKeyId || "";
+  const keyId = hre.network.config.kmsKeyId || "";
   const signer: KmsSigner = new KmsSigner(keyId);
 
   const signerAddress = await signer.getAddress();
@@ -108,7 +108,7 @@ export async function proposeTxns(
   const [deployer] = await ethers.getSigners();
 
   // Allows for an override keyid or use the hardhat configured deployer key
-  const keyId = process.env.GNOSIS_SIGNER_KMSID || hre.network.config.kmsKeyId || "";
+  const keyId = hre.network.config.kmsKeyId || "";
   const signer: KmsSigner = new KmsSigner(keyId);
 
   const signerAddress = await signer.getAddress();

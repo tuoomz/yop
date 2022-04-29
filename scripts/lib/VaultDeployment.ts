@@ -1,15 +1,28 @@
-import { ContractDeploymentUpdate, ContractDeploymentCall, ContractFunctionCall, Wallet, DeploymentRecord } from "./ContractDeployment";
-import VaultABI from "../../abi/contracts/vaults/SingleAssetVault.sol/SingleAssetVault.json";
+import {
+  ContractDeploymentUpdate,
+  ContractDeploymentCall,
+  ContractFunctionCall,
+  Wallet,
+  DeploymentRecord,
+  DeployCommonArgs,
+  BaseConfig,
+} from "./ContractDeployment";
+import VaultABI from "../../abi/contracts/vaults/SingleAssetVaultV2.sol/SingleAssetVaultV2.json";
 import { ethers } from "hardhat";
 import { readDeploymentFile } from "../util";
-import { CurveStrategyDeploymentConfig, CurveStrategyDeployment } from "./CurveStrategyDeployment";
+import { CurveStrategyDeploymentConfig, CurveV1StrategyDeployment } from "./strategies/CurveV1StrategyDeployment";
 import { VaultStrategyDataStoreDeployment } from "./VaultStrategyDataStoreDeployment";
-import { ConvexStrategyDeploymentConfig, ConvexStrategyDeployment } from "./ConvexStrategyDeployment";
-import { SingleAssetVault } from "../../types/SingleAssetVault";
+import { ConvexStrategyDeploymentConfig, ConvexV1StrategyDeployment } from "./strategies/ConvexV1StrategyDeployment";
 import { BigNumber } from "ethers";
-import { MockStrategyDeploymentConfig, MockStrategyDeployment } from "./MockStrategyDeployment";
+import { MockStrategyDeploymentConfig, MockStrategyDeployment } from "./strategies/MockStrategyDeployment";
+import { VaultUtilsDeployment } from "./VaultUtilsDeployment";
+import { SingleAssetVaultV2 } from "../../types/SingleAssetVaultV2";
+import * as strategies from "./strategies";
 
-export type VaultDeploymentConfig = {
+const DEFAULT_BOOST_VAULT_WEIGHT = 1;
+const DEFAULT_BOOST_STAKING_WEIGHT = 9;
+
+export interface VaultDeploymentConfig extends BaseConfig {
   name: string;
   symbol: string;
   governance: Wallet;
@@ -27,7 +40,7 @@ export type VaultDeploymentConfig = {
   // eslint-disable-next-line camelcase
   deposit_limit: number;
   strategies: Record<string, any>[];
-};
+}
 
 type VaultCurrentState = {
   // eslint-disable-next-line camelcase
@@ -38,16 +51,24 @@ type VaultCurrentState = {
   // eslint-disable-next-line camelcase
   deposit_limit: number;
   decimals: number;
+  // eslint-disable-next-line camelcase
+  staking_contract: string;
+  // eslint-disable-next-line camelcase
+  boost_vault_weight: number;
+  // eslint-disable-next-line camelcase
+  boost_staking_weight: number;
+  // eslint-disable-next-line camelcase
+  access_control_manager: string;
 };
 
 export class VaultDeployment extends ContractDeploymentUpdate {
-  contractName = "SingleAssetVault";
+  contractName = "SingleAssetVaultV2";
   upgradeable = true;
   config: VaultDeploymentConfig;
   vaultStrategyDataStoreDeployment: VaultStrategyDataStoreDeployment;
 
-  constructor(env: string, config: VaultDeploymentConfig, vaultStrategyDataStoreDeployment: VaultStrategyDataStoreDeployment) {
-    super(env);
+  constructor(commonArgs: DeployCommonArgs, config: VaultDeploymentConfig, vaultStrategyDataStoreDeployment: VaultStrategyDataStoreDeployment) {
+    super(commonArgs, config.version);
     this.config = config;
     this.vaultStrategyDataStoreDeployment = vaultStrategyDataStoreDeployment;
   }
@@ -67,78 +88,76 @@ export class VaultDeployment extends ContractDeploymentUpdate {
       this.config.token_address,
       "$ADDRESS_FOR_AccessControlManager",
       "$ADDRESS_FOR_YOPRewards",
+      "$ADDRESS_FOR_Staking",
     ]);
   }
 
   async deploy(): Promise<Array<ContractDeploymentCall>> {
     let results = new Array<ContractDeploymentCall>();
     const deployRecords: Record<string, DeploymentRecord> = await readDeploymentFile(this.env);
+    const commonArgs = { env: this.env, dryrun: this.dryrun };
     const record = deployRecords[this.name];
     let vaultAddress: string;
     if (!record || !record.address) {
       vaultAddress = `$ADDRESS_FOR_${this.name}`;
+      const vaultUtilsDeployment = new VaultUtilsDeployment(commonArgs);
+      results = results.concat(await vaultUtilsDeployment.deploy());
       results.push({
         name: this.name,
         contractName: this.contractName,
         upgradeable: this.upgradeable,
         params: await this.deployParams(),
+        version: this.version,
+        libraries: {
+          VaultUtils: "$ADDRESS_FOR_VaultUtils",
+        },
       });
     } else {
       vaultAddress = record.address;
+      if (!record.version || record.version.toString() !== this.version.toString()) {
+        if (this.version.toString() === "2") {
+          results = results.concat(await this.upgradeToV2());
+        }
+      }
     }
     for (const s of this.config.strategies) {
       const strategyContract = s.contract as string;
-      if (strategyContract.startsWith("Curve")) {
-        const curveStrategyConfig = s as CurveStrategyDeploymentConfig;
-        const curveStrategy = new CurveStrategyDeployment(
-          this.env,
-          vaultAddress,
-          this.config.manager,
-          this.vaultStrategyDataStoreDeployment,
-          curveStrategyConfig
-        );
-        results = results.concat(await curveStrategy.deploy());
-      } else if (strategyContract.startsWith("Convex")) {
-        const convexStrategyConfig = s as ConvexStrategyDeploymentConfig;
-        const convexStrategy = new ConvexStrategyDeployment(
-          this.env,
-          vaultAddress,
-          this.config.manager,
-          this.vaultStrategyDataStoreDeployment,
-          convexStrategyConfig
-        );
-        results = results.concat(await convexStrategy.deploy());
-      } else if (strategyContract.startsWith("Testnet")) {
-        const mockStrategyConfig = s as MockStrategyDeploymentConfig;
-        const mockStrategy = new MockStrategyDeployment(
-          this.env,
-          vaultAddress,
-          this.config.manager,
-          this.vaultStrategyDataStoreDeployment,
-          mockStrategyConfig
-        );
-        results = results.concat(await mockStrategy.deploy());
-      } else {
-        throw new Error("unsupported strategy contract " + strategyContract);
-      }
+      const strategyClass = strategies.getStrategyDeployment(strategyContract, s.version);
+      const inst = new (<any>strategies)[strategyClass](
+        commonArgs,
+        vaultAddress,
+        this.config.manager,
+        this.vaultStrategyDataStoreDeployment,
+        s as strategies.CommonStrategyConfig
+      );
+      results = results.concat(await inst.deploy());
     }
     return Promise.resolve(results);
   }
 
   async getCurrentState(address: string): Promise<any> {
     if (address) {
-      const contract = (await ethers.getContractAt(VaultABI, address)) as SingleAssetVault;
+      const contract = (await ethers.getContractAt(VaultABI, address)) as SingleAssetVaultV2;
       const paused = await contract.paused();
       const managementFee = await contract.managementFee();
       const emergencyShutdown = await contract.emergencyShutdown();
       const depositLimit = await contract.depositLimit();
       const decimals = await contract.decimals();
+      const stakingContract = await contract.stakingContract();
+      const weights = await contract.boostFormulaWeights();
+      const boostVaultWeight = weights.vaultBalanceWeight;
+      const boostStakingWeight = weights.stakingBalanceWeight;
+      const accessControlManager = await contract.accessManager();
       return {
         paused: paused,
         management_fee: managementFee.toNumber(),
         emergency_shutdown: emergencyShutdown,
         deposit_limit: depositLimit,
         decimals,
+        staking_contract: stakingContract,
+        boost_vault_weight: boostVaultWeight.toNumber(),
+        boost_staking_weight: boostStakingWeight.toNumber(),
+        access_control_manager: accessControlManager,
       };
     }
     return undefined;
@@ -151,6 +170,10 @@ export class VaultDeployment extends ContractDeploymentUpdate {
     let currentEmergencyShutdown;
     let currentDepositLimit;
     let vaultDecimals;
+    let currentStakingContract;
+    let currentBoostVaultWeight;
+    let currentBoostStakingWeight;
+    let currentAccessControlManager;
     if (currentState) {
       const s = currentState as VaultCurrentState;
       currentPaused = s.paused;
@@ -158,6 +181,10 @@ export class VaultDeployment extends ContractDeploymentUpdate {
       currentEmergencyShutdown = s.emergency_shutdown;
       vaultDecimals = s.decimals;
       currentDepositLimit = parseFloat(ethers.utils.formatUnits(s.deposit_limit, vaultDecimals));
+      currentStakingContract = s.staking_contract;
+      currentBoostVaultWeight = s.boost_vault_weight;
+      currentBoostStakingWeight = s.boost_staking_weight;
+      currentAccessControlManager = s.access_control_manager;
     }
     if (currentManagementFee !== this.config.management_fee) {
       results.push({
@@ -192,29 +219,39 @@ export class VaultDeployment extends ContractDeploymentUpdate {
         signer: this.config.governance,
       });
     }
+    const stakingContract = await this.getAddressByName("Staking");
+    if (currentStakingContract !== stakingContract) {
+      results.push({
+        address: address,
+        abi: VaultABI,
+        methodName: "setStakingContract",
+        params: [stakingContract],
+        signer: this.config.governance,
+      });
+    }
+    if (currentBoostVaultWeight !== DEFAULT_BOOST_VAULT_WEIGHT || currentBoostStakingWeight !== DEFAULT_BOOST_STAKING_WEIGHT) {
+      results.push({
+        address: address,
+        abi: VaultABI,
+        methodName: "setBoostedFormulaWeights",
+        params: [DEFAULT_BOOST_VAULT_WEIGHT, DEFAULT_BOOST_STAKING_WEIGHT],
+        signer: this.config.governance,
+      });
+    }
     const managerAddress = await this.getWalletAddress(this.config.manager);
     results = results.concat(await this.vaultStrategyDataStoreDeployment.updateForVault(address, managerAddress, this.config.max_debt_ratio));
+    const commonArgs = { env: this.env, dryrun: this.dryrun };
     for (const s of this.config.strategies) {
-      const strategyAdd = await this.getAddressByNameOrRandom(s.name);
-      let minDebtPerHarvest;
-      let maxDebtPerHarvest;
-      if (typeof s.minDebtPerHarvest !== "undefined") {
-        minDebtPerHarvest = BigNumber.from(s.minDebtPerHarvest);
-      }
-      if (typeof s.maxDebtPerHarvest !== "undefined") {
-        maxDebtPerHarvest = BigNumber.from(s.maxDebtPerHarvest);
-      }
-      results = results.concat(
-        await this.vaultStrategyDataStoreDeployment.updateForVaultStrategy(
-          address,
-          this.config.manager,
-          strategyAdd,
-          s.performance_fee,
-          s.allocation,
-          minDebtPerHarvest,
-          maxDebtPerHarvest
-        )
+      const strategyContract = s.contract as string;
+      const strategyClass = strategies.getStrategyDeployment(strategyContract, s.version);
+      const inst = new (<any>strategies)[strategyClass](
+        commonArgs,
+        address,
+        this.config.manager,
+        this.vaultStrategyDataStoreDeployment,
+        s as strategies.CommonStrategyConfig
       );
+      results = results.concat(await inst.update());
     }
     if (currentPaused !== this.config.paused) {
       results.push({
@@ -225,6 +262,39 @@ export class VaultDeployment extends ContractDeploymentUpdate {
         signer: this.config.governance,
       });
     }
+    const latestAccessManager = await this.getAddressByName("AccessControlManager");
+    if (currentAccessControlManager !== latestAccessManager) {
+      results.push({
+        address: address,
+        abi: VaultABI,
+        methodName: "setAccessManager",
+        params: [latestAccessManager],
+        signer: this.config.governance,
+      });
+    }
     return Promise.resolve(results);
+  }
+
+  async upgradeToV2(): Promise<Array<ContractDeploymentCall>> {
+    const commonArgs = { env: this.env, version: this.version, dryrun: this.dryrun };
+    let results = new Array<ContractDeploymentCall>();
+    const vaultUtilsDeployment = new VaultUtilsDeployment(commonArgs);
+    results = results.concat(await vaultUtilsDeployment.deploy());
+    results.push({
+      name: this.name,
+      contractName: "SingleAssetVaultV2",
+      upgradeable: true,
+      version: this.version,
+      isUpgrade: true,
+      libraries: {
+        VaultUtils: "$ADDRESS_FOR_VaultUtils",
+      },
+      signer: await this.upgradeSigner(),
+    });
+    return results;
+  }
+
+  async upgradeSigner(): Promise<Wallet | undefined> {
+    return this.config.governance;
   }
 }

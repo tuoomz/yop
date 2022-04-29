@@ -1,0 +1,63 @@
+# This job can be used to propose changes to mainnet production contracts.
+# NOTE: this should only be used to make configuration changes to existing contracts, and can't be used to deploy contracts (yet).
+# It will only be triggered when the `mainnet-production.yaml` file is changed.
+# In the PR, the job will only run the command in dry-run mode and only print out the changes in the console.
+# Once the PR is merged, the job will then propose the changes to the Gnosis governance safe, and the governance can then approve and execute transaction.
+name: Update Mainnet Config
+
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the main branch
+  push:
+    branches:
+      - main
+    paths:
+      - "deployment-config/mainnet-production.yaml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "deployment-config/mainnet-production.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-mainnet-config:
+    name: Update Mainnet Config
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: eu-west-1
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+          cache: "npm"
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Compile Contracts
+        run: npx hardhat compile
+
+      # This is a PR will only trigger the dry-run
+      - name: Update Mainnet Config (dry-run)
+        run: ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun true  --env mainnet-production
+        env:
+          HARDHAT_NETWORK: mainnet
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+        if: github.event_name == 'pull_request'
+
+      # It's not a PR, so propose the changes to the governance safe
+      - name: Update Mainnet Config
+        run: ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun false  --env mainnet-production
+        env:
+          HARDHAT_NETWORK: mainnet
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+        if: github.event_name != 'pull_request'

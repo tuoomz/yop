@@ -1,4 +1,4 @@
-import hre, { ethers } from "hardhat";
+import hre, { ethers, network } from "hardhat";
 import fsExtra from "fs-extra";
 import path from "path";
 import { promises as fs } from "fs";
@@ -27,22 +27,13 @@ export function isDevelopmentNetwork(): boolean {
 export async function readDeploymentFile(env: string = NETWORK_NAME): Promise<any> {
   const deploymentsFile = await getDeploymentFile(env);
 
-  try {
-    return Promise.resolve(JSON.parse(await fs.readFile(deploymentsFile, "utf8")));
-  } catch (e: any) {
-    if (e.code === "ENOENT") {
-      return {};
-    } else {
-      throw e;
-    }
-  }
+  return await readJSONFile(deploymentsFile);
 }
 
 // Write the latest deployment details to a deployment file
 export async function writeDeploymentFile(env: string, data: any): Promise<void> {
   const deploymentsFile = await getDeploymentFile(env);
-  await fsExtra.ensureFile(deploymentsFile);
-  await fs.writeFile(deploymentsFile, JSON.stringify(data, null, 2) + "\n");
+  await writeJSONFile(deploymentsFile, data);
 }
 
 // Write the latest deployment details to a deployment file
@@ -95,4 +86,49 @@ export async function getRolesAddresses(): Promise<Record<string, SignerWithAddr
     YOP,
     YOP_NFT_CONTRACT,
   };
+}
+
+export function sameVersion(v1, v2): boolean {
+  if (!v1 && v2) {
+    return false;
+  } else if (v1.toString() !== v2.toString()) {
+    return false;
+  }
+  return true;
+}
+
+export async function impersonate(account: string): Promise<SignerWithAddress> {
+  await network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [account],
+  });
+  const signer = await ethers.getSigner(account);
+
+  await network.provider.send("hardhat_setBalance", [
+    account,
+    "0x100000000000000000", // 2.9514791e+20 wei
+  ]);
+
+  return signer;
+}
+
+export function sameString(s1: string, s2: string): boolean {
+  return s1.toLowerCase() === s2.toLowerCase();
+}
+
+export async function readJSONFile(file: string): Promise<any> {
+  try {
+    return Promise.resolve(JSON.parse(await fs.readFile(file, "utf8")));
+  } catch (e: any) {
+    if (e.code === "ENOENT") {
+      return {};
+    } else {
+      throw e;
+    }
+  }
+}
+
+export async function writeJSONFile(file: string, data: any): Promise<void> {
+  await fsExtra.ensureFile(file);
+  await fs.writeFile(file, JSON.stringify(data, null, 2) + "\n");
 }

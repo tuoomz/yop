@@ -1,9 +1,9 @@
-import { ContractDeploymentUpdate, ContractFunctionCall, Wallet } from "./ContractDeployment";
+import { ContractDeploymentUpdate, ContractFunctionCall, Wallet, DeployCommonArgs, BaseConfig } from "./ContractDeployment";
 import FeeCollectionABI from "../../abi/contracts/fees/FeeCollection.sol/FeeCollection.json";
 import { ethers } from "hardhat";
 import { FeeCollection } from "../../types/FeeCollection";
 
-export type FeeCollectionDeploymentConfig = {
+export interface FeeCollectionDeploymentConfig extends BaseConfig {
   governance: Wallet;
   gatekeeper: Wallet;
   // eslint-disable-next-line camelcase
@@ -15,7 +15,7 @@ export type FeeCollectionDeploymentConfig = {
   // eslint-disable-next-line camelcase
   default_strategy_developer_fee_ratio: number;
   paused: boolean;
-};
+}
 
 type FeeCollectionCurrentState = {
   paused: boolean;
@@ -35,8 +35,8 @@ export class FeeCollectionDeployment extends ContractDeploymentUpdate {
   upgradeable = true;
   config: FeeCollectionDeploymentConfig;
 
-  constructor(env: string, config: FeeCollectionDeploymentConfig) {
-    super(env);
+  constructor(commonArgs: DeployCommonArgs, config: FeeCollectionDeploymentConfig) {
+    super(commonArgs, config.version);
     this.config = config;
   }
 
@@ -126,5 +126,9 @@ export class FeeCollectionDeployment extends ContractDeploymentUpdate {
       });
     }
     return Promise.resolve(results);
+  }
+
+  async upgradeSigner(): Promise<Wallet | undefined> {
+    return this.config.governance;
   }
 }

@@ -1,25 +1,25 @@
 import { ContractDeploymentUpdate, ContractFunctionCall, Wallet, DeployCommonArgs, BaseConfig } from "./ContractDeployment";
-import AllowAnyAccessControlABI from "../../abi/contracts/access/AllowAnyAccessControl.sol/AllowAnyAccessControl.json";
 
 // TODO: add support for per-vault config
-export interface AllowAnyAccessConfig extends BaseConfig {
+export interface SanctionlistAccessConfig extends BaseConfig {
   enabled: boolean;
   governance: Wallet;
-  global: boolean;
+  // eslint-disable-next-line camelcase
+  list_address: string;
 }
 
-export class AllowAnyAccessControlDeployment extends ContractDeploymentUpdate {
-  name = "AllowAnyAccessControl";
-  contractName = "AllowAnyAccessControl";
+export class SanctionlistAccessControlDeployment extends ContractDeploymentUpdate {
+  name = "SanctionlistAccessControl";
+  contractName = "SanctionsListAccessControl";
   upgradeable = false;
-  config: AllowAnyAccessConfig;
-  constructor(commonArgs: DeployCommonArgs, args: AllowAnyAccessConfig) {
+  config: SanctionlistAccessConfig;
+  constructor(commonArgs: DeployCommonArgs, args: SanctionlistAccessConfig) {
     super(commonArgs, args.version);
     this.config = args;
   }
 
   async deployParams(): Promise<Array<any>> {
-    return Promise.resolve([await this.getWalletAddress(this.config.governance)]);
+    return Promise.resolve([await this.getWalletAddress(this.config.governance), this.config.list_address]);
   }
 
   async getCurrentState(address: string): Promise<any> {
@@ -32,17 +32,8 @@ export class AllowAnyAccessControlDeployment extends ContractDeploymentUpdate {
     return Promise.resolve({});
   }
 
-  async updateState(address: string, currentState: AllowAnyAccessConfig): Promise<Array<ContractFunctionCall>> {
+  async updateState(address: string, currentState: SanctionlistAccessConfig): Promise<Array<ContractFunctionCall>> {
     const results = new Array<ContractFunctionCall>();
-    if (this.config.enabled && this.config.global !== currentState.global) {
-      results.push({
-        abi: AllowAnyAccessControlABI,
-        address: address,
-        methodName: "setDefault",
-        params: [this.config.global],
-        signer: this.config.governance,
-      });
-    }
     if (!this.dryrun) {
       const deploymentConfig = await this.deploymentRecords();
       deploymentConfig[this.name].configuration = this.config;

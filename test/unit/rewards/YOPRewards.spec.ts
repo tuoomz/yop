@@ -105,6 +105,24 @@ describe("YOPReward", () => {
       expect(rate[0]).to.be.closeTo(expected, ONE_UNIT); // the difference is no more than 0.1 YOP
       expect(rate[1]).to.equal(BigNumber.from(120));
     });
+    it("should return the correct rate in a consecutive epochs", async () => {
+      const startTime = monthsInSeconds(-0.5);
+      const endTime = monthsInSeconds(119);
+      let currentTime = nowInSeconds();
+      await yopRewardsContract.setEpochStartTime(startTime);
+      await yopRewardsContract.setEpochEndTime(endTime);
+      await yopRewardsContract.setBlocktimestamp(currentTime);
+      // this will make sure to calculate the rate based on the current stored epoch value
+      await yopRewardsContract.updateCurrentEpoch();
+      let rate = await yopRewardsContract.rate();
+      expect(rate[0]).to.equal(BigNumber.from(INITIAL_RATE));
+      expect(rate[1]).to.equal(ethers.constants.One);
+      currentTime = monthsInSeconds(2);
+      await yopRewardsContract.setBlocktimestamp(currentTime);
+      rate = await yopRewardsContract.rate();
+      expect(rate[0]).to.equal(BigNumber.from(INITIAL_RATE * 0.99 * 0.99));
+      expect(rate[1]).to.equal(BigNumber.from(3));
+    });
   });
 
   describe("setRewardWallet", async () => {

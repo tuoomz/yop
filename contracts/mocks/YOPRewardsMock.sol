@@ -53,4 +53,8 @@ contract YOPRewardsMock is YOPRewards {
   function version() external pure returns (string memory) {
     return "2.0.0";
   }
+
+  function updateCurrentEpoch() external {
+    super._updateCurrentEpoch();
+  }
 }

@@ -169,7 +169,9 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
   /// @return _epoch The current epoch. Starts from 1.
   function rate() external view returns (uint256 _rate, uint256 _epoch) {
     EpochInfo memory epoch = _getCurrentEpoch();
-    return (epoch.epochRate, epoch.epochCount);
+    // epoch count 0 means it's not started yet. And it will start from 1.
+    uint256 epochCount = epoch.epochRate == 0 ? 0 : epoch.epochCount + 1;
+    return (epoch.epochRate, epochCount);
   }
 
   /// @notice Return the claim record for the given address of a user
@@ -370,24 +372,25 @@ contract YOPRewards is IYOPRewards, BasePauseableUpgradeable {
       return epoch;
     }
     epoch = currentEpoch;
-    if (epoch.epochCount > 0) {
+    if (epoch.epochRate > 0) {
       // check if we are still in the "currentEpoch". Most requests should hit this path and no additional loops required
-      uint256 startTime = _getEpochStartTime() + (epoch.epochCount - 1) * SECONDS_PER_EPOCH;
+      uint256 startTime = _getEpochStartTime() + epoch.epochCount * SECONDS_PER_EPOCH;
       uint256 endTime = startTime + SECONDS_PER_EPOCH;
       if (startTime <= _getBlockTimestamp() && _getBlockTimestamp() <= endTime) {
         return epoch;
       }
     }
     // we are not in the "currentEpoch" anymore, so find out what's correct "currentEpoch"
-    uint256 epochRate = epoch.epochRate == 0 ? FIRST_EPOCH_EMISSION : epoch.epochRate;
-    uint256 r = epochRate * (10**YOP_DECIMAL);
+    // FIRST_EPOCH_EMISSION needs to include YOP decimals
+    uint256 epochRate = epoch.epochRate == 0 ? FIRST_EPOCH_EMISSION * (10**YOP_DECIMAL) : epoch.epochRate;
+    uint256 r = epochRate;
     for (uint256 i = epoch.epochCount; i < MAX_EPOCH_COUNT; i++) {
       // if there are any interactions with any of the vaults/staking contracts/claim rewards contracts every month,
       // then this should only be run once every epoch to bump the epoch count from i to i+1
       uint256 startTime = _getEpochStartTime() + SECONDS_PER_EPOCH * i;
       uint256 endTime = startTime + SECONDS_PER_EPOCH;
       if (startTime <= _getBlockTimestamp() && _getBlockTimestamp() <= endTime) {
-        epoch.epochCount = i + 1;
+        epoch.epochCount = i;
         epoch.epochRate = r;
         break;
       }

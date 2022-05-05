@@ -3251,6 +3251,556 @@
           }
         }
       }
+    },
+    "e48f8d21700c0e6c874909ec87653feb07ee9e6cd23c707f9b44f83a9b6293d1": {
+      "address": "0x5Ad5682D3f6A3cDdfDdDBCbc100fB0502dB879A7",
+      "txHash": "0x345fab3b7e9f6af8cd8f5d3cb06f60b4d226947f5124aef694f571ba63a73cef",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "GovernableInternal",
+            "label": "governance",
+            "type": "t_address",
+            "src": "contracts/vaults/roles/Governable.sol:21"
+          },
+          {
+            "contract": "GovernableInternal",
+            "label": "pendingGovernance",
+            "type": "t_address",
+            "src": "contracts/vaults/roles/Governable.sol:23"
+          },
+          {
+            "contract": "Gatekeeperable",
+            "label": "gatekeeper",
+            "type": "t_address",
+            "src": "contracts/vaults/roles/Gatekeeperable.sol:18"
+          },
+          {
+            "contract": "PausableUpgradeable",
+            "label": "_paused",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
+          },
+          {
+            "contract": "PausableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:97"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:215"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:81"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "vaultsRewardsWeight",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:83"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "stakingRewardsWeight",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:85"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "totalWeightForVaults",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:87"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "emissionStartTime",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:89"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "emissionEndTime",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:91"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "yopContractAddress",
+            "type": "t_address",
+            "src": "contracts/rewards/YOPRewards.sol:93"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "rewardsWallet",
+            "type": "t_address",
+            "src": "contracts/rewards/YOPRewards.sol:95"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "stakingContract",
+            "type": "t_address",
+            "src": "contracts/rewards/YOPRewards.sol:97"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "perVaultRewardsWeight",
+            "type": "t_mapping(t_address,t_uint256)",
+            "src": "contracts/rewards/YOPRewards.sol:101"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "vaultAddresses",
+            "type": "t_struct(AddressSet)4937_storage",
+            "src": "contracts/rewards/YOPRewards.sol:103"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "poolRewardsState",
+            "type": "t_mapping(t_address,t_struct(PoolRewardsState)22095_storage)",
+            "src": "contracts/rewards/YOPRewards.sol:106"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "userRewardsState",
+            "type": "t_mapping(t_address,t_mapping(t_bytes32,t_struct(UD60x18)48361_storage))",
+            "src": "contracts/rewards/YOPRewards.sol:108"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "claimRecords",
+            "type": "t_mapping(t_bytes32,t_struct(ClaimRecord)22100_storage)",
+            "src": "contracts/rewards/YOPRewards.sol:110"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "currentEpoch",
+            "type": "t_struct(EpochInfo)22181_storage",
+            "src": "contracts/rewards/YOPRewards.sol:121"
+          }
+        ],
+        "types": {
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
+          },
+          "t_struct(AddressSet)4937_storage": {
+            "label": "struct EnumerableSetUpgradeable.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)4636_storage"
+              }
+            ]
+          },
+          "t_struct(Set)4636_storage": {
+            "label": "struct EnumerableSetUpgradeable.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage"
+              },
+              {
+                "label": "_indexes",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              }
+            ]
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_mapping(t_address,t_struct(PoolRewardsState)22095_storage)": {
+            "label": "mapping(address => struct YOPRewards.PoolRewardsState)"
+          },
+          "t_struct(PoolRewardsState)22095_storage": {
+            "label": "struct YOPRewards.PoolRewardsState",
+            "members": [
+              {
+                "label": "index",
+                "type": "t_struct(UD60x18)48361_storage"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint256"
+              },
+              {
+                "label": "epochCount",
+                "type": "t_uint256"
+              },
+              {
+                "label": "epochRate",
+                "type": "t_uint256"
+              },
+              {
+                "label": "totalRewards",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_struct(UD60x18)48361_storage": {
+            "label": "struct PRBMath.UD60x18",
+            "members": [
+              {
+                "label": "value",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_mapping(t_bytes32,t_struct(UD60x18)48361_storage))": {
+            "label": "mapping(address => mapping(bytes32 => struct PRBMath.UD60x18))"
+          },
+          "t_mapping(t_bytes32,t_struct(UD60x18)48361_storage)": {
+            "label": "mapping(bytes32 => struct PRBMath.UD60x18)"
+          },
+          "t_mapping(t_bytes32,t_struct(ClaimRecord)22100_storage)": {
+            "label": "mapping(bytes32 => struct YOPRewards.ClaimRecord)"
+          },
+          "t_struct(ClaimRecord)22100_storage": {
+            "label": "struct YOPRewards.ClaimRecord",
+            "members": [
+              {
+                "label": "totalAvailable",
+                "type": "t_uint256"
+              },
+              {
+                "label": "totalClaimed",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_struct(EpochInfo)22181_storage": {
+            "label": "struct YOPRewards.EpochInfo",
+            "members": [
+              {
+                "label": "epochCount",
+                "type": "t_uint256"
+              },
+              {
+                "label": "epochRate",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          }
+        }
+      }
+    },
+    "f3c4db64e18e298ef67fdbd761703ccf5812fa0a2e555f7fa5189a530e323a36": {
+      "address": "0xfC55B147dF58dee9F722e2B9c5C8f8F9C176eC2f",
+      "txHash": "0x7797bc1ca70363ce3a478518ebd05aec8a7a56bf1f690efe1cf548cb95e0792f",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "GovernableInternal",
+            "label": "governance",
+            "type": "t_address",
+            "src": "contracts/vaults/roles/Governable.sol:21"
+          },
+          {
+            "contract": "GovernableInternal",
+            "label": "pendingGovernance",
+            "type": "t_address",
+            "src": "contracts/vaults/roles/Governable.sol:23"
+          },
+          {
+            "contract": "Gatekeeperable",
+            "label": "gatekeeper",
+            "type": "t_address",
+            "src": "contracts/vaults/roles/Gatekeeperable.sol:18"
+          },
+          {
+            "contract": "PausableUpgradeable",
+            "label": "_paused",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
+          },
+          {
+            "contract": "PausableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:97"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:215"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:81"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "vaultsRewardsWeight",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:83"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "stakingRewardsWeight",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:85"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "totalWeightForVaults",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:87"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "emissionStartTime",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:89"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "emissionEndTime",
+            "type": "t_uint256",
+            "src": "contracts/rewards/YOPRewards.sol:91"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "yopContractAddress",
+            "type": "t_address",
+            "src": "contracts/rewards/YOPRewards.sol:93"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "rewardsWallet",
+            "type": "t_address",
+            "src": "contracts/rewards/YOPRewards.sol:95"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "stakingContract",
+            "type": "t_address",
+            "src": "contracts/rewards/YOPRewards.sol:97"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "perVaultRewardsWeight",
+            "type": "t_mapping(t_address,t_uint256)",
+            "src": "contracts/rewards/YOPRewards.sol:101"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "vaultAddresses",
+            "type": "t_struct(AddressSet)4937_storage",
+            "src": "contracts/rewards/YOPRewards.sol:103"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "poolRewardsState",
+            "type": "t_mapping(t_address,t_struct(PoolRewardsState)22095_storage)",
+            "src": "contracts/rewards/YOPRewards.sol:106"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "userRewardsState",
+            "type": "t_mapping(t_address,t_mapping(t_bytes32,t_struct(UD60x18)48361_storage))",
+            "src": "contracts/rewards/YOPRewards.sol:108"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "claimRecords",
+            "type": "t_mapping(t_bytes32,t_struct(ClaimRecord)22100_storage)",
+            "src": "contracts/rewards/YOPRewards.sol:110"
+          },
+          {
+            "contract": "YOPRewards",
+            "label": "currentEpoch",
+            "type": "t_struct(EpochInfo)22181_storage",
+            "src": "contracts/rewards/YOPRewards.sol:121"
+          }
+        ],
+        "types": {
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
+          },
+          "t_struct(AddressSet)4937_storage": {
+            "label": "struct EnumerableSetUpgradeable.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)4636_storage"
+              }
+            ]
+          },
+          "t_struct(Set)4636_storage": {
+            "label": "struct EnumerableSetUpgradeable.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage"
+              },
+              {
+                "label": "_indexes",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              }
+            ]
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_mapping(t_address,t_struct(PoolRewardsState)22095_storage)": {
+            "label": "mapping(address => struct YOPRewards.PoolRewardsState)"
+          },
+          "t_struct(PoolRewardsState)22095_storage": {
+            "label": "struct YOPRewards.PoolRewardsState",
+            "members": [
+              {
+                "label": "index",
+                "type": "t_struct(UD60x18)48361_storage"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint256"
+              },
+              {
+                "label": "epochCount",
+                "type": "t_uint256"
+              },
+              {
+                "label": "epochRate",
+                "type": "t_uint256"
+              },
+              {
+                "label": "totalRewards",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_struct(UD60x18)48361_storage": {
+            "label": "struct PRBMath.UD60x18",
+            "members": [
+              {
+                "label": "value",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_mapping(t_bytes32,t_struct(UD60x18)48361_storage))": {
+            "label": "mapping(address => mapping(bytes32 => struct PRBMath.UD60x18))"
+          },
+          "t_mapping(t_bytes32,t_struct(UD60x18)48361_storage)": {
+            "label": "mapping(bytes32 => struct PRBMath.UD60x18)"
+          },
+          "t_mapping(t_bytes32,t_struct(ClaimRecord)22100_storage)": {
+            "label": "mapping(bytes32 => struct YOPRewards.ClaimRecord)"
+          },
+          "t_struct(ClaimRecord)22100_storage": {
+            "label": "struct YOPRewards.ClaimRecord",
+            "members": [
+              {
+                "label": "totalAvailable",
+                "type": "t_uint256"
+              },
+              {
+                "label": "totalClaimed",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_struct(EpochInfo)22181_storage": {
+            "label": "struct YOPRewards.EpochInfo",
+            "members": [
+              {
+                "label": "epochCount",
+                "type": "t_uint256"
+              },
+              {
+                "label": "epochRate",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          }
+        }
+      }
     }
   }
 }

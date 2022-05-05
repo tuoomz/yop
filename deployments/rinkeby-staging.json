@@ -788,8 +788,9 @@
       "0x7d02b6121acdd46a564542b5f1867208fd6f3cad",
       "1640995200"
     ],
-    "implementationAddress": "0x0b2eFA6fb0E4fCE6Fc71B15C8d210D9ab2F48F48",
-    "version": 2
+    "implementationAddress": "0xfC55B147dF58dee9F722e2B9c5C8f8F9C176eC2f",
+    "version": 2.1,
+    "implementation": "0x5Ad5682D3f6A3cDdfDdDBCbc100fB0502dB879A7"
   },
   "Staking": {
     "address": "0xbD3dCc8357512CA786e68656bF8ABaC3C4E906F3",
@@ -2533,7 +2534,8 @@
       "0x32F3CC19D275dAF22355C0e871D926690f790d7B",
       "0x79ef209DACD0C1019589366A6A03aB6e0d14Be15"
     ],
-    "implementationAddress": "0x36505725e03CE0B410C42ac96B77A73074Bd957A"
+    "implementationAddress": "0x67985e15D10d21C6cAFf34CA348491b59EB54759",
+    "version": 2
   },
   "MockDAI1": {
     "address": "0x995ec15f3186C6F8432D045C550a9398Dbc65Fb0",
@@ -2962,7 +2964,8 @@
       "0x32F3CC19D275dAF22355C0e871D926690f790d7B",
       "0x79ef209DACD0C1019589366A6A03aB6e0d14Be15"
     ],
-    "implementationAddress": "0x36505725e03CE0B410C42ac96B77A73074Bd957A"
+    "implementationAddress": "0x67985e15D10d21C6cAFf34CA348491b59EB54759",
+    "version": 2
   },
   "MockUSDT1": {
     "address": "0xc519A688418E2E0d1dd2B5422EBAB09fa5b5D7c9",
@@ -4013,6 +4016,15 @@
       "contract": "StakingV2",
       "address": "0xD162aBa727630f13A27E55e19e3E4fDCc0d9aC35",
       "version": 2.1
+    },
+    "0xfC55B147dF58dee9F722e2B9c5C8f8F9C176eC2f": {
+      "contract": "YOPRewardsV2",
+      "address": "0xfC55B147dF58dee9F722e2B9c5C8f8F9C176eC2f",
+      "version": 2.1,
+      "estimatedGas": {
+        "type": "BigNumber",
+        "hex": "0x3e8719"
+      }
     }
   },
   "StakingV1Mock2": {
@@ -4282,5 +4294,10 @@
     ],
     "version": 1,
     "implementationAddress": "0xD07cB2de90E19F2A572665006356791106Ced50d"
+  },
+  "YOPRewardsV2FixRinkeby": {
+    "address": "0x79ef209DACD0C1019589366A6A03aB6e0d14Be15",
+    "implementationAddress": "0x5Ad5682D3f6A3cDdfDdDBCbc100fB0502dB879A7",
+    "proposedUpgrade": true
   }
 }

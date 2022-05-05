@@ -84,7 +84,7 @@ fee_collection:
   # can be changed
   paused: false
 rewards:
-  version: 2
+  version: 2.1
   governance: *governance
   gatekeeper: *gatekeeper
   wallet: *rewardsWallet

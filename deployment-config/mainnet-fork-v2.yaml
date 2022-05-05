@@ -134,7 +134,7 @@ constants:
   usdt_vault:
     rewards_weight: &usdt_vault_rewards_weight 26862
     limit: &usdt_vault_limit 50000
-    paused: &usdt_vault_paused true
+    paused: &usdt_vault_paused false
     curve_strategy:
       allocation: &curve_usdt_allocation 1900 #20%
     convex_strategy:
@@ -364,15 +364,15 @@ vaults:
       #   # migrate_from: "CurveUSDC"
       #   pool_info:
       #     <<: *curve_ust_pool_info
-      - name: "ConvexUSDCV2"
-        contract: "ConvexCurveMeta"
-        harvester: *harvester_address
-        performance_fee: *strategy_performance_fee
-        allocation: 7000
-        version: 2
-        pool_info:
-          <<: *curve_ust_pool_info
-        booster: *convex_booster
+      # - name: "ConvexUSDCV2"
+      #   contract: "ConvexCurveMeta"
+      #   harvester: *harvester_address
+      #   performance_fee: *strategy_performance_fee
+      #   allocation: 7000
+      #   version: 2
+      #   pool_info:
+      #     <<: *curve_ust_pool_info
+      #   booster: *convex_booster
   - name: DAI Genesis
     symbol: "yopDAI"
     governance: *governance

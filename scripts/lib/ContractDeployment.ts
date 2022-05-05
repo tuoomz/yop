@@ -93,29 +93,27 @@ export abstract class ContractDeploymentUpdate implements IContractDeployment, I
         upgradeable: this.upgradeable,
         version: this.version,
       });
+    } else if (this.upgradeable) {
+      results.push({
+        name: this.name,
+        contractName: this.contractName,
+        upgradeable: true,
+        isUpgrade: true,
+        version: this.version,
+        signer: await this.upgradeSigner(),
+      });
     } else {
       const currentVersion = await this.deployedVersion();
       if (currentVersion.toString() !== this.version.toString()) {
-        if (this.upgradeable) {
-          results.push({
-            name: this.name,
-            contractName: this.contractName,
-            upgradeable: true,
-            isUpgrade: true,
-            version: this.version,
-            signer: await this.upgradeSigner(),
-          });
-        } else {
-          // contract is not upgradeable, so it will be another deployment
-          const params = await this.deployParams();
-          results.push({
-            name: this.name,
-            contractName: this.contractName,
-            params: params,
-            upgradeable: this.upgradeable,
-            version: this.version,
-          });
-        }
+        // contract is not upgradeable, so it will be another deployment
+        const params = await this.deployParams();
+        results.push({
+          name: this.name,
+          contractName: this.contractName,
+          params: params,
+          upgradeable: this.upgradeable,
+          version: this.version,
+        });
       }
     }
     return Promise.resolve(results);

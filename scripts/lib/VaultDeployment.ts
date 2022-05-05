@@ -114,10 +114,8 @@ export class VaultDeployment extends ContractDeploymentUpdate {
       });
     } else {
       vaultAddress = record.address;
-      if (!record.version || record.version.toString() !== this.version.toString()) {
-        if (this.version.toString() === "2") {
-          results = results.concat(await this.upgradeToV2());
-        }
+      if (this.version.toString() === "2") {
+        results = results.concat(await this.upgradeToV2());
       }
     }
     for (const s of this.config.strategies) {

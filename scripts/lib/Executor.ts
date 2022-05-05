@@ -204,7 +204,9 @@ export class Executor {
         libraries,
         deployment.signer
       );
-      results.push(upgradeCall);
+      if (upgradeCall) {
+        results.push(upgradeCall);
+      }
     } else {
       if (
         deploymentRecords[deployment.name] &&

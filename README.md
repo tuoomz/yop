@@ -112,10 +112,16 @@ Before you can deploy you need to have a populated .env file in the root of this
 ```bash
 #Start a local fork of mainnet
 npm run start-fork
-#Deploy contracts and seed wallets
-npm run deploy-contracts-fork
-npm run populate-fork
-#Reset local fork
+# In a separate window, run
+# Copy the configuration files
+cp ./deployments/mainnet-production.json ./deployments/dev.json
+cp ./.openzeppelin/mainnet.json ./.openzeppelin/unknown-31337.json
+# Deploy the contracts
+HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun false --env dev
+# Configure the contracts
+HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun false --env dev
+
+# To reset local fork
 npm run reset-fork
 ```
 

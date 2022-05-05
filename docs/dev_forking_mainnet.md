@@ -15,18 +15,16 @@ Note 2: All other forking commands should be run in a second window.
 
 ## Deploy contracts to Fork
 
-To run the contract deploy all script targeting the local network
+To deploy and configure the contracts to the local fork
 
-```
-npm run deploy-contracts-fork
-```
-
-## Populate Fork
-
-Currently this populates an address with 1000 ETH, DAI and USDC. Seed scripts can be found [here](../tasks/fork)
-
-```
-npm run populate-fork
+```bash
+# Copy the configuration files
+cp ./deployments/mainnet-production.json ./deployments/dev.json
+cp ./.openzeppelin/mainnet.json ./.openzeppelin/unknown-31337.json
+# Deploy the contracts
+HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun false --env dev
+# Configure the contracts
+HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun false --env dev
 ```
 
 ## Resetting the fork

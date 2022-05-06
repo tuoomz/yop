@@ -65,7 +65,7 @@ const config: HardhatUserConfig = {
         // eslint-disable-next-line
         enabled: process.env.ENABLE_FORKING == "true",
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-        blockNumber: process.env.FORK_BLOCK_NUMBER ? parseInt(process.env.FORK_BLOCK_NUMBER) : 13612911,
+        blockNumber: process.env.FORK_BLOCK_NUMBER ? parseInt(process.env.FORK_BLOCK_NUMBER) : 14717539,
       },
       chainId: chainIds.hardhat,
       allowUnlimitedContractSize: true,

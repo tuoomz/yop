@@ -111,6 +111,7 @@ export class VaultDeployment extends ContractDeploymentUpdate {
         libraries: {
           VaultUtils: "$ADDRESS_FOR_VaultUtils",
         },
+        initializer: "initializeV2",
       });
     } else {
       vaultAddress = record.address;

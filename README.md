@@ -12,13 +12,41 @@
 npx hardhat compile
 ```
 
+```
+npm run build
+```
+
 ## Test
 
+### Unit Tests
+
+Run:
+
 ```
-npx hardhat test
+npm run test/unit
 ```
 
-To run tests with the solidity events emmited to the console run
+### Integration Tests
+
+Prerequisites:
+
+- [ALCHEMY_API_KEY](#TODO) env configured in the `.env` file or exported before executing the integration tests
+
+Run:
+
+```
+npm run test/integration
+```
+
+### Print contracts logs
+
+To print the contract logs to the console during the test execution you have to add the `--logs` flag like this:
+
+```
+npm run test/unit -- --logs
+```
+
+or using the hardhat cli directly:
 
 ```
 npx hardhat test --logs
@@ -105,27 +133,56 @@ contracts/vaults/BaseVault.sol analyzed (27 contracts)
 
 ## Deploy
 
-Before you can deploy you need to have a populated .env file in the root of this project using .env.example as an example.
+Before you can deploy you need to have a populated `.env` file in the root of this project using `.env.example` as an example.
 
 ### Local Mainnet Fork
 
-```bash
-#Start a local fork of mainnet
-npm run start-fork
-# In a separate window, run
-# Copy the configuration files
-cp ./deployments/mainnet-production.json ./deployments/dev.json
-cp ./.openzeppelin/mainnet.json ./.openzeppelin/unknown-31337.json
-# Deploy the contracts
-HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun false --env dev
-# Configure the contracts
-HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun false --env dev
+**Prerequisites:**
 
-# To reset local fork
-npm run reset-fork
+- [ALCHEMY_API_KEY](#TODO) env
+
+Start a fork of the mainnet locally with hardhat:
+
+> The default forked block is configured in the [hardhat.config.ts](./hardhat.config.ts) config file and can be manually changed by setting the [FORK_BLOCK_NUMBER](#TODO) env.
+
+> Learn more about Mainnet forking here: https://hardhat.org/hardhat-network/guides/mainnet-forking.html
+
+```
+npm run start-fork
 ```
 
-More detail information on forking can be found [here](docs/dev_forking_mainnet.md).
+In a new terminal window/tab copy the network configuration files:
+
+> If you don't copy the `mainnet-production.json` file all contracts will be deployed as new contracts and not as upgrades of the existing ones in the fork network.
+
+```
+cp ./deployments/mainnet-production.json ./deployments/dev.json
+cp ./.openzeppelin/mainnet.json ./.openzeppelin/unknown-31337.json
+```
+
+Deploy the contracts:
+
+> The `deploy-by-config.ts` script with the `--deploy true` flag will deploy all contracts with the configuration specified from the `./deployment-config/mainnet-production.yaml` config file to the localhost forked network and will use the `./deployments/dev.json` file to determinate contract by contract if it has to be deployed, or it is already up-to-date and will then update the `./deployments/dev.json` file to match the new status of the contracts.
+
+```
+HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy true --update false --dryrun false --env dev
+```
+
+Update the contracts configuration:
+
+> Part of the configuration defined in the `mainnet-production.yaml` config file is set in this step and can be changed by executing this step again
+
+```
+HARDHAT_NETWORK=localhost ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun false --env dev
+```
+
+The fork network is now ready to be tested.
+
+#### Reset Local Mainnet Fork
+
+```bash
+npm run reset-fork
+```
 
 ### Deploy To Mainnet Fork
 
@@ -158,6 +215,19 @@ npx solhint 'contracts/**/*.sol' --fix
 ```
 
 For more information, please checkout [Hardhat docs](https://hardhat.org/getting-started/).
+
+## Environment Variables
+
+Many cmds can be tweaked using environment variables, they can be set in the `.env` file in the project root, and for starting you can the `.env.example` file.
+
+```
+cp .env.example .env
+```
+
+| Name                | Description                                                                                                             | Default Value |
+| ------------------- | :---------------------------------------------------------------------------------------------------------------------- | ------------: |
+| `ALCHEMY_API_KEY`   | The Alchemy API key is personal and can be optained by creating an account at https://alchemyapi.io                     |               |
+| `FORK_BLOCK_NUMBER` | The block number from which the mainnet will be forked. Check https://etherscan.io to pick your preferred block number. |               |
 
 ## Deployed Contract Addresses
 

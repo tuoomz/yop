@@ -30,7 +30,7 @@ npm run test/unit
 
 Prerequisites:
 
-- [ALCHEMY_API_KEY](#TODO) env configured in the `.env` file or exported before executing the integration tests
+- [ALCHEMY_API_KEY](#Environment-Variables) env configured in the `.env` file or exported before executing the integration tests
 
 Run:
 
@@ -139,11 +139,11 @@ Before you can deploy you need to have a populated `.env` file in the root of th
 
 **Prerequisites:**
 
-- [ALCHEMY_API_KEY](#TODO) env
+- [ALCHEMY_API_KEY](#Environment-Variables) env
 
 Start a fork of the mainnet locally with hardhat:
 
-> The default forked block is configured in the [hardhat.config.ts](./hardhat.config.ts) config file and can be manually changed by setting the [FORK_BLOCK_NUMBER](#TODO) env.
+> The default forked block is configured in the [hardhat.config.ts](./hardhat.config.ts) config file and can be manually changed by setting the [FORK_BLOCK_NUMBER](#Environment-Variables) env.
 
 > Learn more about Mainnet forking here: https://hardhat.org/hardhat-network/guides/mainnet-forking.html
 
@@ -183,6 +183,20 @@ The fork network is now ready to be tested.
 ```bash
 npm run reset-fork
 ```
+
+#### Get ETH, DAI, USDC, YOP, ... tokens
+
+To be able to test deposit, withdraw, boost and staking you need funds in different tokens. And because you may not have an account in the mainnet with a lot of funds you can add them to the forked mainnet with the `npm run populate-fork` command.
+
+To start you need to set the [DEVELOPMENT_WALLET](#Environment-Variables) env to your development account address which will receive the funds.
+
+Then run the following cmd to add ETH, DAI, USDC, YOP, ... to your development account.
+
+```
+npm run populate-fork
+```
+
+> Note: Tokens are not minted but tranfered from existing accounts defined in [accounts.ts](./tasks/fork/accounts.ts) file, therfore depending on status of the mainnet and the forked block number one or more accounts may not have the required funds and the **populate-fork** cmd could fail.
 
 ### Deploy To Mainnet Fork
 
@@ -224,10 +238,11 @@ Many cmds can be tweaked using environment variables, they can be set in the `.e
 cp .env.example .env
 ```
 
-| Name                | Description                                                                                                             | Default Value |
-| ------------------- | :---------------------------------------------------------------------------------------------------------------------- | ------------: |
-| `ALCHEMY_API_KEY`   | The Alchemy API key is personal and can be optained by creating an account at https://alchemyapi.io                     |               |
-| `FORK_BLOCK_NUMBER` | The block number from which the mainnet will be forked. Check https://etherscan.io to pick your preferred block number. |               |
+| Name                 | Description                                                                                                             | Default Value |
+| -------------------- | :---------------------------------------------------------------------------------------------------------------------- | ------------: |
+| `ALCHEMY_API_KEY`    | The Alchemy API key is personal and can be optained by creating an account at https://alchemyapi.io                     |               |
+| `FORK_BLOCK_NUMBER`  | The block number from which the mainnet will be forked. Check https://etherscan.io to pick your preferred block number. |               |
+| `DEVELOPMENT_WALLET` | The public address of your development account/wallet.                                                                  |               |
 
 ## Deployed Contract Addresses
 

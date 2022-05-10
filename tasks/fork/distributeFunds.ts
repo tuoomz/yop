@@ -4,10 +4,9 @@ import { yop } from "../yop";
 import { task } from "hardhat/config";
 import { ETH_ADDRESS, USDC_ADDRESS, DAI_ADDRESS, YOP_ADDRESS } from "./accounts";
 
-const BINANCE7_ADDRESS = "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"; // Random account with large sums of tokens
-const BINANCE_RICH_DAI = "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0"; // Random account with large sums of tokens
 const DEVELOPMENT_WALLET = process.env.DEVELOPMENT_WALLET;
 
+export default task("fork:distribute-funds", "Distribute funds from Binance")
   .addFlag("eth", "Disable all and fetch ETH")
   .addFlag("dai", "Disable all and fetch DAI")
   .addFlag("usdc", "Disable all and fetch USDC")
@@ -20,9 +19,9 @@ const DEVELOPMENT_WALLET = process.env.DEVELOPMENT_WALLET;
       all = true;
     }
 
-  const { ethers } = hre;
-  const { provider, getContractAt, utils } = ethers;
-  const { parseEther: toWei } = utils;
+    const { ethers } = hre;
+    const { provider, getContractAt, utils } = ethers;
+    const { parseEther: toWei } = utils;
 
     console.log("Gathering funds...");
     const binance7Eth = provider.getSigner(ETH_ADDRESS);
@@ -44,16 +43,16 @@ const DEVELOPMENT_WALLET = process.env.DEVELOPMENT_WALLET;
     }
 
     if (all || args.dai) {
-  console.log(`Sending 1000 DAI to ${DEVELOPMENT_WALLET}...`);
+      console.log(`Sending 1000 DAI to ${DEVELOPMENT_WALLET}...`);
       try {
-  await daiContract.transfer(DEVELOPMENT_WALLET, toWei("1000"));
+        await daiContract.transfer(DEVELOPMENT_WALLET, toWei("1000"));
       } catch (e) {
         console.error("error: failed to transfer DAI: ", e);
       }
     }
 
     if (all || args.usdc) {
-  console.log(`Sending 1000 USDC to ${DEVELOPMENT_WALLET}...`);
+      console.log(`Sending 1000 USDC to ${DEVELOPMENT_WALLET}...`);
       try {
         await usdcContract.transfer(DEVELOPMENT_WALLET, ethers.utils.parseUnits("1000", 6));
       } catch (e) {
@@ -73,5 +72,5 @@ const DEVELOPMENT_WALLET = process.env.DEVELOPMENT_WALLET;
       }
     }
 
-  console.log("Finished");
-});
+    console.log("Finished");
+  });

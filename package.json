@@ -18,7 +18,7 @@
     "populate-fork": "ENABLE_FORKING=true  npm run impersonate-accounts && npm run distribute-funds",
     "reset-fork": "ENABLE_FORKING=true hardhat --network localhost fork:reset",
     "impersonate-accounts": "hardhat --network localhost fork:impersonate-accounts",
-    "distribute-funds": "hardhat --network localhost fork:fetch-funds-from-binance",
+    "distribute-funds": "hardhat --network localhost fork:distribute-funds",
     "deploy": "hardhat run --network $npm_config_network scripts/deploy-all.ts",
     "propose-upgrade": "hardhat run --network $npm_config_network scripts/propose-upgrade.ts"
   },

@@ -10,6 +10,8 @@ import { readJSONFile, sameString } from "../../util";
 
 const CURVE_REGISTRY_ADDRESS = "0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5";
 const CONVEX_POOL_INFO_FILE = "deployments/convex-pools.json";
+const WETH_ADDRESS = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+const CURVE_ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 let convexPoolInfo: Record<string, any>;
 export class CurvePoolInfo implements CurvePool {
@@ -32,6 +34,9 @@ export class CurvePoolInfo implements CurvePool {
     this._lp_token = config.lp_token;
     this._gauge = config.gauge;
     this._convex_pool_id = config.convex_pool_id;
+    if (config.base_pool) {
+      this._base_pool = config.base_pool;
+    }
   }
 
   public get lp_token(): Promise<string> {
@@ -116,6 +121,9 @@ export class CurvePoolInfo implements CurvePool {
         try {
           const tokenAddress = await pool.coins(i);
           if (sameString(tokenAddress, token)) {
+            return i;
+          } else if (sameString(token, WETH_ADDRESS) && sameString(CURVE_ETH_ADDRESS, tokenAddress)) {
+            // if the token is WETH, it could be that the pool wants ETH, check if that's the case
             return i;
           }
         } catch (err) {

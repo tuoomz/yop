@@ -44,8 +44,7 @@ export abstract class BaseStrategyDeployment extends ContractDeploymentUpdate {
     let results = new Array<ContractFunctionCall>();
     let fromStrategyAddress;
     if (this.config.migrate_from) {
-      console.log("should migrate stratey from ", this.config.migrate_from);
-      const fromStrategyAddress = await this.getAddressByName(this.config.migrate_from);
+      fromStrategyAddress = await this.getAddressByName(this.config.migrate_from);
       if (!fromStrategyAddress) {
         throw new Error("no address found for strategy " + this.config.migrate_from);
       }

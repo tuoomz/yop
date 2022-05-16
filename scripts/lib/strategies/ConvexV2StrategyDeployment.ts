@@ -34,7 +34,7 @@ export class ConvexV2StrategyDeployment extends BaseStrategyDeployment {
     const poolId = await this.poolInfo.convex_pool_id;
     if (this.contractName === "ConvexETHSinglePool") {
       if (tokenIndex === -1) {
-        throw new Error(`can not load token index for token ${vaultToken} in pool ${basePool}`);
+        throw new Error(`can not load token index for token ${vaultToken} in pool ${this.poolInfo.pool}`);
       }
       return Promise.resolve([
         this.vault,
@@ -50,7 +50,7 @@ export class ConvexV2StrategyDeployment extends BaseStrategyDeployment {
       ]);
     } else if (this.contractName === "ConvexERC20SinglePool") {
       if (tokenIndex === -1) {
-        throw new Error(`can not load token index for token ${vaultToken} in pool ${basePool}`);
+        throw new Error(`can not load token index for token ${vaultToken} in pool ${this.poolInfo.pool}`);
       }
       return Promise.resolve([
         this.vault,

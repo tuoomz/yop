@@ -108,7 +108,7 @@ constants:
     curve_strategy:
       allocation: &curve_eth_allocation 0
     convex_strategy:
-      allocation: &convex_eth_allocation 9000
+      allocation: &convex_eth_allocation 9400
   wbtc_vault:
     rewards_weight: &wbtc_vault_rewards_weight 60000
     limit: &wbtc_vault_limit 5 # ~$2000000
@@ -295,15 +295,16 @@ vaults:
         booster: *convex_booster
         version: 1
         emergency_exit: false
-      - name: "ConvexETHV2"
-        contract: "ConvexETHSinglePool"
-        harvester: *harvester_address
-        performance_fee: *strategy_performance_fee
-        migrate_from: "ConvexETH"
-        version: 2
-        pool_info:
-          <<: *curve_steth_pool_info
-        booster: *convex_booster
+      # - name: "ConvexETHV2"
+      #   contract: "ConvexETHSinglePool"
+      #   harvester: *harvester_address
+      #   performance_fee: *strategy_performance_fee
+      #   # migrate_from: "ConvexETH"
+
+      #   version: 2
+      #   pool_info:
+      #     <<: *curve_steth_pool_info
+      #   booster: *convex_booster
   - name: Bitcoin Genesis
     symbol: "yopBTC"
     governance: *governance

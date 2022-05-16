@@ -122,7 +122,7 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
         abi: VaultStrategyDataStoreABI,
         methodName: "updateStrategyDebtRatio",
         params: [vaultAddress, strategyAddress, debtRatio],
-        signer: vaultManager,
+        signer: this.config.governance,
       });
     }
     if (!currentMinDebtPerHarvest || !currentMinDebtPerHarvest.eq(minDebtPerHarvest)) {
@@ -131,7 +131,7 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
         abi: VaultStrategyDataStoreABI,
         methodName: "updateStrategyMinDebtHarvest",
         params: [vaultAddress, strategyAddress, minDebtPerHarvest],
-        signer: vaultManager,
+        signer: this.config.governance,
       });
     }
     if (!currentMaxDebtPerHarvest || !currentMaxDebtPerHarvest.eq(maxDebtPerHarvest)) {
@@ -140,7 +140,7 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
         abi: VaultStrategyDataStoreABI,
         methodName: "updateStrategyMaxDebtHarvest",
         params: [vaultAddress, strategyAddress, maxDebtPerHarvest],
-        signer: vaultManager,
+        signer: this.config.governance,
       });
     }
     return results;

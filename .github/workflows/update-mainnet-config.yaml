@@ -55,9 +55,12 @@ jobs:
         if: github.event_name == 'pull_request'
 
       # It's not a PR, so propose the changes to the governance safe
-      - name: Update Mainnet Config
+      - name: Update Mainnet
         run: ./node_modules/.bin/ts-node --files ./scripts/deploy-by-config.ts --config ./deployment-config/mainnet-production.yaml --deploy false --update true --dryrun false  --env mainnet-production
         env:
           HARDHAT_NETWORK: mainnet
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GNOSIS_SIGNER_KMSID: ${{ secrets.GNOSIS_SIGNER_KMSID }}
         if: github.event_name != 'pull_request'

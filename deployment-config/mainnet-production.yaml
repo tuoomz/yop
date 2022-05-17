@@ -101,48 +101,47 @@ constants:
     # https://etherscan.io/address/0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
     usdn_pool: &curve_usdn_pool "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"
   weth_vault:
-    rewards_weight: &weth_vault_rewards_weight 90000
-    # limit: &weth_vault_limit 17 # ~$50000 the script will include the token decimals automatically
-    limit: &weth_vault_limit 102 # ~300000
+    rewards_weight: &weth_vault_rewards_weight 130000
+    limit: &weth_vault_limit 153
     paused: &weth_vault_paused false
     curve_strategy:
       allocation: &curve_eth_allocation 0
     convex_strategy:
       allocation: &convex_eth_allocation 9400
   wbtc_vault:
-    rewards_weight: &wbtc_vault_rewards_weight 60000
-    limit: &wbtc_vault_limit 5 # ~$2000000
+    rewards_weight: &wbtc_vault_rewards_weight 85000
+    limit: &wbtc_vault_limit 7.5
     paused: &wbtc_vault_paused false
     curve_strategy:
       allocation: &curve_wbtc_allocation 1900
     convex_strategy:
       allocation: &convex_wbtc_allocation 7600 #80%
   usdc_vault:
-    rewards_weight: &usdc_vault_rewards_weight 30000
-    limit: &usdc_vault_limit 100000
+    rewards_weight: &usdc_vault_rewards_weight 42500
+    limit: &usdc_vault_limit 150000
     paused: &usdc_vault_paused false
     curve_strategy:
       allocation: &curve_usdc_allocation 0
     convex_strategy:
       allocation: &convex_usdc_allocation 8500
   dai_vault:
-    rewards_weight: &dai_vault_rewards_weight 30000
-    limit: &dai_vault_limit 100000
+    rewards_weight: &dai_vault_rewards_weight 42500
+    limit: &dai_vault_limit 150000
     paused: &dai_vault_paused false
     curve_strategy:
       allocation: &curve_dai_allocation 0
     convex_strategy:
       allocation: &convex_dai_allocation 8500
   usdt_vault:
-    rewards_weight: &usdt_vault_rewards_weight 30000
-    limit: &usdt_vault_limit 100000
+    rewards_weight: &usdt_vault_rewards_weight 42500
+    limit: &usdt_vault_limit 150000
     paused: &usdt_vault_paused false
     curve_strategy:
       allocation: &curve_usdt_allocation 0
     convex_strategy:
       allocation: &convex_usdt_allocation 8500
   dummy_vault:
-    rewards_weight: &dummy_vault_rewards_weight 510000
+    rewards_weight: &dummy_vault_rewards_weight 407500
     limit: &dummy_vault_limit 0
 
 # Configure the access policies to vaults/staking

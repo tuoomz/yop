@@ -241,19 +241,6 @@ export class VaultDeployment extends ContractDeploymentUpdate {
         signer: this.config.governance,
       });
     }
-    const managerAddress = await this.getWalletAddress(this.config.manager);
-    const withdrawQueue: string[] = [];
-    if (this.config.withdraw_queue && this.config.withdraw_queue.length > 0) {
-      for (let i = 0; i < this.config.withdraw_queue.length; i++) {
-        const strategyAddress = await this.getAddressByName(this.config.withdraw_queue[i]);
-        if (strategyAddress) {
-          withdrawQueue.push(strategyAddress);
-        }
-      }
-    }
-    results = results.concat(
-      await this.vaultStrategyDataStoreDeployment.updateForVault(address, managerAddress, this.config.max_debt_ratio, withdrawQueue)
-    );
     const commonArgs = { env: this.env, dryrun: this.dryrun };
     for (const s of this.config.strategies) {
       const strategyContract = s.contract as string;
@@ -267,6 +254,19 @@ export class VaultDeployment extends ContractDeploymentUpdate {
       );
       results = results.concat(await inst.update());
     }
+    const managerAddress = await this.getWalletAddress(this.config.manager);
+    const withdrawQueue: string[] = [];
+    if (this.config.withdraw_queue && this.config.withdraw_queue.length > 0) {
+      for (let i = 0; i < this.config.withdraw_queue.length; i++) {
+        const strategyAddress = await this.getAddressByName(this.config.withdraw_queue[i]);
+        if (strategyAddress) {
+          withdrawQueue.push(strategyAddress);
+        }
+      }
+    }
+    results = results.concat(
+      await this.vaultStrategyDataStoreDeployment.updateForVault(address, managerAddress, this.config.max_debt_ratio, withdrawQueue)
+    );
     if (currentPaused !== this.config.paused) {
       results.push({
         address: address,

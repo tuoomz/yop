@@ -10,6 +10,7 @@ verifyEnvVar(requireEnvVar);
 const argv = yargs(process.argv.slice(2))
   .options({
     env: { type: "string", default: "", describe: "the environment id" },
+    name: { type: "string", default: "", describe: "the name of the contract to verify" },
   })
   .parseSync();
 
@@ -19,13 +20,20 @@ async function main(): Promise<void> {
     throw new Error("no environment");
   }
   const deployRecord = await readDeploymentFile(env);
-
-  for (const key in deployRecord) {
-    console.log(`VERIFY :: ${key}`);
-    const deployAddress = deployRecord[key].proxy ? deployRecord[key].implementationAddress : deployRecord[key].address;
-    const deployArgs = deployRecord[key].proxy ? [] : deployRecord[key].contractParams;
+  if (argv.name) {
+    console.log(`VERIFY :: ${argv.name}`);
+    const deployAddress = deployRecord[argv.name].proxy ? deployRecord[argv.name].implementationAddress : deployRecord[argv.name].address;
+    const deployArgs = deployRecord[argv.name].proxy ? [] : deployRecord[argv.name].contractParams;
     await verify(deployAddress, deployArgs);
-    console.log(`VERIFIED :: ${key}`);
+  } else {
+    console.log("No contract name is specified, will try to verify all contracts");
+    for (const key in deployRecord) {
+      console.log(`VERIFY :: ${key}`);
+      const deployAddress = deployRecord[key].proxy ? deployRecord[key].implementationAddress : deployRecord[key].address;
+      const deployArgs = deployRecord[key].proxy ? [] : deployRecord[key].contractParams;
+      await verify(deployAddress, deployArgs);
+      console.log(`VERIFIED :: ${key}`);
+    }
   }
 }
 

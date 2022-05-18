@@ -40,6 +40,8 @@ export interface VaultDeploymentConfig extends BaseConfig {
   // eslint-disable-next-line camelcase
   deposit_limit: number;
   strategies: Record<string, any>[];
+  // eslint-disable-next-line camelcase
+  withdraw_queue?: string[];
 }
 
 type VaultCurrentState = {
@@ -59,6 +61,8 @@ type VaultCurrentState = {
   boost_staking_weight: number;
   // eslint-disable-next-line camelcase
   access_control_manager: string;
+  // eslint-disable-next-line camelcase
+  withdraw_queue: string[];
 };
 
 export class VaultDeployment extends ContractDeploymentUpdate {
@@ -238,7 +242,18 @@ export class VaultDeployment extends ContractDeploymentUpdate {
       });
     }
     const managerAddress = await this.getWalletAddress(this.config.manager);
-    results = results.concat(await this.vaultStrategyDataStoreDeployment.updateForVault(address, managerAddress, this.config.max_debt_ratio));
+    const withdrawQueue: string[] = [];
+    if (this.config.withdraw_queue && this.config.withdraw_queue.length > 0) {
+      for (let i = 0; i < this.config.withdraw_queue.length; i++) {
+        const strategyAddress = await this.getAddressByName(this.config.withdraw_queue[i]);
+        if (strategyAddress) {
+          withdrawQueue.push(strategyAddress);
+        }
+      }
+    }
+    results = results.concat(
+      await this.vaultStrategyDataStoreDeployment.updateForVault(address, managerAddress, this.config.max_debt_ratio, withdrawQueue)
+    );
     const commonArgs = { env: this.env, dryrun: this.dryrun };
     for (const s of this.config.strategies) {
       const strategyContract = s.contract as string;

@@ -33,15 +33,22 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
     return Promise.resolve(results);
   }
 
-  async updateForVault(vaultAddress: string, manager: string, maxDebtRatio: number): Promise<Array<ContractFunctionCall>> {
+  async updateForVault(
+    vaultAddress: string,
+    manager: string,
+    maxDebtRatio: number,
+    withdrawQueue?: string[]
+  ): Promise<Array<ContractFunctionCall>> {
     let address = await this.currentAddress();
     const result = new Array<ContractFunctionCall>();
     let currentManager;
     let currentMaxDebtRatio;
+    let currentWithdrawQueue;
     if (address) {
       const contract = (await ethers.getContractAt(VaultStrategyDataStoreABI, address)) as VaultStrategyDataStore;
       currentManager = await contract.vaultManager(vaultAddress);
       currentMaxDebtRatio = await contract.vaultMaxTotalDebtRatio(vaultAddress);
+      currentWithdrawQueue = await contract.withdrawQueue(vaultAddress);
     } else {
       address = `$ADDRESS_FOR_${this.name}`;
     }
@@ -60,6 +67,15 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
         abi: VaultStrategyDataStoreABI,
         methodName: "setMaxTotalDebtRatio",
         params: [vaultAddress, maxDebtRatio],
+        signer: this.config.governance,
+      });
+    }
+    if (withdrawQueue && withdrawQueue.length > 0 && !arrayEquals(withdrawQueue, currentWithdrawQueue)) {
+      result.push({
+        address: address,
+        abi: VaultStrategyDataStoreABI,
+        methodName: "setWithdrawQueue",
+        params: [vaultAddress, withdrawQueue],
         signer: this.config.governance,
       });
     }
@@ -163,4 +179,10 @@ export class VaultStrategyDataStoreDeployment extends ContractDeploymentUpdate {
     }
     return results;
   }
+}
+
+function arrayEquals(a: string[], b: string[]): boolean {
+  a = [...a].sort();
+  b = [...b].sort();
+  return a.length === b.length && a.every((val, i) => val === b[i]);
 }

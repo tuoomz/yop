@@ -85,6 +85,7 @@ export const CONST: any = {
     LP_TOKEN: "0x075b1bb99792c9E1041bA13afEf80C91a1e70fB3", // crvRenWSBTC
     COINS: { renBTC: 0, WBTC: 1, sBTC: 2 },
     NO_OF_COINS: 3,
+    GAUGE: "0x705350c4BcD35c9441419DdD5d2f097d7a55410F",
   } as Pool,
   // Curve Meta Pools
   USDN_META_POOL: {

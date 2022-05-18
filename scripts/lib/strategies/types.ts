@@ -56,6 +56,8 @@ export interface CurveV2DeploymentConfig {
   convex_pool_id?: number;
   // eslint-disable-next-line camelcase
   base_pool?: string;
+  // eslint-disable-next-line camelcase
+  input_token_index?: number;
 }
 
 export interface CurveV2StrategyConfig extends CommonStrategyConfig {

@@ -24,6 +24,7 @@ export class CurvePoolInfo implements CurvePool {
   private _gauge?: string;
   private _convex_pool_id?: number;
   private _base_pool?: string;
+  private _input_token_index?: number;
 
   constructor(config: CurveV2DeploymentConfig) {
     this.type = config.type;
@@ -36,6 +37,9 @@ export class CurvePoolInfo implements CurvePool {
     this._convex_pool_id = config.convex_pool_id;
     if (config.base_pool) {
       this._base_pool = config.base_pool;
+    }
+    if (typeof config.input_token_index !== "undefined") {
+      this._input_token_index = config.input_token_index;
     }
   }
 
@@ -114,6 +118,9 @@ export class CurvePoolInfo implements CurvePool {
   }
 
   public async token_index(token: string): Promise<number> {
+    if (typeof this._input_token_index !== "undefined") {
+      return this._input_token_index;
+    }
     if (this.type === "plain" || this.type === "meta") {
       const pool = await ethers.getContractAt(CurvePlainPoolABI, this.pool);
       // plain pools should have 2 or 3 tokens and meta pools have 2 tokens

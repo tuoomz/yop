@@ -31,6 +31,8 @@ interface StrategyInfo {
   // set this if an existing strategy needs to be revoked
   // and then adding the new one
   revoke?: string;
+  // block to fork from for the test
+  forkBlock?: number;
 }
 
 const strategies: StrategyInfo[] = [
@@ -51,6 +53,7 @@ const strategies: StrategyInfo[] = [
       CONST.TOKENS.LDO.ADDRESS,
     ],
     migrateFrom: MainnetDeployments.ConvexETH.address,
+    forkBlock: 14742035,
   },
   {
     name: "USDC-ConvexFrax",
@@ -71,6 +74,7 @@ const strategies: StrategyInfo[] = [
       32,
     ],
     allocation: 5000, // 50%
+    forkBlock: 14742035,
   },
   {
     name: "DAI-ConvexFrax",
@@ -91,6 +95,7 @@ const strategies: StrategyInfo[] = [
       32,
     ],
     revoke: MainnetDeployments.ConvexDAI.address,
+    forkBlock: 14742035,
   },
   {
     name: "USDT-ConvexFrax",
@@ -111,6 +116,27 @@ const strategies: StrategyInfo[] = [
       32,
     ],
     revoke: MainnetDeployments.ConvexUSDT.address,
+    forkBlock: 14742035,
+  },
+  {
+    name: "WBTC-ConvexsBTC",
+    vault: MainnetDeployments["Bitcoin Genesis"].address,
+    contract: "ConvexERC20SinglePool",
+    params: [
+      MainnetDeployments["Bitcoin Genesis"].address,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      HARVESTER_ADDRESS,
+      CONST.SBTC.ADDRESS,
+      CONST.SBTC.GAUGE,
+      CONST.SBTC.NO_OF_COINS,
+      CONST.SBTC.COINS.WBTC,
+      CONST.TOKENS.WBTC.ADDRESS,
+      false,
+      7,
+      CONST.CONVEX_BOOSTER_ADDRESS,
+    ],
+    migrateFrom: MainnetDeployments.ConvexWBTC.address,
   },
 ];
 
@@ -123,7 +149,7 @@ strategies.forEach(function (strategyInfo) {
     let harvester: SignerWithAddress;
 
     beforeEach(async () => {
-      await reset(FORK_BLOCK);
+      await reset(strategyInfo.forkBlock || FORK_BLOCK);
       // setup the vault
       vault = (await ethers.getContractAt(VaultABI, strategyInfo.vault)) as SingleAssetVaultV2;
       const strategyDataStoreAddress = await vault.strategyDataStore();

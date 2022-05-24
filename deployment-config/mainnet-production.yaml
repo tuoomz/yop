@@ -246,7 +246,7 @@ rewards:
   # can be changed
   paused: false
 staking:
-  version: 2
+  version: 2.1
   name: "YOP Staking"
   symbol: "sYOP"
   governance: *governance

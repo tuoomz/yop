@@ -24,4 +24,8 @@ contract StakingMock is Staking {
     super._getBlockTimestamp(); // for code coverage
     return blocktime;
   }
+
+  function removeStake(address _from, uint256 _tokenId) external {
+    super._removeValue(stakesForAddress[_from], _tokenId);
+  }
 }

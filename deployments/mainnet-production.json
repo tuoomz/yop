@@ -886,8 +886,8 @@
       "0xa457DB3493c9d3a11c63cAAF27B78Fe1cEB2bd0D",
       "0x918fEB418Aa1E90A27B99aecB32e13a07a401A6c"
     ],
-    "implementationAddress": "0x9ec4b5f8dbD217fbe910C6f937A161d92fa74f01",
-    "version": 2
+    "implementationAddress": "0x9b967f0f915B8173cE5506497217e12F072A86fE",
+    "version": 2.1
   },
   "Ethereum Genesis": {
     "address": "0xb0Fa60dC63De31F8532565FCe956eA79A257D0ca",
@@ -4820,6 +4820,15 @@
       "estimatedGas": {
         "type": "BigNumber",
         "hex": "0x3e8719"
+      }
+    },
+    "0x9b967f0f915B8173cE5506497217e12F072A86fE": {
+      "contract": "StakingV2",
+      "address": "0x9b967f0f915B8173cE5506497217e12F072A86fE",
+      "version": 2.1,
+      "estimatedGas": {
+        "type": "BigNumber",
+        "hex": "0x522e24"
       }
     }
   },

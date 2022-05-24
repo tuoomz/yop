@@ -73,6 +73,8 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
   // stakes for each account
   mapping(address => uint256[]) internal stakesForAddress;
   // ownership of the NFTs
+  // This is deprecated, please don't use this anymore.
+  // Instead uses balanceOf(account, tokenId) to check ownership
   mapping(uint256 => address) public owners;
   // cap for staking
   uint256 public stakingLimit;
@@ -256,27 +258,29 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
   /// @dev This function is invoked by the ERC1155 implementation. It will be called everytime when tokens are minted, transferred and burned.
   ///  We add implementation for this function to perform the common bookkeeping tasks, like update the working balance, update ownership mapping etc.
   function _beforeTokenTransfer(
-    address,
+    address _operator,
     address _from,
     address _to,
     uint256[] memory _ids,
-    uint256[] memory,
+    uint256[] memory _amounts,
     bytes memory
   ) internal override {
     for (uint256 i = 0; i < _ids.length; i++) {
       uint256 tokenId = _ids[i];
+      uint256 amount = _amounts[i];
+      require(amount > 0, "!amount");
       Stake storage s = stakes[tokenId];
       s.lastTransferTime = _getBlockTimestamp();
       uint256 balance = _workingBalanceOfStake(s);
       if (_from != address(0)) {
+        // make sure from owns the tokenId
+        require(balanceOf(_from, tokenId) > 0, "!allowed");
         totalWorkingSupply -= balance;
         _removeValue(stakesForAddress[_from], tokenId);
-        owners[tokenId] = address(0);
       }
       if (_to != address(0)) {
         totalWorkingSupply += balance;
         stakesForAddress[_to].push(tokenId);
-        owners[tokenId] = _to;
       } else {
         // this is a burn, reset the fields of the stake record
         delete stakes[tokenId];
@@ -297,15 +301,19 @@ contract Staking is IStaking, ERC1155Upgradeable, BasePauseableUpgradeable {
 
   function _removeValue(uint256[] storage _values, uint256 _val) internal {
     uint256 i;
+    bool found = false;
     for (i = 0; i < _values.length; i++) {
       if (_values[i] == _val) {
+        found = true;
         break;
       }
     }
     for (; i < _values.length - 1; i++) {
       _values[i] = _values[i + 1];
     }
-    _values.pop();
+    if (found) {
+      _values.pop();
+    }
   }
 
   function _updateAccessControlManager(address _accessControlManager) internal {

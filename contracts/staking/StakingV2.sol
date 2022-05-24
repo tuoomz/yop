@@ -133,7 +133,7 @@ contract StakingV2 is IStakingV2, Staking, ReentrancyGuardUpgradeable {
     require(_additionalAmount > 0 || _additionalDuration > 0, "!parameters");
 
     Stake storage stake = stakes[_stakeId];
-    require(owners[_stakeId] == _msgSender(), "!owner");
+    require(balanceOf(_msgSender(), _stakeId) > 0, "!owner");
 
     uint8 newLockPeriod = stake.lockPeriod;
     if (_additionalDuration > 0) {
@@ -196,7 +196,7 @@ contract StakingV2 is IStakingV2, Staking, ReentrancyGuardUpgradeable {
   /// @param _topupStakeId The stake id to add the vault rewards
   function compoundForUser(address _user, uint256 _topupStakeId) external {
     _notPaused();
-    require(owners[_topupStakeId] == _user, "!owner");
+    require(balanceOf(_user, _topupStakeId) > 0, "!owner");
     uint256[] memory stakeIds = stakesForAddress[_user];
     uint256 totalIncreasedSupply = _compoundForStakes(stakeIds);
     address[] memory users = new address[](1);
@@ -240,7 +240,7 @@ contract StakingV2 is IStakingV2, Staking, ReentrancyGuardUpgradeable {
     for (uint256 i = 0; i < _topupStakes.length; i++) {
       uint256 stakeId = _topupStakes[i];
       uint248 newAmount = uint248(stakes[stakeId].amount + rewardsAmount[i]);
-      require(owners[stakeId] == _users[i], "!owner");
+      require(balanceOf(_users[i], stakeId) > 0, "!owner");
       stakes[stakeId].amount = newAmount;
       totalIncreasedSupply += rewardsAmount[i] * stakes[stakeId].lockPeriod;
       address[] memory vaults;

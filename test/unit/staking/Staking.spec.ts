@@ -188,7 +188,6 @@ describe("Staking", async () => {
       expect(await staking.totalWorkingSupply()).to.equal(0);
       expect(await staking.workingBalanceOf(user.address)).to.equal(0);
       expect(await staking.stakesFor(user.address)).to.deep.equal([]);
-      expect(await staking.owners(0)).to.equal(ethers.constants.AddressZero);
       await expect(await staking.connect(user).stake(stakeAmount, 2))
         .to.emit(staking, "Staked")
         .withArgs(user.address, 0, stakeAmount, 2, blockTime);
@@ -196,7 +195,6 @@ describe("Staking", async () => {
       expect(await staking.totalWorkingSupply()).to.equal(stakeAmount.mul(2));
       expect(await staking.workingBalanceOf(user.address)).to.equal(stakeAmount.mul(2));
       expect(await staking.stakesFor(user.address)).to.deep.equal([ethers.constants.Zero]);
-      expect(await staking.owners(0)).to.equal(user.address);
       expect(await staking.stakes(0)).to.deep.equal([2, stakeAmount, BigNumber.from(blockTime), BigNumber.from(blockTime)]);
     });
 
@@ -269,7 +267,6 @@ describe("Staking", async () => {
       expect(await staking.totalWorkingSupply()).to.equal(amount2.mul(6).add(amount1.mul(3)));
       expect(await staking.stakesFor(user.address)).to.deep.equal([ethers.constants.One]);
       expect(await staking.stakes(0)).to.deep.equal([0, ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero]);
-      expect(await staking.owners(0)).to.equal(ethers.constants.AddressZero);
     });
 
     it("should be able to unstake after transfer", async () => {
@@ -285,7 +282,6 @@ describe("Staking", async () => {
       expect(await staking.balanceOf(user2.address, 0)).to.equal(1);
       expect(await staking.workingBalanceOf(user2.address)).to.equal(amount1.mul(2).add(amount2.mul(6)));
       expect(await staking.stakesFor(user2.address)).to.deep.equal([ethers.constants.Two, ethers.constants.Zero]);
-      expect(await staking.owners(0)).to.equal(user2.address);
       await expect(await staking.connect(user2).unstakeSingle(0, user2.address))
         .to.emit(staking, "Unstaked")
         .withArgs(user2.address, 0, amount1, 2, blockTime);
@@ -352,8 +348,6 @@ describe("Staking", async () => {
         .withArgs(user.address, 0, amount1, 2, blockTime);
       expect(await staking.balanceOf(user.address, 0)).to.equal(0);
       expect(await staking.balanceOf(user.address, 1)).to.equal(1);
-      expect(await staking.owners(0)).to.equal(ethers.constants.AddressZero);
-      expect(await staking.owners(1)).to.equal(user.address);
       expect(await staking.stakesFor(user.address)).to.deep.equal([ethers.constants.One]);
       expect(await staking.totalWorkingSupply()).to.equal(amount2.mul(4));
     });
@@ -377,6 +371,42 @@ describe("Staking", async () => {
       await expect(await staking.connect(governance).setStakingLimit(limit));
       await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("2", TOKEN_DECIMALS));
       await expect(staking.connect(user).stake(ethers.utils.parseUnits("1", TOKEN_DECIMALS), 7)).to.be.revertedWith("limit reached");
+    });
+  });
+
+  describe("safeTransferFrom", async () => {
+    const amount1 = ethers.utils.parseUnits("1", TOKEN_DECIMALS);
+    const amount2 = ethers.utils.parseUnits("2", TOKEN_DECIMALS);
+    const blockTime = Math.round(new Date().getTime() / 1000);
+    let user2: SignerWithAddress;
+    beforeEach(async () => {
+      await staking.setBlocktime(blockTime);
+      [user2] = (await ethers.getSigners()).reverse();
+      await stakeToken.mock.balanceOf.returns(ethers.utils.parseUnits("3", TOKEN_DECIMALS));
+      await stakeToken.mock.transferFrom.returns(true);
+
+      await staking.connect(user).stake(amount1, 2);
+      await staking.connect(user).stake(amount1, 3);
+      await staking.connect(user2).stake(amount2, 6);
+    });
+
+    it("should revert if transfer 0 amount of tokens", async () => {
+      // user tries to transfer the token belongs to user2
+      await expect(staking.connect(user).safeTransferFrom(user.address, user.address, 2, 0, [])).to.be.revertedWith("!amount");
+    });
+
+    it("should revert if the from address is not the owner of the token", async () => {
+      await expect(staking.connect(user).safeTransferFrom(user.address, user.address, 2, 1, [])).to.be.revertedWith("!allowed");
+    });
+
+    it("should remove stake if address is the owner", async () => {
+      let stakes = await staking.stakesFor(user.address);
+      expect(stakes.length).to.equal(2);
+      await staking.removeStake(user.address, 0);
+      stakes = await staking.stakesFor(user.address);
+      expect(stakes.length).to.equal(1);
+      await staking.removeStake(user.address, 0);
+      expect(stakes.length).to.equal(1);
     });
   });
 });

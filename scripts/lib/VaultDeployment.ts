@@ -122,6 +122,8 @@ export class VaultDeployment extends ContractDeploymentUpdate {
       if (this.version.toString() === "2") {
         results = results.concat(await this.upgradeToV2());
       }
+      // TODO: when new version of vaults are deployed, we need to deploy the new version of VaultUtils
+      // to fix the issue with token approval issue on for USDT vault
     }
     for (const s of this.config.strategies) {
       const strategyContract = s.contract as string;

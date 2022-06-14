@@ -8,7 +8,6 @@ import { YOPRewards } from "../../../types/YOPRewards";
 import { MockContract } from "ethereum-waffle";
 import FeeCollectionABI from "../../../abi/contracts/interfaces/IFeeCollection.sol/IFeeCollection.json";
 import { SingleAssetVaultV2Mock } from "../../../types/SingleAssetVaultV2Mock";
-import { VaultUtils } from "../../../types/VaultUtils";
 const { deployMockContract } = waffle;
 
 const YOP_CONTRACT_ADDRESS = "0xAE1eaAE3F627AAca434127644371b67B18444051";

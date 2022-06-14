@@ -21,6 +21,7 @@ const argv = yargs(process.argv.slice(2))
   .options({
     vault: { type: "string", describe: "vault address" },
     strategy: { type: "string", describe: "strategy address" },
+    "no-fees": { type: "boolean", default: false, describe: "do no charge fees" },
   })
   .parseSync();
 
@@ -46,6 +47,12 @@ async function main() {
   const strategyTotalDebt = (await vault.strategy(strategyAddress)).totalDebt;
   const governance = await impersonate(GovernanceAddress);
   await vaultStrategyDataStore.connect(governance).updateStrategyDebtRatio(vaultAddress, strategyAddress, ethers.constants.Zero);
+  // do not charge fees
+  if (argv["no-fees"]) {
+    console.log("Set fees to 0");
+    await vaultStrategyDataStore.connect(governance).updateStrategyPerformanceFee(vaultAddress, strategyAddress, 0);
+    await vault.connect(governance).setManagementFee(0);
+  }
   console.log(`Strategy debt ratio is set to 0`);
   const strategy = (await ethers.getContractAt(StrategyABI, strategyAddress)) as BaseStrategy;
   await strategy.connect(governance).harvest();

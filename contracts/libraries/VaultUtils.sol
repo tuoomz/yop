@@ -2,6 +2,7 @@
 pragma solidity =0.8.9;
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../interfaces/IStaking.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IHealthCheck.sol";
@@ -12,6 +13,7 @@ import "../interfaces/IVaultStrategyDataStore.sol";
 ///@dev This library will include some of the stateless functions used by the SingleAssetVault
 /// The main reason to put these function in the library is to reduce the size of the main contract
 library VaultUtils {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
   uint256 internal constant SECONDS_PER_YEAR = 31_556_952; // 365.2425 days
   uint256 internal constant MAX_BASIS_POINTS = 10_000;
 
@@ -118,7 +120,10 @@ library VaultUtils {
     (totalFee_, performanceFee_) = calculateFees(_strategies, _strategy, _gain, _managementFee, _performanceFee);
 
     if (totalFee_ > 0) {
-      _token.approve(_feeCollection, totalFee_);
+      // need to use safeApprove here as some tokens' (like USDT) approve methods are not compatible with ERC20
+      // reduce approval to be 0 first
+      _token.safeApprove(_feeCollection, 0);
+      _token.safeApprove(_feeCollection, totalFee_);
       uint256 managementFee_ = totalFee_ - performanceFee_;
       if (managementFee_ > 0) {
         IFeeCollection(_feeCollection).collectManageFee(managementFee_);

@@ -462,7 +462,10 @@ vaults:
     gatekeeper: *gatekeeper
     manager: *manager
     token_address: *usdt_token_address
-    management_fee: *vault_management_fee
+    # Set management fee to 0 for now for the USDT vault to walk around a bug with approving the FeeCollection contract
+    # on USDT. The performance fee of active strategies are set to 0 for the same reason.
+    # Should be set back once the issue is fixed.
+    management_fee: 0
     max_debt_ratio: *vault_max_debt_ratio
     paused: *usdt_vault_paused
     emergency_shutdown: false
@@ -489,7 +492,7 @@ vaults:
       - name: "ConvexUSDTV2"
         contract: "ConvexCurveMeta"
         harvester: *harvester_address
-        performance_fee: *strategy_performance_fee
+        performance_fee: 0
         allocation: *convex_usdt_allocation
         version: 2
         pool_info:

@@ -8,6 +8,7 @@ import {
   BaseConfig,
 } from "./ContractDeployment";
 import VaultABI from "../../abi/contracts/vaults/SingleAssetVaultV2.sol/SingleAssetVaultV2.json";
+import BaseStrategyABI from "../../abi/contracts/strategies/BaseStrategy.sol/BaseStrategy.json";
 import { ethers } from "hardhat";
 import { readDeploymentFile } from "../util";
 import { CurveStrategyDeploymentConfig, CurveV1StrategyDeployment } from "./strategies/CurveV1StrategyDeployment";
@@ -208,6 +209,21 @@ export class VaultDeployment extends ContractDeploymentUpdate {
         params: [this.config.emergency_shutdown],
         signer: this.config.governance,
       });
+      if (this.config.emergency_shutdown) {
+        // for ermergency_shutdown to actually work, we also need to call `harvest` on all the active strategies to withdraw funds
+        for (const s of this.config.strategies) {
+          if (s.allocation > 0) {
+            const strategyAddress = await this.getAddressByName(s.name);
+            results.push({
+              address: strategyAddress!,
+              abi: BaseStrategyABI,
+              methodName: "harvest",
+              params: [],
+              signer: this.config.governance,
+            });
+          }
+        }
+      }
     }
     if (currentDepositLimit !== this.config.deposit_limit) {
       let limit;

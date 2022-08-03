@@ -54,7 +54,7 @@ jobs:
         env:
           HARDHAT_NETWORK: mainnet
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
-        if: github.event_name == 'pull_request'
+        if: ${{github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'}}
 
       # It's not a PR, so propose the changes to the governance safe
       - name: Update Mainnet

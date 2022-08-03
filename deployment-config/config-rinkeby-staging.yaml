@@ -150,7 +150,6 @@ vaults:
     # can be changed
     emergency_shutdown: false
     # can be changed
-    deposit_limit: 1000
     # can add new strategies, but don't remove, and don't change orders here
     # change the allocation to 0 if the strategy is not used anymore
     strategies:
@@ -178,8 +177,6 @@ vaults:
     max_debt_ratio: *vault_max_debt_ratio
     paused: false
     emergency_shutdown: false
-    # can be changed
-    deposit_limit: 100
     strategies:
       - name: "MockBtc1"
         contract: "TestnetStrategyMock"
@@ -203,8 +200,6 @@ vaults:
     max_debt_ratio: *vault_max_debt_ratio
     paused: false
     emergency_shutdown: false
-    # can be changed
-    deposit_limit: 500000
     strategies:
       - name: "MockUSDC1"
         contract: "TestnetStrategyMock"
@@ -228,8 +223,6 @@ vaults:
     max_debt_ratio: *vault_max_debt_ratio
     paused: false
     emergency_shutdown: false
-    # can be changed
-    deposit_limit: 500000
     strategies:
       - name: "NewMockDAI1"
         contract: "TestnetStrategyMock"
@@ -253,8 +246,6 @@ vaults:
     max_debt_ratio: *vault_max_debt_ratio
     paused: false
     emergency_shutdown: false
-    # can be changed
-    deposit_limit: 500000
     strategies:
       - name: "NewMockUSDT1"
         contract: "TestnetStrategyMock"
@@ -280,8 +271,6 @@ vaults:
     max_debt_ratio: *vault_max_debt_ratio
     paused: false
     emergency_shutdown: false
-    # can be changed
-    deposit_limit: 500000
     strategies:
       - name: "MockDAI1"
         contract: "TestnetStrategyMock"
@@ -305,8 +294,6 @@ vaults:
     max_debt_ratio: *vault_max_debt_ratio
     paused: false
     emergency_shutdown: false
-    # can be changed
-    deposit_limit: 500000
     strategies:
       - name: "MockUSDT1"
         contract: "TestnetStrategyMock"

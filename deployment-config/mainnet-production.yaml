@@ -352,6 +352,7 @@ vaults:
         pool_info:
           <<: *sbtc_pool_info
         booster: *convex_booster
+        emergency_exit: true
     withdraw_queue:
       - ConvexWBTCV2
   - name: USDC Genesis
@@ -402,6 +403,7 @@ vaults:
         pool_info:
           <<: *curve_frax_pool_info
         booster: *convex_booster
+        emergency_exit: true
     withdraw_queue:
       - ConvexUSDCV2
   - name: DAI Genesis
@@ -441,6 +443,7 @@ vaults:
         pool_info:
           <<: *curve_frax_pool_info
         booster: *convex_booster
+        emergency_exit: true
     withdraw_queue:
       - ConvexDAIV2
   - name: USDT Genesis
@@ -483,6 +486,7 @@ vaults:
         pool_info:
           <<: *curve_frax_pool_info
         booster: *convex_booster
+        emergency_exit: true
     withdraw_queue:
       - ConvexUSDTV2
   # a dummy vault that will never be enabled, and but can share the emission.

@@ -81,7 +81,7 @@ contract ConvexERC20SinglePoolMock is ConvexERC20SinglePool {
   }
 
   function testLiquidatePosition(uint256 _amount) external {
-    (uint256 amount, uint256 loss) = super.liquidatePosition(_amount);
+    (uint256 amount, uint256 loss) = super.liquidatePosition(_amount, true);
     emit LiquidationReported(amount, loss);
   }
 

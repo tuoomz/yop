@@ -30,6 +30,10 @@ contract CurveETHSinglePoolMock is CurveETHSinglePool {
 
   function _approveOnInit() internal override {}
 
+  function _withdrawSome(uint256 _amount) internal virtual override returns (uint256) {
+    return (_amount * 10200) / 10000;
+  }
+
   function _approveCurveExtra() internal override {}
 
   function _approveTokens() internal {
@@ -68,7 +72,7 @@ contract CurveETHSinglePoolMock is CurveETHSinglePool {
   }
 
   function testLiquidatePosition(uint256 _amount) external {
-    (uint256 amount, uint256 loss) = super.liquidatePosition(_amount);
+    (uint256 amount, uint256 loss) = super.liquidatePosition(_amount, true);
     emit LiquidationReported(amount, loss);
   }
 

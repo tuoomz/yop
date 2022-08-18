@@ -62,7 +62,7 @@ contract BaseStrategyMock is BaseStrategy {
     liquidateLoss = _loss;
   }
 
-  function liquidatePosition(uint256 _amountNeeded)
+  function liquidatePosition(uint256 _amountNeededl, bool claimRewards)
     internal
     override
     returns (uint256 _liquidatedAmount, uint256 _loss)

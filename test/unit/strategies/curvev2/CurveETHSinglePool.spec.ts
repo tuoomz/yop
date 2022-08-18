@@ -285,7 +285,26 @@ describe("CurveETHSinglePool strategy", async () => {
       // loss = 0.5
       await expect(await curveEthStrategy.testLiquidatePosition(ethers.utils.parseEther("2")))
         .to.emit(curveEthStrategy, "LiquidationReported")
-        .withArgs(ethers.utils.parseEther("1"), ethers.utils.parseEther("1"));
+        .withArgs(ethers.utils.parseEther("2.02"), 0);
+    });
+
+    it("success when negative loss", async () => {
+      await mockCurveMinter.mock.mint.returns();
+      await curveToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockDex.mock.swapExactTokensForTokens.returns([0, ethers.utils.parseEther("1")]);
+      await mockVaultToken.mock.balanceOf.returns(ethers.utils.parseEther("1"));
+      await mockCurvePool.mock["calc_token_amount(uint256[2],bool)"].returns(ethers.utils.parseEther("1.5"));
+
+      await mockCurveGauge.mock.balanceOf.returns(ethers.utils.parseEther("0.5"));
+      await mockCurveGauge.mock.withdraw.returns();
+      await mockCurvePool.mock.remove_liquidity_one_coin.returns(ethers.utils.parseEther("0.5"));
+      await network.provider.send("hardhat_setBalance", [curveEthStrategy.address, ethers.utils.parseEther("10").toHexString()]);
+      await mockVaultToken.mock.deposit.returns();
+      // Here we are removing slightly more liquidity that want needed so we will have a
+      // negative loss which gets returned as 0;
+      await expect(await curveEthStrategy.testLiquidatePosition(ethers.utils.parseEther("1.01")))
+        .to.emit(curveEthStrategy, "LiquidationReported")
+        .withArgs(ethers.utils.parseEther("1.0102"), ethers.utils.parseEther("0"));
     });
   });
 

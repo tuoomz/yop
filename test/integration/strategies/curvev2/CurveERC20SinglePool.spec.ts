@@ -81,7 +81,7 @@ describe("CurveERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
     // send some wbtc to the user
     wbtcContract = (await ethers.getContractAt(ERC20ABI, WBTC_ADDRESS)) as ERC20;
     await setEthBalance(WBTC_WHALE_ADDRESS, ethers.utils.parseEther("10"));
-    await wbtcContract.connect(await impersonate(WBTC_WHALE_ADDRESS)).transfer(user.address, ethers.utils.parseUnits("10", WBTC_DECIMALS));
+    await wbtcContract.connect(await impersonate(WBTC_WHALE_ADDRESS)).transfer(user.address, ethers.utils.parseUnits("20", WBTC_DECIMALS));
     await wbtcContract.connect(user).approve(vault.address, ethers.constants.MaxUint256);
 
     // get an instance of the pool contract
@@ -91,8 +91,8 @@ describe("CurveERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
   });
 
   describe("oBTC pool happy path", async () => {
-    const depositAmount = ethers.utils.parseUnits("10", WBTC_DECIMALS);
-    const allocatedFund = ethers.utils.parseUnits("4.5", WBTC_DECIMALS); // 90% ratio
+    const depositAmount = ethers.utils.parseUnits("20", WBTC_DECIMALS);
+    const allocatedFund = ethers.utils.parseUnits("9", WBTC_DECIMALS); // 90% ratio
 
     it("normal operation", async () => {
       // deposit the funds and verify that the funds are transferred
@@ -125,6 +125,7 @@ describe("CurveERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
 
     it("emergency withdraw", async () => {
       await vault.connect(user).deposit(depositAmount, user.address);
+      await wbtcContract.approve(await curveOBTCStrategy.dex(), ethers.constants.MaxUint256);
       await expect(async () => await curveOBTCStrategy.connect(governance).harvest()).to.changeTokenBalance(
         wbtcContract,
         curveBasePool,
@@ -143,8 +144,8 @@ describe("CurveERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
   });
 
   describe("renBTC pool happy path", async () => {
-    const depositAmount = ethers.utils.parseUnits("10", WBTC_DECIMALS);
-    const allocatedFund = ethers.utils.parseUnits("4.5", WBTC_DECIMALS); // 90% ratio
+    const depositAmount = ethers.utils.parseUnits("20", WBTC_DECIMALS);
+    const allocatedFund = ethers.utils.parseUnits("9", WBTC_DECIMALS); // 90% ratio
 
     it("normal operation", async () => {
       // deposit the funds and verify that the funds are transferred
@@ -192,6 +193,16 @@ describe("CurveERC20SinglePoolStrategy [@skip-on-coverage]", async () => {
         parseFloat(ethers.utils.formatUnits(allocatedFund, WBTC_DECIMALS)),
         1
       );
+    });
+
+    it("withdraw funds from strategies", async () => {
+      const depositAmount = ethers.utils.parseUnits("10", WBTC_DECIMALS);
+      await vault.connect(user).deposit(depositAmount, user.address);
+      await curveOBTCStrategy.connect(governance).harvest();
+
+      await curveOBTCStrategy.connect(governance).switchDex(true);
+      await vault.connect(user).withdraw(depositAmount, user.address, 10000);
+      expect(await vault.connect(user).balanceOf(user.address)).to.be.equal(0);
     });
   });
 });

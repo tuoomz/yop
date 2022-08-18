@@ -422,7 +422,10 @@ abstract contract BaseStrategy is IStrategy, ERC165 {
    *
    * NOTE: The invariant `_liquidatedAmount + _loss <= _amountNeeded` should always be maintained
    */
-  function liquidatePosition(uint256 _amountNeeded) internal virtual returns (uint256 _liquidatedAmount, uint256 _loss);
+  function liquidatePosition(uint256 _amountNeeded, bool claimRewards)
+    internal
+    virtual
+    returns (uint256 _liquidatedAmount, uint256 _loss);
 
   /**
    * @notice
@@ -559,7 +562,7 @@ abstract contract BaseStrategy is IStrategy, ERC165 {
       // Free up as much capital as possible
       uint256 totalAssets = estimatedTotalAssets();
       // NOTE: use the larger of total assets or debt outstanding to book losses properly
-      (debtPayment, loss) = liquidatePosition(totalAssets > debtOutstanding ? totalAssets : debtOutstanding);
+      (debtPayment, loss) = liquidatePosition(totalAssets > debtOutstanding ? totalAssets : debtOutstanding, true);
       // NOTE: take up any remainder here as profit
       if (debtPayment > debtOutstanding) {
         profit = debtPayment.sub(debtOutstanding);
@@ -593,7 +596,7 @@ abstract contract BaseStrategy is IStrategy, ERC165 {
     require(msg.sender == address(vault), "!vault");
     // Liquidate as much as possible to `want`, up to `_amountNeeded`
     uint256 amountFreed;
-    (amountFreed, _loss) = liquidatePosition(_amountNeeded);
+    (amountFreed, _loss) = liquidatePosition(_amountNeeded, false);
     // Send it directly back (NOTE: Using `msg.sender` saves some gas here)
     want.safeTransfer(msg.sender, amountFreed);
     // NOTE: Reinvest anything leftover on next `tend`/`harvest`

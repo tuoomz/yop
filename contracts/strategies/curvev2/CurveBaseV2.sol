@@ -139,19 +139,22 @@ abstract contract CurveBaseV2 is BaseStrategy {
   }
 
   /// @dev Liquidates the positions from either Curve or Convex.
-  function liquidatePosition(uint256 _amountNeeded)
+  function liquidatePosition(uint256 _amountNeeded, bool claimRewards)
     internal
     virtual
     override
     returns (uint256 _liquidatedAmount, uint256 _loss)
   {
-    // cash out all the rewards first
-    _claimRewards();
+    if (claimRewards) {
+      _claimRewards();
+    }
     uint256 _balance = _balanceOfWant();
     if (_balance < _amountNeeded) {
       _liquidatedAmount = _withdrawSome(_amountNeeded - _balance);
       _liquidatedAmount = _liquidatedAmount + _balance;
-      _loss = _amountNeeded - _liquidatedAmount; // this should be 0. o/w there must be an error
+      if (_amountNeeded > _liquidatedAmount) {
+        _loss = _amountNeeded - _liquidatedAmount;
+      }
     } else {
       _liquidatedAmount = _amountNeeded;
     }

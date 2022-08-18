@@ -57,7 +57,7 @@ contract TestnetStrategyMock is BaseStrategy {
     previousBalance = currentBalance;
   }
 
-  function liquidatePosition(uint256 _amountNeeded)
+  function liquidatePosition(uint256 _amountNeeded, bool claimRewards)
     internal
     override
     returns (uint256 _liquidatedAmount, uint256 _loss)

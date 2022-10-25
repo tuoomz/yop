@@ -22,6 +22,11 @@ export const CONSTANTS: any = {
       yop_address: "0x805758826868a767073bd313E301Ff2F4578E95D",
       curveStEthPool: "0xa35Bed5d2F29653251e3Cf20905005F827b39a0e",
     },
+    goerli: {
+      yop_nft_contract_address: "0xCfA7af86c325a8050e3dFb9E5349f36cEB89Faf8",
+      yop_address: "0xc40C64835D5f190348B18d823fA9A1149aEbd4d7",
+      curveStEthPool: "0xa35Bed5d2F29653251e3Cf20905005F827b39a0e",
+    },
   },
   token_addresses: {
     mainnet: {
@@ -31,6 +36,10 @@ export const CONSTANTS: any = {
     rinkeby: {
       usdc: "0xeb8f08a975ab53e34d8a0330e0d34de942c95926",
       weth: "0xc778417e063141139fce010982780140aa0cd5ab",
+    },
+    goerli: {
+      usdc: "0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C",
+      weth: "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6",
     },
   },
 } as const;

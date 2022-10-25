@@ -3,6 +3,7 @@ import { task } from "hardhat/config";
 import { createDelegate, listDelegates, deleteDelegate } from "../scripts/gnosis/safe-delegate";
 export * as impersonateAccountsTask from "./fork/impersonateAccounts";
 export * as distributeFundsTask from "./fork/distributeFunds";
+export * as increaseTimeTsk from "./fork/increaseTime";
 export * as resetFork from "./fork/reset";
 export * as rewardsTask from "./rewards/approveRewardsContract";
 export * as gnosisPropose from "./gnosis/propose-txn";

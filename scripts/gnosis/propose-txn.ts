@@ -188,6 +188,10 @@ const fetchApiUrl = (apiName: string) => {
       etherscan: "https://api-rinkeby.etherscan.io/api",
       gnosis_safe_transaction: "https://safe-transaction.rinkeby.gnosis.io/api/v1/",
     },
+    goerli: {
+      etherscan: "https://api-goerli.etherscan.io/api",
+      gnosis_safe_transaction: "https://safe-transaction.goerli.gnosis.io/api/v1/",
+    },
   };
 
   return apis[network][apiName];

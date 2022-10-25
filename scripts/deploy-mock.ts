@@ -2,9 +2,10 @@ import hre from "hardhat";
 
 import { readDeploymentFile, writeDeploymentFile } from "./util";
 
-import { YopERC1155Mock, YOPTokenMock } from "../types";
+import { YopERC1155Mock, YOPTokenMock, StakingV2 } from "../types";
 import YOPERC1155MockABI from "../abi/contracts/mocks/YopERC1155Mock.sol/YopERC1155Mock.json";
 import YOPTokenMockABI from "../abi/contracts/mocks/YOPTokenMock.sol/YOPTokenMock.json";
+import StakingV2ABI from "../abi/contracts/staking/StakingV2.sol/StakingV2.json";
 
 const NETWORK_NAME = hre.network.name;
 const TARGET_ACCOUNT = process.env.TARGET_ACCOUNT;
@@ -91,9 +92,52 @@ export async function deployMockYOPContract(wallet: string | undefined = TARGET_
   }
   return mockYopToken.address;
 }
+export async function deployMockStakingV2Contract() {
+  const { ethers } = hre;
+  const [deployer] = await ethers.getSigners();
+
+  let deployRecord = await readDeploymentFile();
+  let mockStaking: StakingV2;
+  if (!deployRecord.mockStaking || !deployRecord.mockStaking.address) {
+    console.log("Deploying mock Staking contract");
+    const StakingV2MockFactory = await ethers.getContractFactory("StakingV2");
+    mockStaking = (await StakingV2MockFactory.deploy()) as StakingV2;
+    console.log(`Deploying mock Staking contract - txHash: ${mockStaking.deployTransaction.hash}`);
+    await mockStaking.deployed();
+
+    await mockStaking.initialize(
+      "YOP Staking",
+      "sYOP",
+      "0x5901a9572f23766c5e06c883f9f1be5b9c40c749",
+      "0x5901a9572f23766C5e06c883F9F1be5b9C40C749",
+      deployRecord.YOPRewards.address,
+      "",
+      "",
+      "0x5901a9572f23766c5e06c883f9f1be5b9c40c749",
+      "0xa79e59B3137fb9d851cDE34457aE8453A1f74727"
+    );
+
+    // await mockStaking.setToken(deployRecord.yopTokenMock.address);
+
+    deployRecord = {
+      ...deployRecord,
+      yopStakingMock: {
+        address: mockStaking.address,
+        contractParams: [],
+        proxy: false,
+      },
+    };
+    await writeDeploymentFile(NETWORK_NAME, deployRecord);
+    console.log(`YOP staking mock deployed - txHash: ${mockStaking.deployTransaction.hash} - address: ${mockStaking.address} \n\n`);
+  } else {
+    mockStaking = (await ethers.getContractAt(StakingV2ABI, deployRecord.mockStaking.address)) as StakingV2;
+  }
+  return mockStaking.address;
+}
 
 async function main() {
   await deployMockYOPContract(undefined);
+  await deployMockStakingV2Contract();
   await deployMockNFTContract();
 }
 

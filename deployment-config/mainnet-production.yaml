@@ -119,18 +119,22 @@ constants:
       # we have about 16 ETH deployed to this strategy. Want to keep them there for now.
       # As of May 17, 2022, the ETH vault has about 87 ETH deployed. So 16/87 ~= 18.4%.
       # This can be further reduced when there are more ETH in the vault
-      allocation: &convex_eth_allocation_v1 1840
+      allocation: &convex_eth_allocation_v1 0
     convex_strategy_v2:
-      allocation: &convex_eth_allocation_v2 6660 # v1 + v2 allocation is 8500
+      allocation: &convex_eth_allocation_v2 0
+    convex_strategy_v3:
+      allocation: &convex_eth_allocation_v3 8500
   wbtc_vault:
     rewards_weight: &wbtc_vault_rewards_weight 170000
     paused: &wbtc_vault_paused false
     curve_strategy:
       allocation: &curve_wbtc_allocation 0
     convex_strategy:
-      allocation: &convex_wbtc_allocation_v1 0 #80%
+      allocation: &convex_wbtc_allocation_v1 0
     convex_strategy_v2:
-      allocation: &convex_wbtc_allocation_v2 8500
+      allocation: &convex_wbtc_allocation_v2 0
+    convex_strategy_v3:
+      allocation: &convex_wbtc_allocation_v3 8500
   usdc_vault:
     rewards_weight: &usdc_vault_rewards_weight 170000
     paused: &usdc_vault_paused false
@@ -306,13 +310,23 @@ vaults:
       - name: "ConvexETHV2"
         contract: "ConvexETHSinglePool"
         harvester: *harvester_address
-        allocation: *convex_eth_allocation_v2
+        allocation: 0
+        performance_fee: *strategy_performance_fee
+        version: 2
+        pool_info:
+          <<: *curve_steth_pool_info
+        booster: *convex_booster
+      - name: "ConvexETHV3"
+        contract: "ConvexETHSinglePool"
+        harvester: *harvester_address
+        allocation: *convex_eth_allocation_v3
         performance_fee: *strategy_performance_fee
         version: 2
         pool_info:
           <<: *curve_steth_pool_info
         booster: *convex_booster
     withdraw_queue:
+      - ConvexETHV3
       - ConvexETHV2
       - ConvexETH
   - name: Bitcoin Genesis
@@ -346,15 +360,25 @@ vaults:
       - name: "ConvexWBTCV2"
         contract: "ConvexERC20SinglePool"
         harvester: *harvester_address
-        allocation: *convex_wbtc_allocation_v2
+        allocation: 0
         performance_fee: *strategy_performance_fee
         version: 2
         pool_info:
           <<: *sbtc_pool_info
         booster: *convex_booster
         emergency_exit: true
+      - name: "ConvexWBTCV3"
+        contract: "ConvexERC20SinglePool"
+        harvester: *harvester_address
+        allocation: *convex_wbtc_allocation_v3
+        performance_fee: *strategy_performance_fee
+        version: 2
+        pool_info:
+          <<: *sbtc_pool_info
+        booster: *convex_booster
+        emergency_exit: false
     withdraw_queue:
-      - ConvexWBTCV2
+      - ConvexWBTCV3
   - name: USDC Genesis
     symbol: "yopUSDC"
     governance: *governance
@@ -398,14 +422,24 @@ vaults:
         contract: "ConvexCurveMeta"
         harvester: *harvester_address
         performance_fee: *strategy_performance_fee
-        allocation: *convex_usdc_allocation
+        allocation: 0
         version: 2
         pool_info:
           <<: *curve_frax_pool_info
         booster: *convex_booster
         emergency_exit: true
+      - name: "ConvexUSDCV3"
+        contract: "ConvexCurveMeta"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *convex_usdc_allocation
+        version: 2
+        pool_info:
+          <<: *curve_frax_pool_info
+        booster: *convex_booster
+        emergency_exit: false
     withdraw_queue:
-      - ConvexUSDCV2
+      - ConvexUSDCV3
   - name: DAI Genesis
     symbol: "yopDAI"
     governance: *governance
@@ -438,14 +472,24 @@ vaults:
         contract: "ConvexCurveMeta"
         harvester: *harvester_address
         performance_fee: *strategy_performance_fee
-        allocation: *convex_dai_allocation
+        allocation: 0
         version: 2
         pool_info:
           <<: *curve_frax_pool_info
         booster: *convex_booster
         emergency_exit: true
+      - name: "ConvexDAIV3"
+        contract: "ConvexCurveMeta"
+        harvester: *harvester_address
+        performance_fee: *strategy_performance_fee
+        allocation: *convex_dai_allocation
+        version: 2
+        pool_info:
+          <<: *curve_frax_pool_info
+        booster: *convex_booster
+        emergency_exit: false
     withdraw_queue:
-      - ConvexDAIV2
+      - ConvexDAIV3
   - name: USDT Genesis
     symbol: "yopUSDT"
     governance: *governance
@@ -481,14 +525,24 @@ vaults:
         contract: "ConvexCurveMeta"
         harvester: *harvester_address
         performance_fee: 0
-        allocation: *convex_usdt_allocation
+        allocation: 0
         version: 2
         pool_info:
           <<: *curve_frax_pool_info
         booster: *convex_booster
         emergency_exit: true
+      - name: "ConvexUSDTV3"
+        contract: "ConvexCurveMeta"
+        harvester: *harvester_address
+        performance_fee: 0
+        allocation: *convex_usdt_allocation
+        version: 2
+        pool_info:
+          <<: *curve_frax_pool_info
+        booster: *convex_booster
+        emergency_exit: false
     withdraw_queue:
-      - ConvexUSDTV2
+      - ConvexUSDTV3
   # a dummy vault that will never be enabled, and but can share the emission.
   # it is needed to reserve some emissions for the private launch
   # this should never be listed in the UI
